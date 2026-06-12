@@ -8,12 +8,12 @@ const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
 const _cc=k=>Object.values(C).filter(v=>k==='world'||v.c===k).length;
 const MODES={world:{de:'Alle Länder',en:'All Countries',cnt:_cc('world')},EU:{de:'Europa',en:'Europe',cnt:_cc('EU')},AF:{de:'Afrika',en:'Africa',cnt:_cc('AF')},AS:{de:'Asien',en:'Asia',cnt:_cc('AS')},NA:{de:'Nordamerika',en:'N. America',cnt:_cc('NA')},SA:{de:'Südamerika',en:'S. America',cnt:_cc('SA')},OC:{de:'Ozeanien',en:'Oceania',cnt:_cc('OC')},custom:{de:'Eigener Modus',en:'Custom Mode',cnt:'⚙'}};
 const TX={
-  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',findLake:'Finde diesen See',lakeQuiz:'Seen-Quiz',lakeSub:'Ein See erscheint — finde und klicke ihn auf der Karte.',lakeDiffs:[{key:'beginner',label:'Anfänger',count:13},{key:'easy',label:'Einfach',count:44},{key:'medium',label:'Mittel',count:76},{key:'hard',label:'Schwer',count:144},{key:'extreme',label:'Extrem',count:321}],lakes:'Seen',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Neues Spiel',langLbl:'Sprache',themeLbl:'Design',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',wrongHintLabel:'Hinweise',wrongHintOn:'Anzeigen',wrongHintOff:'Ausblenden',countries:'Länder',zoomTip:'Zoom & Pan möglich',skipLbl:'Überspringen',skippedLbl:'übersprungen',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{nacht:'Nacht',atlas:'Atlas',retro:'Retro',wald:'Wald'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten'},
-  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',findLake:'Find this lake',lakeQuiz:'Lake Quiz',lakeSub:'A lake name appears — find and click it on the map.',lakeDiffs:[{key:'beginner',label:'Beginner',count:13},{key:'easy',label:'Easy',count:44},{key:'medium',label:'Medium',count:76},{key:'hard',label:'Hard',count:144},{key:'extreme',label:'Extreme',count:321}],lakes:'Lakes',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'New game',langLbl:'Language',themeLbl:'Theme',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',wrongHintLabel:'Hints',wrongHintOn:'Show',wrongHintOff:'Hide',countries:'countries',zoomTip:'Zoom & pan supported',skipLbl:'Skip',skippedLbl:'skipped',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{nacht:'Night',atlas:'Atlas',retro:'Retro',wald:'Forest'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start'}
+  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',findLake:'Finde diesen See',findRiver:'Finde diesen Fluss',lakeQuiz:'Seen-Quiz',lakeSub:'Ein See erscheint — finde und klicke ihn auf der Karte.',lakeDiffs:[{key:'beginner',label:'Anfänger',count:13},{key:'easy',label:'Einfach',count:44},{key:'medium',label:'Mittel',count:76},{key:'hard',label:'Schwer',count:144},{key:'extreme',label:'Extrem',count:321}],lakes:'Seen',riverQuiz:'Fluss-Quiz',riverSub:'Ein Flussname erscheint — finde und klicke ihn auf der Karte.',riverDiffs:[{key:'beginner',label:'Anfänger',count:22},{key:'easy',label:'Einfach',count:53},{key:'medium',label:'Mittel',count:94},{key:'hard',label:'Schwer',count:148},{key:'extreme',label:'Extrem',count:350}],rivers:'Flüsse',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Neues Spiel',langLbl:'Sprache',themeLbl:'Design',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',wrongHintLabel:'Hinweise',wrongHintOn:'Anzeigen',wrongHintOff:'Ausblenden',countries:'Länder',zoomTip:'Zoom & Pan möglich',skipLbl:'Überspringen',skippedLbl:'übersprungen',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{nacht:'Nacht',atlas:'Atlas',retro:'Retro',wald:'Wald'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten'},
+  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',findLake:'Find this lake',findRiver:'Find this river',lakeQuiz:'Lake Quiz',lakeSub:'A lake name appears — find and click it on the map.',lakeDiffs:[{key:'beginner',label:'Beginner',count:13},{key:'easy',label:'Easy',count:44},{key:'medium',label:'Medium',count:76},{key:'hard',label:'Hard',count:144},{key:'extreme',label:'Extreme',count:321}],lakes:'Lakes',riverQuiz:'River Quiz',riverSub:'A river name appears — find and click it on the map.',riverDiffs:[{key:'beginner',label:'Beginner',count:22},{key:'easy',label:'Easy',count:53},{key:'medium',label:'Medium',count:94},{key:'hard',label:'Hard',count:148},{key:'extreme',label:'Extreme',count:350}],rivers:'Rivers',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'New game',langLbl:'Language',themeLbl:'Theme',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',wrongHintLabel:'Hints',wrongHintOn:'Show',wrongHintOff:'Hide',countries:'countries',zoomTip:'Zoom & pan supported',skipLbl:'Skip',skippedLbl:'skipped',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{nacht:'Night',atlas:'Atlas',retro:'Retro',wald:'Forest'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start'}
 };
 
 let lang='de',theme='atlas',keepFound=true,showWrongHint=true,game={};
-let countryPaths=null,microstateDots=null,lakePaths=null,lakeDots=null,worldData=null,borderPath=null,zoomBehavior=null,gGroup=null;
+let countryPaths=null,microstateDots=null,lakePaths=null,lakeDots=null,riverPaths=null,riverHitboxes=null,worldData=null,borderPath=null,zoomBehavior=null,gGroup=null;
 let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null,_fbTimer=null;
 
 function showFeedback(text,color){
@@ -45,13 +45,14 @@ function applyTheme(){const h=THEMES[theme];$('map-bg').style.background=h.bg;$(
 function toggleOpts(){optsOpen=!optsOpen;$('opts-panel').style.display=optsOpen?'block':'none';}
 
 function updateAllText(){
-  renderModeScreen();$('btn-back').textContent=t('back');$('find-label').textContent=game.lakeMode?t('findLake'):t('find');$('found-label').textContent=t('foundLbl');$('lbl-lang').textContent=t('langLbl');$('lbl-theme').textContent=t('themeLbl');$('lbl-c').textContent=t('correctLbl');$('lbl-w').textContent=t('wrongLbl');$('lbl-found-mode').textContent=t('foundModeLabel');$('btn-found-on').textContent=t('keepOn');$('btn-found-off').textContent=t('keepOff');$('btn-skip').textContent=t('skipLbl');$('lbl-wrong-hint').textContent=t('wrongHintLabel');$('btn-wrong-on').textContent=t('wrongHintOn');$('btn-wrong-off').textContent=t('wrongHintOff');$('tl-nacht').textContent=t('themes').nacht;$('tl-atlas').textContent=t('themes').atlas;$('tl-retro').textContent=t('themes').retro;$('tl-wald').textContent=t('themes').wald;$('res-title').textContent=t('resTitle');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
+  renderModeScreen();$('btn-back').textContent=t('back');$('find-label').textContent=game.riverMode?t('findRiver'):game.lakeMode?t('findLake'):t('find');$('found-label').textContent=t('foundLbl');$('lbl-lang').textContent=t('langLbl');$('lbl-theme').textContent=t('themeLbl');$('lbl-c').textContent=t('correctLbl');$('lbl-w').textContent=t('wrongLbl');$('lbl-found-mode').textContent=t('foundModeLabel');$('btn-found-on').textContent=t('keepOn');$('btn-found-off').textContent=t('keepOff');$('btn-skip').textContent=t('skipLbl');$('lbl-wrong-hint').textContent=t('wrongHintLabel');$('btn-wrong-on').textContent=t('wrongHintOn');$('btn-wrong-off').textContent=t('wrongHintOff');$('tl-nacht').textContent=t('themes').nacht;$('tl-atlas').textContent=t('themes').atlas;$('tl-retro').textContent=t('themes').retro;$('tl-wald').textContent=t('themes').wald;$('res-title').textContent=t('resTitle');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
   if(game.current&&C[game.current])$('target-name').textContent=cn(game.current);updateStats();
 }
 
 function renderModeScreen(){
   const ms=['world','EU','AF','AS','NA','SA','OC','custom'];
   const diffs=TX[lang].lakeDiffs;
+  const rdiffs=TX[lang].riverDiffs;
   $('mode-screen').innerHTML=`<div style="padding:1.5rem 1.25rem;">
     <h1 style="font-size:22px;font-weight:500;margin:0 0 .25rem;text-align:center;">${t('title')}</h1>
     <p style="font-size:14px;color:#888;text-align:center;margin:0 0 1.5rem;">${t('sub')}</p>
@@ -63,6 +64,13 @@ function renderModeScreen(){
       <p style="font-size:13px;color:#666;text-align:center;margin:0 0 .75rem;">${t('lakeSub')}</p>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
         ${diffs.map(d=>`<button class="mode-btn" onclick="startLakeGame('${d.key}')"><span style="display:block;font-weight:500;font-size:14px;">${d.label}</span><span style="display:block;font-size:12px;color:#888;margin-top:2px;">${d.count} ${t('lakes')}</span></button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:1rem;max-width:640px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:13px;font-weight:500;color:#aaa;margin-bottom:.6rem;text-align:center;letter-spacing:.04em;">${t('riverQuiz')}</div>
+      <p style="font-size:13px;color:#666;text-align:center;margin:0 0 .75rem;">${t('riverSub')}</p>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+        ${rdiffs.map(d=>`<button class="mode-btn" onclick="startRiverGame('${d.key}')"><span style="display:block;font-weight:500;font-size:14px;">${d.label}</span><span style="display:block;font-size:12px;color:#888;margin-top:2px;">${d.count} ${t('rivers')}</span></button>`).join('')}
       </div>
     </div>
     <p style="font-size:12px;color:#666;text-align:center;margin:1.25rem 0 0;">${t('zoomTip')}</p>
@@ -164,7 +172,7 @@ async function startGame(mode){
   zoomTo(z[0],z[1],z[2]);
   nextCountry();
 }
-function restart(){if(game.lakeMode)startLakeGame(game.difficulty);else if(lastMode==='custom')startCustom();else startGame(lastMode);}
+function restart(){if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(lastMode==='custom')startCustom();else startGame(lastMode);}
 function back(){game={};showScreen('mode-screen');renderModeScreen();}
 function skip(){if(!canClick||!game||game.current===null||game.current===undefined)return;game.skipped=(game.skipped||0)+1;clearFeedback();updateStats();nextCountry();}
 
@@ -188,6 +196,55 @@ function updateLakeColors(){
   const th=THEMES[theme];
   lakePaths.attr('fill',d=>getLakeColor(d._i)).attr('stroke',th.border);
   if(lakeDots)lakeDots.attr('fill',d=>getLakeColor(d._i)).attr('stroke',th.border);
+}
+
+function riverDisplayName(feat){const p=feat.properties;return(lang==='de'?p.name_de:p.name_en)||p.name||'?';}
+function getRiverFeatures(diff){
+  if(!riversData)return[];
+  const named=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
+  const maxScale={beginner:1,easy:2,medium:3,hard:4,extreme:99};
+  return named.filter(f=>(f.properties.scalerank||6)<=(maxScale[diff]??99));
+}
+function getRiverColor(idx){const th=THEMES[theme];if(game.found&&game.found.has(idx))return th.found;return th.sph;}
+function updateRiverColors(){if(!riverPaths)return;riverPaths.attr('stroke',d=>getRiverColor(d._i));}
+
+async function startRiverGame(diff){
+  if(!riversData){showFeedback(t('load'),'#888');await loadMap();}
+  const feats=getRiverFeatures(diff);
+  const indexed=feats.map((f,i)=>({...f,_i:i}));
+  game={mode:'river',riverMode:true,difficulty:diff,
+    riverFeatures:feats,
+    queue:shuffle(feats.map((_,i)=>i)),
+    current:null,found:new Set(),correct:0,wrong:0,firstTry:0,
+    total:feats.length,wrongOnCurrent:false,skipped:0,_indexed:indexed};
+  lastMode='river';canClick=true;optsOpen=false;
+  showScreen('game-screen');$('opts-panel').style.display='none';
+  $('target-name').textContent='';showFeedback(t('load'),'#888');
+  updateAllText();
+  if(worldData)renderMap(worldData);else await loadMap();
+  nextCountry();
+}
+
+function handleRiverClick(idx){
+  if(!canClick||!game||game.current===null||game.current===undefined)return;
+  if(game.found.has(idx))return;
+  const feat=game.riverFeatures[idx];
+  const name=riverDisplayName(feat);
+  if(idx===game.current){
+    canClick=false;game.correct++;
+    if(!game.wrongOnCurrent)game.firstTry++;
+    game.found.add(idx);
+    if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
+    updateRiverColors();updateStats();
+    setTimeout(nextCountry,1100);
+  }else{
+    game.wrong++;game.wrongOnCurrent=true;
+    if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
+    riverPaths&&riverPaths.filter(d=>d._i===idx).attr('stroke',THEMES[theme].wrong);
+    if(wrongFlash)clearTimeout(wrongFlash);
+    wrongFlash=setTimeout(updateRiverColors,700);
+    updateStats();
+  }
 }
 
 async function startLakeGame(diff){
@@ -238,20 +295,55 @@ function zoomTo(cx,cy,k){
   svg.transition().duration(600).call(zoomBehavior.transform,d3.zoomIdentity.translate(tx,ty).scale(k));
 }
 
-let lakesData=null;
+let lakesData=null,riversData=null;
 async function loadMap(){
   if(worldData){renderMap(worldData);return;}
   try{
-    [worldData,lakesData]=await Promise.all([
+    [worldData,lakesData,riversData]=await Promise.all([
       fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(r=>r.json()),
-      fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_lakes.geojson').then(r=>r.json()).catch(()=>null)
+      fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_lakes.geojson').then(r=>r.json()).catch(()=>null),
+      fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null)
     ]);
+    // Normalize known river sections to their common names, then merge same-named segments
+    const RIVER_ALIASES={
+      'Chang Jiang':'Yangtze','Jinsha':'Yangtze','Tongtian':'Yangtze','Tuotuo':'Yangtze',
+      'Dihang':'Brahmaputra','Yarlung':'Brahmaputra','Maquan':'Brahmaputra',
+      'Lancang':'Mekong',
+      'Lualaba':'Congo',
+      'Donau':'Danube','Borcea':'Danube','Bratul Chillia':'Danube','Bratul Sfintu Gheorghe':'Danube','Bratul Sulina':'Danube',
+      'Bykovskaya Protoka':'Lena','Olenekskaya Protoka':'Lena',
+      'Amazonas':'Amazon',
+      'Ayeyarwady':'Irrawaddy','Nmai':'Irrawaddy','Irrawaddy Delta':'Irrawaddy',
+      'Heilong Jiang':'Amur',"Argun'":'Amur','Hailar':'Amur',
+      'El Bahr el Abyad':'Nile','Bahr el Jebel':'Nile','Kagera':'Nile','Damietta Branch':'Nile','Rosetta Branch':'Nile',
+      'Ertix':'Irtysh',
+      'Selenge (Selenga)':'Selenga',
+      'Shiquan':'Indus',
+      'Ucayali':'Amazon',
+    };
+    if(riversData){
+      const byName={};
+      riversData.features.forEach(f=>{
+        const raw=f.properties.name;if(!raw)return;
+        const n=RIVER_ALIASES[raw]||raw;
+        (byName[n]=byName[n]||[]).push({...f,properties:{...f.properties,name:n}});
+      });
+      const merged=[];
+      Object.values(byName).forEach(feats=>{
+        if(feats.length===1){merged.push(feats[0]);return;}
+        const lines=[];
+        feats.forEach(f=>{if(f.geometry.type==='LineString')lines.push(f.geometry.coordinates);else if(f.geometry.type==='MultiLineString')lines.push(...f.geometry.coordinates);});
+        const minSr=Math.min(...feats.map(f=>f.properties.scalerank||99));
+        merged.push({type:'Feature',properties:{...feats[0].properties,scalerank:minSr},geometry:{type:'MultiLineString',coordinates:lines}});
+      });
+      riversData={...riversData,features:merged.concat(riversData.features.filter(f=>!f.properties.name))};
+    }
     renderMap(worldData);
   }catch(e){showFeedback('Error','#C0432A');}
 }
 
 function isActive(id){
-  if(game.lakeMode)return false;
+  if(game.lakeMode||game.riverMode)return false;
   if(game.mode==='custom')return game.customIds&&game.customIds.has(id);
   const ac=activeConts();
   if(!ac)return !!C[id];
@@ -263,6 +355,7 @@ function renderMap(world){
   const th=THEMES[theme],W=960,H=500;
   const proj=d3.geoNaturalEarth1().scale(153).translate([W/2,H/2]).rotate([-8,0]);
   const gpath=d3.geoPath().projection(proj);
+  svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   svg.append('rect').attr('class','ocean').attr('width',W).attr('height',H).attr('fill',th.bg);
   const g=svg.append('g');gGroup=g;
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
@@ -344,6 +437,29 @@ function renderMap(world){
   const coastMesh=topojson.mesh(world,world.objects.countries,(a,b)=>a===b);
   g.append('path').attr('class','coastline').datum(coastMesh).attr('d',gpath).attr('fill','none').attr('stroke',th.border).attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke').attr('pointer-events','none');
 
+  // Rivers — rendered before lakes so lakes appear on top
+  riverPaths=null;riverHitboxes=null;
+  if(riversData){
+    const riverMode=game.riverMode||false;
+    const allRivers=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
+    const visFeats=riverMode ? getRiverFeatures(game.difficulty) : allRivers.filter(f=>(f.properties.scalerank||9)<=3);
+    const indexed=visFeats.map((f,i)=>({...f,_i:i}));
+    riverPaths=g.append('g').attr('class','rivers').selectAll('path').data(indexed).enter().append('path')
+      .attr('d',gpath).attr('fill','none').attr('stroke',th.sph).attr('stroke-width',riverMode?1.2:0.7)
+      .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
+    if(riverMode){
+      riverHitboxes=g.append('g').attr('class','river-hitboxes').selectAll('path').data(indexed).enter().append('path')
+        .attr('d',gpath).attr('fill','none').attr('stroke','transparent').attr('stroke-width',10)
+        .style('vector-effect','non-scaling-stroke').style('cursor','pointer')
+        .on('mouseover',function(ev,d){
+          if(game.found&&game.found.has(d._i))return;
+          riverPaths.filter(r=>r._i===d._i).attr('stroke-width',2).attr('filter','url(#rv-glow)');
+        })
+        .on('mouseout',function(ev,d){riverPaths.filter(r=>r._i===d._i).attr('stroke-width',1.2).attr('filter',null);})
+        .on('click',(ev,d)=>handleRiverClick(d._i));
+    }
+  }
+
   // Lakes — rendered after borders so fill covers borders inside lakes; stroke draws lake outline
   lakePaths=null;lakeDots=null;
   if(lakesData){
@@ -419,22 +535,25 @@ function renderMap(world){
   $('map-bg').style.background=th.bg;updateColors();
 }
 
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(game.lakeMode)return th.avail;if(!C[id])return th.dim;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return th.avail;}
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(game.lakeMode||game.riverMode)return th.avail;if(!C[id])return th.dim;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return th.avail;}
 function getMSColor(id){const th=THEMES[theme];if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return th.avail;}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
-  if(game.lakeMode){
+  if(game.lakeMode||game.riverMode){
     countryPaths.attr('fill',th.avail).attr('cursor','default');
     if(microstateDots)microstateDots.attr('fill',th.avail).attr('cursor','default');
     if(borderPath)borderPath.style('display','none');
+    d3.select('#map path.coastline').style('display','none');
   }else{
     countryPaths.attr('fill',d=>getColor(+d.id)).attr('cursor',d=>{const id=eff(+d.id);return isActive(id)?'pointer':'default';});
     if(microstateDots)microstateDots.attr('fill',d=>getMSColor(d.id)).attr('stroke',th.border).attr('cursor',d=>isActive(d.id)?'pointer':'default');
     if(borderPath)borderPath.style('display','');
+    d3.select('#map path.coastline').style('display','');
   }
-  d3.select('.fgui-overlay').attr('fill',game.lakeMode?th.avail:th.dim);
+  d3.selectAll('.fgui-overlay').attr('fill',(game.lakeMode||game.riverMode)?th.avail:th.dim);
   updateLakeColors();
+  updateRiverColors();
 }
-function nextCountry(){canClick=true;if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;if(game.lakeMode){const f=game.lakeFeatures[game.current];$('target-name').textContent=f?lakeDisplayName(f):'?';}else{$('target-name').textContent=cn(game.current);}clearFeedback();updateStats();updateColors();}
+function nextCountry(){canClick=true;if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;if(game.riverMode){const f=game.riverFeatures[game.current];$('target-name').textContent=f?riverDisplayName(f):'?';}else if(game.lakeMode){const f=game.lakeFeatures[game.current];$('target-name').textContent=f?lakeDisplayName(f):'?';}else{$('target-name').textContent=cn(game.current);}clearFeedback();updateStats();updateColors();}
 function flashWrong(rawId){countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);if(wrongFlash)clearTimeout(wrongFlash);wrongFlash=setTimeout(updateColors,700);}
 function handleClick(rawId){if(!canClick||!game||!game.current)return;const id=eff(rawId);const info=C[id];if(!info||!isActive(id)||game.found.has(id))return;if(id===game.current){canClick=false;game.correct++;if(!game.wrongOnCurrent)game.firstTry++;game.found.add(id);if(showWrongHint)showFeedback(t('correctFb')(cn(id)),THEMES[theme].found);updateColors();updateStats();setTimeout(nextCountry,1100);}else{game.wrong++;game.wrongOnCurrent=true;if(showWrongHint)showFeedback(t('wrongFb')(cn(id)),THEMES[theme].wrong);flashWrong(rawId);updateStats();}}
 function updateStats(){const dn=game.found?game.found.size:0,tot=game.total||1,rm=(game.queue?game.queue.length:0)+(game.current?1:0);$('score-disp').textContent=dn+'/'+tot;$('stat-c').textContent=game.correct||0;$('stat-w').textContent=game.wrong||0;$('stat-s').textContent=game.skipped||0;$('lbl-s').textContent=t('skippedLbl');$('stat-r').textContent=rm+' '+t('remLbl');$('prog-bar').style.width=Math.round((dn/tot)*100)+'%';}
