@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weltkarte Quiz</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="root">
+<div id="mode-screen"></div>
+
+<div id="custom-screen" style="display:none;padding:1.25rem;max-width:700px;margin:0 auto;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+    <button onclick="showScreen('mode-screen')" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;" id="cback"></button>
+    <h2 style="font-size:18px;font-weight:500;" id="ctitle"></h2>
+  </div>
+
+  <div class="custom-section" style="margin-bottom:12px;">
+    <div class="ol" style="margin-bottom:8px;" id="clbl-cont"></div>
+    <div id="cont-checks" style="display:flex;flex-wrap:wrap;gap:8px 16px;"></div>
+  </div>
+
+  <div class="custom-section" style="margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="ol" id="clbl-count"></div>
+      <input type="number" id="round-size" class="cnum" min="1" value="20">
+      <span style="font-size:12px;color:#888;" id="clbl-of"></span>
+      <label class="cb" style="margin-left:auto;"><input type="checkbox" id="all-countries-cb" checked onchange="toggleAllCountries()"><span id="clbl-all"></span></label>
+    </div>
+  </div>
+
+  <div class="custom-section" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div class="ol" id="clbl-countries"></div>
+      <button onclick="selAllC(true)" style="font-size:11px;padding:2px 8px;background:#222;border:1px solid #444;color:#aaa;border-radius:4px;cursor:pointer;" id="cbtn-all"></button>
+      <button onclick="selAllC(false)" style="font-size:11px;padding:2px 8px;background:#222;border:1px solid #444;color:#aaa;border-radius:4px;cursor:pointer;" id="cbtn-none"></button>
+    </div>
+    <div id="country-tags" style="display:flex;flex-wrap:wrap;gap:4px;max-height:200px;overflow-y:auto;"></div>
+  </div>
+
+  <div style="text-align:center;">
+    <button class="start-btn" id="cbtn-start" onclick="startCustom()"></button>
+  </div>
+</div>
+
+<div id="game-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
+    <button onclick="back()" id="btn-back" style="font-size:12px;padding:5px 10px;white-space:nowrap;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;"></button>
+    <div style="flex:1;text-align:center;">
+      <div id="find-label" style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;"></div>
+      <div id="target-name" style="font-size:21px;font-weight:500;line-height:1.2;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="text-align:right;">
+        <div id="score-disp" style="font-size:16px;font-weight:500;">0/0</div>
+        <div id="found-label" style="font-size:11px;color:#888;"></div>
+      </div>
+      <button onclick="toggleOpts()" style="padding:6px 8px;border-radius:8px;border:1px solid #444;background:#222;cursor:pointer;font-size:14px;color:#ccc;">⚙</button>
+    </div>
+  </div>
+  <div id="opts-panel" style="display:none;padding:.75rem 1rem;border-bottom:.5px solid #333;background:#151515;">
+    <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start;">
+      <div class="os"><div class="ol" id="lbl-lang"></div><div style="display:flex;gap:6px;">
+        <button onclick="setLang('de')" id="btn-lang-de" class="lb active">DE</button>
+        <button onclick="setLang('en')" id="btn-lang-en" class="lb">EN</button></div></div>
+      <div class="os"><div class="ol" id="lbl-theme"></div><div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="setTheme('nacht')" id="th-nacht" class="tp active"><span class="dot" style="background:#3a5882;"></span><span id="tl-nacht"></span></button>
+        <button onclick="setTheme('atlas')" id="th-atlas" class="tp"><span class="dot" style="background:#b0a080;"></span><span id="tl-atlas"></span></button>
+        <button onclick="setTheme('retro')" id="th-retro" class="tp"><span class="dot" style="background:#c8a840;"></span><span id="tl-retro"></span></button>
+        <button onclick="setTheme('wald')" id="th-wald" class="tp"><span class="dot" style="background:#2a5a35;"></span><span id="tl-wald"></span></button></div></div>
+      <div class="os"><div class="ol" id="lbl-found-mode"></div><div style="display:flex;gap:6px;">
+        <button onclick="setKeepFound(true)" id="btn-found-on" class="lb active"></button>
+        <button onclick="setKeepFound(false)" id="btn-found-off" class="lb"></button></div></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 1rem;height:28px;font-size:13px;border-bottom:.5px solid #333;"><div id="feedback" style="font-weight:500;"></div></div>
+  <div id="map-bg" style="flex:1;min-height:0;"><svg id="map" style="width:100%;height:100%;display:block;" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div style="height:4px;background:#222;"><div id="prog-bar" style="height:100%;width:0%;transition:width .4s;"></div></div>
+  <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
+    <span><strong id="stat-c" style="color:#1D9E75;">0</strong> <span id="lbl-c"></span></span>
+    <span><strong id="stat-w" style="color:#D85A30;">0</strong> <span id="lbl-w"></span></span>
+    <span style="margin-left:auto;" id="stat-r"></span></div>
+</div>
+<div id="result-screen" style="display:none;padding:2.5rem 1.5rem;text-align:center;">
+  <div id="res-emoji" style="font-size:52px;margin-bottom:.75rem;"></div>
+  <h2 id="res-title" style="font-size:22px;font-weight:500;margin:0 0 .5rem;"></h2>
+  <p id="res-l1" style="font-size:16px;margin:0 0 .25rem;"></p>
+  <p id="res-l2" style="color:#888;font-size:14px;margin:0 0 2rem;"></p>
+  <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+    <button id="btn-again" onclick="restart()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button>
+    <button id="btn-new" onclick="back()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="countries.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
