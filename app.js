@@ -5,17 +5,29 @@ const ZOOMS={world:[480,250,1],EU:[520,160,3.5],AF:[510,280,2.2],AS:[680,200,2],
 
 const THEMES={nacht:{bg:'#0b1829',sph:'#0f2040',grd:'#162d50',avail:'#3a5882',found:'#1D9E75',dim:'#0e1e38',hov:'#4e6fa0',wrong:'#C0432A',bar:'#1D9E75',dot:'rgba(255,255,255,0.75)',border:'#1a3a6a'},atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#205090'},retro:{bg:'#9a8050',sph:'#aa9060',grd:'#8a7040',avail:'#e8d898',found:'#5a7830',dim:'#c0a878',hov:'#d8c880',wrong:'#b83020',bar:'#5a7830',dot:'rgba(80,50,10,0.7)',border:'#705828'},wald:{bg:'#0d1e12',sph:'#102018',grd:'#1a3020',avail:'#2a5a35',found:'#58c865',dim:'#0b1810',hov:'#3a6a45',wrong:'#c04020',bar:'#58c865',dot:'rgba(255,255,255,0.7)',border:'#1a4020'}};
 const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
-const MODES={world:{de:'Alle Länder',en:'All Countries',cnt:'~197'},EU:{de:'Europa',en:'Europe',cnt:'~40'},AF:{de:'Afrika',en:'Africa',cnt:'~56'},AS:{de:'Asien',en:'Asia',cnt:'~55'},NA:{de:'Nordamerika',en:'N. America',cnt:'~27'},SA:{de:'Südamerika',en:'S. America',cnt:'12'},OC:{de:'Ozeanien',en:'Oceania',cnt:'~18'},custom:{de:'Eigener Modus',en:'Custom Mode',cnt:'⚙'}};
+const _cc=k=>Object.values(C).filter(v=>k==='world'||v.c===k).length;
+const MODES={world:{de:'Alle Länder',en:'All Countries',cnt:_cc('world')},EU:{de:'Europa',en:'Europe',cnt:_cc('EU')},AF:{de:'Afrika',en:'Africa',cnt:_cc('AF')},AS:{de:'Asien',en:'Asia',cnt:_cc('AS')},NA:{de:'Nordamerika',en:'N. America',cnt:_cc('NA')},SA:{de:'Südamerika',en:'S. America',cnt:_cc('SA')},OC:{de:'Ozeanien',en:'Oceania',cnt:_cc('OC')},custom:{de:'Eigener Modus',en:'Custom Mode',cnt:'⚙'}};
 const TX={
-  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Neues Spiel',langLbl:'Sprache',themeLbl:'Design',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',countries:'Länder',zoomTip:'Zoom & Pan möglich',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{nacht:'Nacht',atlas:'Atlas',retro:'Retro',wald:'Wald'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten'},
-  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'New game',langLbl:'Language',themeLbl:'Theme',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',countries:'countries',zoomTip:'Zoom & pan supported',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{nacht:'Night',atlas:'Atlas',retro:'Retro',wald:'Forest'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start'}
+  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Neues Spiel',langLbl:'Sprache',themeLbl:'Design',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',wrongHintLabel:'Hinweise',wrongHintOn:'Anzeigen',wrongHintOff:'Ausblenden',countries:'Länder',zoomTip:'Zoom & Pan möglich',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{nacht:'Nacht',atlas:'Atlas',retro:'Retro',wald:'Wald'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten'},
+  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'New game',langLbl:'Language',themeLbl:'Theme',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',wrongHintLabel:'Hints',wrongHintOn:'Show',wrongHintOff:'Hide',countries:'countries',zoomTip:'Zoom & pan supported',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{nacht:'Night',atlas:'Atlas',retro:'Retro',wald:'Forest'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start'}
 };
 
-let lang='de',theme='nacht',keepFound=true,game={};
+let lang='de',theme='atlas',keepFound=true,showWrongHint=true,game={};
 let countryPaths=null,microstateDots=null,worldData=null,borderPath=null,zoomBehavior=null,gGroup=null;
-let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null;
+let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null,_fbTimer=null;
+
+function showFeedback(text,color){
+  const el=$('feedback');
+  if(!el)return;
+  el.textContent=text;
+  el.style.color=color||'#eee';
+  el.style.opacity='1';
+  if(_fbTimer)clearTimeout(_fbTimer);
+  _fbTimer=setTimeout(()=>{el.style.opacity='0';},2000);
+}
+function clearFeedback(){const el=$('feedback');if(el){el.style.opacity='0';el.textContent='';}}
 let customConts=new Set(['EU','AF','AS','NA','SA','OC']),customCountries=new Set();
-const DOT_R=7;
+const DOT_R=6; // target radius in screen pixels
 
 function t(k){return TX[lang][k]||TX.de[k]||k;}
 function cn(id){return C[id]?(C[id][lang]||C[id].de):'?';}
@@ -28,11 +40,12 @@ function showScreen(id){['mode-screen','game-screen','result-screen','custom-scr
 function setLang(l){lang=l;$('btn-lang-de').className='lb'+(l==='de'?' active':'');$('btn-lang-en').className='lb'+(l==='en'?' active':'');updateAllText();if($('custom-screen').style.display!=='none')renderCustom();}
 function setTheme(v){theme=v;['nacht','atlas','retro','wald'].forEach(k=>{$('th-'+k).className='tp'+(k===v?' active':'');});applyTheme();}
 function setKeepFound(v){keepFound=v;$('btn-found-on').className='lb'+(v?' active':'');$('btn-found-off').className='lb'+(!v?' active':'');updateColors();}
+function setWrongHint(v){showWrongHint=v;$('btn-wrong-on').className='lb'+(v?' active':'');$('btn-wrong-off').className='lb'+(!v?' active':'');}
 function applyTheme(){const h=THEMES[theme];$('map-bg').style.background=h.bg;$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);updateColors();}
 function toggleOpts(){optsOpen=!optsOpen;$('opts-panel').style.display=optsOpen?'block':'none';}
 
 function updateAllText(){
-  renderModeScreen();$('btn-back').textContent=t('back');$('find-label').textContent=t('find');$('found-label').textContent=t('foundLbl');$('lbl-lang').textContent=t('langLbl');$('lbl-theme').textContent=t('themeLbl');$('lbl-c').textContent=t('correctLbl');$('lbl-w').textContent=t('wrongLbl');$('lbl-found-mode').textContent=t('foundModeLabel');$('btn-found-on').textContent=t('keepOn');$('btn-found-off').textContent=t('keepOff');$('tl-nacht').textContent=t('themes').nacht;$('tl-atlas').textContent=t('themes').atlas;$('tl-retro').textContent=t('themes').retro;$('tl-wald').textContent=t('themes').wald;$('res-title').textContent=t('resTitle');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
+  renderModeScreen();$('btn-back').textContent=t('back');$('find-label').textContent=t('find');$('found-label').textContent=t('foundLbl');$('lbl-lang').textContent=t('langLbl');$('lbl-theme').textContent=t('themeLbl');$('lbl-c').textContent=t('correctLbl');$('lbl-w').textContent=t('wrongLbl');$('lbl-found-mode').textContent=t('foundModeLabel');$('btn-found-on').textContent=t('keepOn');$('btn-found-off').textContent=t('keepOff');$('lbl-wrong-hint').textContent=t('wrongHintLabel');$('btn-wrong-on').textContent=t('wrongHintOn');$('btn-wrong-off').textContent=t('wrongHintOff');$('tl-nacht').textContent=t('themes').nacht;$('tl-atlas').textContent=t('themes').atlas;$('tl-retro').textContent=t('themes').retro;$('tl-wald').textContent=t('themes').wald;$('res-title').textContent=t('resTitle');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
   if(game.current&&C[game.current])$('target-name').textContent=cn(game.current);updateStats();
 }
 
@@ -109,7 +122,7 @@ function startCustom(){
   game={mode:'custom',activeContinents:new Set(customConts),customIds:new Set(q),queue:q,current:null,found:new Set(),correct:0,wrong:0,firstTry:0,total:q.length,wrongOnCurrent:false};
   canClick=true;optsOpen=false;
   showScreen('game-screen');$('opts-panel').style.display='none';
-  $('target-name').textContent='';$('feedback').textContent=t('load');
+  $('target-name').textContent='';showFeedback(t('load'),'#888');
   updateAllText();
   loadMap().then(()=>{
     game.queue=game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]);
@@ -128,7 +141,7 @@ async function startGame(mode){
   const conts=mode==='world'?null:new Set([mode]);
   game={mode,activeContinents:conts,queue:shuffle(filtered),current:null,found:new Set(),correct:0,wrong:0,firstTry:0,total:0,wrongOnCurrent:false};
   showScreen('game-screen');$('opts-panel').style.display='none';
-  $('target-name').textContent='';$('feedback').textContent=t('load');$('feedback').style.color='#888';
+  $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
   game.queue=game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]);
   game.total=game.queue.length;
@@ -147,7 +160,7 @@ function zoomTo(cx,cy,k){
   svg.transition().duration(600).call(zoomBehavior.transform,d3.zoomIdentity.translate(tx,ty).scale(k));
 }
 
-async function loadMap(){if(worldData){renderMap(worldData);return;}try{worldData=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(r=>r.json());renderMap(worldData);}catch(e){$('feedback').textContent='Error';}}
+async function loadMap(){if(worldData){renderMap(worldData);return;}try{worldData=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(r=>r.json());renderMap(worldData);}catch(e){showFeedback('Error','#C0432A');}}
 
 function isActive(id){
   if(game.mode==='custom')return game.customIds&&game.customIds.has(id);
@@ -159,7 +172,7 @@ function isActive(id){
 function renderMap(world){
   const svg=d3.select('#map');svg.selectAll('*').remove();borderPath=null;gGroup=null;
   const th=THEMES[theme],W=960,H=500;
-  const proj=d3.geoNaturalEarth1().scale(153).translate([W/2,H/2]);
+  const proj=d3.geoNaturalEarth1().scale(153).translate([W/2,H/2]).rotate([-8,0]);
   const gpath=d3.geoPath().projection(proj);
   svg.append('rect').attr('class','ocean').attr('width',W).attr('height',H).attr('fill',th.bg);
   const g=svg.append('g');gGroup=g;
@@ -173,33 +186,58 @@ function renderMap(world){
   visibleIds=new Set(countries.features.map(f=>+f.id));
   REDIRECTS.clear();
   // 304=Greenland, 10=Antarctica — non-clickable, no redirect
-  const NO_REDIRECT=new Set([304,10]);
+  const NO_REDIRECT=new Set([304,10,540]); // 540=Neukaledonien
+  // Dynamically block territories by centroid bounds (e.g. Französisch-Guayana)
+  const GEO_NO_REDIRECT=[[[-56,-50],[1,7]]]; // [lonRange, latRange]
+  countries.features.forEach(f=>{const [lo,la]=d3.geoCentroid(f);if(GEO_NO_REDIRECT.some(([[l0,l1],[a0,a1]])=>lo>=l0&&lo<=l1&&la>=a0&&la<=a1))NO_REDIRECT.add(+f.id);});
   const kc=countries.features.filter(f=>C[+f.id]).map(f=>({id:+f.id,ctr:d3.geoCentroid(f)}));
   countries.features.forEach(u=>{const uid=+u.id;if(C[uid])return;if(NO_REDIRECT.has(uid))return;const uc=d3.geoCentroid(u);let b=null,bd=Infinity;kc.forEach(({id,ctr})=>{const d=(uc[0]-ctr[0])**2+(uc[1]-ctr[1])**2;if(d<bd){bd=d;b=id;}});if(b!==null)REDIRECTS.set(uid,b);});
   // Geographic overrides for specific disputed/unrecognised territories
   countries.features.forEach(f=>{const uid=+f.id;if(uid>=0)return;const [lon,lat]=d3.geoCentroid(f);
     if(lon>43&&lon<50&&lat>7&&lat<13)REDIRECTS.set(uid,706); // Somaliland → Somalia
+    if(lon>32&&lon<35&&lat>34&&lat<36)REDIRECTS.set(uid,196); // Nord-Zypern → Zypern
   });
 
-  // Visually merge Somaliland into Somalia: one shape, no shared border
+  // Visually merge disputed territories into their parent country (no shared border)
   const geoms=world.objects.countries.geometries;
-  const somaliaIdx=countries.features.findIndex(f=>+f.id===706);
-  const somalilandIdx=countries.features.findIndex(f=>+f.id<0&&REDIRECTS.get(+f.id)===706);
   const mergedPairs=[];
   let renderFeatures=countries.features;
-  if(somaliaIdx>=0&&somalilandIdx>=0){
-    const geom1=geoms[somaliaIdx],geom2=geoms[somalilandIdx];
-    const mergedGeometry=topojson.merge(world,[geom1,geom2]);
-    mergedPairs.push([geom1,geom2]);
-    renderFeatures=countries.features
-      .filter((_,i)=>i!==somalilandIdx)
-      .map(f=>+f.id===706?{...f,geometry:mergedGeometry}:f);
+
+  function mergeInto(parentId){
+    const parentIdx=renderFeatures.findIndex(f=>+f.id===parentId);
+    const childIdx=renderFeatures.findIndex(f=>+f.id<0&&REDIRECTS.get(+f.id)===parentId);
+    if(parentIdx<0||childIdx<0)return;
+    const gi=geoms[countries.features.indexOf(renderFeatures[parentIdx])];
+    const gj=geoms[countries.features.indexOf(renderFeatures[childIdx])];
+    if(!gi||!gj)return;
+    const merged=topojson.merge(world,[gi,gj]);
+    mergedPairs.push([gi,gj]);
+    renderFeatures=renderFeatures
+      .filter((_,i)=>i!==childIdx)
+      .map(f=>+f.id===parentId?{...f,geometry:merged}:f);
   }
+
+  mergeInto(706); // Somaliland → Somalia
+  mergeInto(196); // Nord-Zypern → Zypern
 
   countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke','none')
     .on('mouseover',function(ev,d){const id=eff(+d.id);if(!game.found||game.found.has(id)||!C[id]||!isActive(id))return;d3.select(this).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){d3.select(this).attr('fill',getColor(+d.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
+
+  // Overlay dim paths for French overseas territories (parts of France's MultiPolygon)
+  // Index 9 = French Guiana, Index 4 = Réunion
+  const franceFeat=renderFeatures.find(f=>+f.id===250);
+  if(franceFeat&&franceFeat.geometry.type==='MultiPolygon'){
+    [9,4].forEach(idx=>{
+      const coords=franceFeat.geometry.coordinates[idx];
+      if(coords){
+        const feat={type:'Feature',geometry:{type:'Polygon',coordinates:coords}};
+        g.append('path').attr('class','fgui-overlay').datum(feat).attr('d',gpath).attr('fill',th.dim).attr('stroke','none')
+          .style('cursor','default').on('mouseover',()=>{}).on('click',()=>{});
+      }
+    });
+  }
 
   // Border mesh excluding the merged Somalia–Somaliland boundary
   const borderMesh=topojson.mesh(world,world.objects.countries,(a,b)=>{
@@ -216,18 +254,27 @@ function renderMap(world){
     .on('mouseout',function(ev,d){d3.select(this).attr('fill',getMSColor(d.id));})
     .on('click',(ev,d)=>handleClick(d.id));
 
+  // Returns dot radius in SVG units so it stays DOT_R screen-pixels regardless of window size or zoom
+  function svgScale(){const r=svg.node().getBoundingClientRect();return r.width/960;}
+  function dotR(zoomK=1){return DOT_R/svgScale()/zoomK;}
+
+  function applyDotR(zoomK=1){if(microstateDots)microstateDots.attr('r',dotR(zoomK));}
+  applyDotR();
+
+  // Update dots on window resize (SVG scale changes)
+  const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
+  _ro.observe(svg.node());
+
   const gNode=g.node();
   let _raf=null,_lastT=null,_pTimer=null;
   zoomBehavior=d3.zoom().scaleExtent([1,12]).on('zoom',ev=>{
     _lastT=ev.transform;
-    // ONE write disables hit-testing for all children via CSS inheritance
     if(!_pTimer)gNode.style.pointerEvents='none';
     clearTimeout(_pTimer);
     _pTimer=setTimeout(()=>{gNode.style.pointerEvents='';_pTimer=null;},150);
-    // Batch rendering to max 60fps
     if(!_raf)_raf=requestAnimationFrame(()=>{
       g.attr('transform',_lastT);
-      if(microstateDots)microstateDots.attr('r',DOT_R/_lastT.k);
+      applyDotR(_lastT.k);
       _raf=null;
     });
   });
@@ -237,10 +284,10 @@ function renderMap(world){
 
 function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(!C[id])return th.dim;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return th.avail;}
 function getMSColor(id){const th=THEMES[theme];if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return th.avail;}
-function updateColors(){if(!countryPaths)return;const th=THEMES[theme];countryPaths.attr('fill',d=>getColor(+d.id)).attr('cursor',d=>{const id=eff(+d.id);return isActive(id)?'pointer':'default';});if(microstateDots)microstateDots.attr('fill',d=>getMSColor(d.id)).attr('stroke',th.border).attr('cursor',d=>isActive(d.id)?'pointer':'default');}
-function nextCountry(){canClick=true;if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;$('target-name').textContent=cn(game.current);$('feedback').textContent='';updateStats();updateColors();}
+function updateColors(){if(!countryPaths)return;const th=THEMES[theme];countryPaths.attr('fill',d=>getColor(+d.id)).attr('cursor',d=>{const id=eff(+d.id);return isActive(id)?'pointer':'default';});if(microstateDots)microstateDots.attr('fill',d=>getMSColor(d.id)).attr('stroke',th.border).attr('cursor',d=>isActive(d.id)?'pointer':'default');d3.select('.fgui-overlay').attr('fill',th.dim);}
+function nextCountry(){canClick=true;if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;$('target-name').textContent=cn(game.current);clearFeedback();updateStats();updateColors();}
 function flashWrong(rawId){countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);if(wrongFlash)clearTimeout(wrongFlash);wrongFlash=setTimeout(updateColors,700);}
-function handleClick(rawId){if(!canClick||!game||!game.current)return;const id=eff(rawId);const info=C[id];if(!info||!isActive(id))return;if(id===game.current){canClick=false;game.correct++;if(!game.wrongOnCurrent)game.firstTry++;game.found.add(id);$('feedback').textContent=t('correctFb')(cn(id));$('feedback').style.color=THEMES[theme].found;updateColors();updateStats();setTimeout(nextCountry,1100);}else{game.wrong++;game.wrongOnCurrent=true;$('feedback').textContent=t('wrongFb')(cn(id));$('feedback').style.color=THEMES[theme].wrong;flashWrong(rawId);updateStats();}}
+function handleClick(rawId){if(!canClick||!game||!game.current)return;const id=eff(rawId);const info=C[id];if(!info||!isActive(id)||game.found.has(id))return;if(id===game.current){canClick=false;game.correct++;if(!game.wrongOnCurrent)game.firstTry++;game.found.add(id);if(showWrongHint)showFeedback(t('correctFb')(cn(id)),THEMES[theme].found);updateColors();updateStats();setTimeout(nextCountry,1100);}else{game.wrong++;game.wrongOnCurrent=true;if(showWrongHint)showFeedback(t('wrongFb')(cn(id)),THEMES[theme].wrong);flashWrong(rawId);updateStats();}}
 function updateStats(){const dn=game.found?game.found.size:0,tot=game.total||1,rm=(game.queue?game.queue.length:0)+(game.current?1:0);$('score-disp').textContent=dn+'/'+tot;$('stat-c').textContent=game.correct||0;$('stat-w').textContent=game.wrong||0;$('stat-r').textContent=rm+' '+t('remLbl');$('prog-bar').style.width=Math.round((dn/tot)*100)+'%';}
 function showResult(){game.current=null;showScreen('result-screen');const p=game.total>0?Math.round((game.firstTry/game.total)*100):0;$('res-emoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';$('res-title').textContent=t('resTitle');$('res-l1').textContent=t('res1')(game.firstTry,game.total,p);$('res-l2').textContent=t('res2')(game.correct,game.wrong);$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');}
 
