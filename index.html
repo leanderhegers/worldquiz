@@ -7,8 +7,23 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="flag-fb" style="position:fixed;top:52px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;background:#222;border:1px solid #555;z-index:9999;"></div>
 <div id="root">
-<div id="mode-screen"></div>
+<div id="home-screen" style="display:none;">
+  <div class="home-bg"></div>
+  <div class="home-inner">
+    <div class="home-globe">🌍</div>
+    <h1 id="home-title" class="home-title"></h1>
+    <p id="home-sub" class="home-sub"></p>
+    <button id="home-play" class="home-play" onclick="goToGames()"></button>
+    <div class="home-options-card">
+      <div id="home-opt-lbl" class="home-opt-lbl"></div>
+      <div id="home-options" class="opts-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="mode-screen" class="games-scroll" style="display:none;"></div>
 
 <div id="custom-screen" style="display:none;padding:1.25rem;max-width:700px;margin:0 auto;">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
@@ -61,22 +76,8 @@
     </div>
   </div>
   <div id="opts-panel" style="display:none;padding:.75rem 1rem;border-bottom:.5px solid #333;background:#151515;">
-    <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start;">
-      <div class="os"><div class="ol" id="lbl-lang"></div><div style="display:flex;gap:6px;">
-        <button onclick="setLang('de')" id="btn-lang-de" class="lb active">DE</button>
-        <button onclick="setLang('en')" id="btn-lang-en" class="lb">EN</button></div></div>
-      <div class="os"><div class="ol" id="lbl-theme"></div><div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="setTheme('nacht')" id="th-nacht" class="tp"><span class="dot" style="background:#3a5882;"></span><span id="tl-nacht"></span></button>
-        <button onclick="setTheme('atlas')" id="th-atlas" class="tp active"><span class="dot" style="background:#b0a080;"></span><span id="tl-atlas"></span></button>
-        <button onclick="setTheme('retro')" id="th-retro" class="tp"><span class="dot" style="background:#c8a840;"></span><span id="tl-retro"></span></button>
-        <button onclick="setTheme('wald')" id="th-wald" class="tp"><span class="dot" style="background:#2a5a35;"></span><span id="tl-wald"></span></button></div></div>
-      <div class="os"><div class="ol" id="lbl-found-mode"></div><div style="display:flex;gap:6px;">
-        <button onclick="setKeepFound(true)" id="btn-found-on" class="lb active"></button>
-        <button onclick="setKeepFound(false)" id="btn-found-off" class="lb"></button></div></div>
-      <div class="os"><div class="ol" id="lbl-wrong-hint"></div><div style="display:flex;gap:6px;">
-        <button onclick="setWrongHint(true)" id="btn-wrong-on" class="lb active"></button>
-        <button onclick="setWrongHint(false)" id="btn-wrong-off" class="lb"></button></div></div>
-    </div>
+    <div id="opts-title" class="ol" style="margin-bottom:.6rem;"></div>
+    <div id="opts-content" class="opts-grid"></div>
   </div>
   <div id="map-bg" style="flex:1;min-height:0;position:relative;">
     <svg id="map" style="width:100%;height:100%;display:block;" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg>
@@ -88,6 +89,31 @@
     <span><strong id="stat-w" style="color:#D85A30;">0</strong> <span id="lbl-w"></span></span>
     <span><strong id="stat-s" style="color:#888;">0</strong> <span id="lbl-s"></span></span>
     <span style="margin-left:auto;" id="stat-r"></span></div>
+</div>
+<div id="flag-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
+    <button onclick="back()" id="flag-btn-back" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;">← Menü</button>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;" id="flag-quiz-lbl"></div>
+      <div id="flag-score" style="font-size:16px;font-weight:500;">0/0</div>
+    </div>
+    <div style="width:60px;"></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem;min-height:0;overflow:auto;">
+    <img id="flag-img" src="" alt="" style="max-width:380px;width:85%;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:1px solid #333;">
+    <div style="position:relative;width:100%;max-width:380px;">
+      <input id="flag-input" type="text" autocomplete="off" spellcheck="false"
+        style="width:100%;padding:10px 14px;font-size:16px;border-radius:10px;border:1.5px solid #444;background:#1a1a1a;color:#eee;outline:none;box-sizing:border-box;"
+        oninput="handleFlagInput(this.value)">
+      <div id="flag-dropdown" style="position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1e1e1e;border:1px solid #444;border-radius:8px;overflow:hidden;display:none;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.4);"></div>
+    </div>
+  </div>
+  <div style="height:4px;background:#222;"><div id="flag-prog" style="height:100%;width:0%;background:#1D9E75;transition:width .4s;"></div></div>
+  <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
+    <span><strong id="flag-stat-c" style="color:#1D9E75;">0</strong> <span id="flag-lbl-c"></span></span>
+    <span><strong id="flag-stat-w" style="color:#D85A30;">0</strong> <span id="flag-lbl-w"></span></span>
+    <span style="margin-left:auto;" id="flag-stat-r"></span>
+  </div>
 </div>
 <div id="result-screen" style="display:none;padding:2.5rem 1.5rem;text-align:center;">
   <div id="res-emoji" style="font-size:52px;margin-bottom:.75rem;"></div>
