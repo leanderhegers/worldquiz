@@ -8,9 +8,22 @@
 </head>
 <body>
 <div id="flag-fb" style="position:fixed;top:52px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;background:#222;border:1px solid #555;z-index:9999;"></div>
+<div id="auth-modal" class="auth-modal" style="display:none;">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeAuth()" aria-label="close">×</button>
+    <h2 id="auth-title" class="auth-title"></h2>
+    <div id="auth-name-wrap" style="display:none;"><input id="auth-name" class="auth-input" type="text" autocomplete="name"></div>
+    <input id="auth-email" class="auth-input" type="email" autocomplete="email">
+    <input id="auth-pw" class="auth-input" type="password" autocomplete="current-password">
+    <div id="auth-error" class="auth-error"></div>
+    <button id="auth-submit" class="auth-submit" onclick="submitAuth()"></button>
+    <button id="auth-switch" class="auth-switch" onclick="switchAuthMode()"></button>
+  </div>
+</div>
 <div id="root">
 <div id="home-screen" style="display:none;">
   <div class="home-bg"></div>
+  <div id="home-account" class="home-account"></div>
   <div class="home-inner">
     <div class="home-globe">🌍</div>
     <h1 id="home-title" class="home-title"></h1>
@@ -97,7 +110,7 @@
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;" id="flag-quiz-lbl"></div>
       <div id="flag-score" style="font-size:16px;font-weight:500;">0/0</div>
     </div>
-    <div style="width:60px;"></div>
+    <button onclick="skipFlag()" id="flag-skip-btn" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;"></button>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem;min-height:0;overflow:auto;">
     <img id="flag-img" src="" alt="" style="max-width:380px;width:85%;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:1px solid #333;">
@@ -112,6 +125,7 @@
   <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
     <span><strong id="flag-stat-c" style="color:#1D9E75;">0</strong> <span id="flag-lbl-c"></span></span>
     <span><strong id="flag-stat-w" style="color:#D85A30;">0</strong> <span id="flag-lbl-w"></span></span>
+    <span><strong id="flag-stat-s" style="color:#888;">0</strong> <span id="flag-lbl-s"></span></span>
     <span style="margin-left:auto;" id="flag-stat-r"></span>
   </div>
 </div>
@@ -128,7 +142,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="countries.js"></script>
+<script src="cities.js"></script>
 <script src="app.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>
