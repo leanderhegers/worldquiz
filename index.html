@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Weltkarte Quiz</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -37,10 +37,14 @@
     <h1 id="home-title" class="home-title"></h1>
     <p id="home-sub" class="home-sub"></p>
     <button id="home-play" class="home-play" onclick="goToGames()"></button>
-    <div class="home-options-card">
-      <div id="home-opt-lbl" class="home-opt-lbl"></div>
-      <div id="home-options" class="opts-grid"></div>
-    </div>
+    <button id="home-options-btn" class="home-options-btn" onclick="openHomeOpts()"></button>
+  </div>
+</div>
+<div id="home-opts-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeHomeOpts()">
+  <div class="auth-box opts-box">
+    <button class="auth-close" onclick="closeHomeOpts()" aria-label="close">×</button>
+    <h2 id="home-opts-title" class="auth-title"></h2>
+    <div id="home-opts-content" class="opts-grid"></div>
   </div>
 </div>
 
