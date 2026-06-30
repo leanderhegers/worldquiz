@@ -292,6 +292,7 @@ const PIN_CITIES = [
 
 // Region = Kontinent (EU/AF/AS/NA/SA/OC) oder Land (DE/FR/US)
 function getPinCities(region){
+  if(!region||region==='world')return PIN_CITIES;
   if(region==='DE'||region==='FR'||region==='US')return PIN_CITIES.filter(c=>c.country===region);
   return PIN_CITIES.filter(c=>c.cont===region);
 }
