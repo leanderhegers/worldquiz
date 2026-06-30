@@ -50,37 +50,42 @@
 
 <div id="mode-screen" class="games-scroll" style="display:none;"></div>
 
-<div id="custom-screen" style="display:none;padding:1.25rem;max-width:700px;margin:0 auto;">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
-    <button onclick="showScreen('mode-screen')" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;" id="cback"></button>
-    <h2 style="font-size:18px;font-weight:500;" id="ctitle"></h2>
+<div id="custom-screen" class="custom-full" style="display:none;">
+  <div class="custom-topbar">
+    <button onclick="showScreen('mode-screen')" id="cback" class="gs-home-btn"></button>
+    <h2 id="ctitle" class="custom-topbar-title"></h2>
+    <div style="width:72px;"></div>
   </div>
 
-  <div class="custom-section" style="margin-bottom:12px;">
-    <div class="ol" style="margin-bottom:8px;" id="clbl-cont"></div>
-    <div id="cont-checks" style="display:flex;flex-wrap:wrap;gap:8px 16px;"></div>
-  </div>
+  <div class="custom-body">
 
-  <div class="custom-section" style="margin-bottom:12px;">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div class="ol" id="clbl-count"></div>
-      <input type="number" id="round-size" class="cnum" min="1" value="20">
-      <span style="font-size:12px;color:#888;" id="clbl-of"></span>
-      <label class="cb" style="margin-left:auto;"><input type="checkbox" id="all-countries-cb" checked onchange="toggleAllCountries()"><span id="clbl-all"></span></label>
+    <div class="custom-card">
+      <div class="custom-label" id="clbl-cont"></div>
+      <div id="cont-checks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
     </div>
-  </div>
 
-  <div class="custom-section" style="margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <div class="ol" id="clbl-countries"></div>
-      <button onclick="selAllC(true)" style="font-size:11px;padding:2px 8px;background:#222;border:1px solid #444;color:#aaa;border-radius:4px;cursor:pointer;" id="cbtn-all"></button>
-      <button onclick="selAllC(false)" style="font-size:11px;padding:2px 8px;background:#222;border:1px solid #444;color:#aaa;border-radius:4px;cursor:pointer;" id="cbtn-none"></button>
+    <div class="custom-card">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="custom-label" id="clbl-count"></div>
+        <input type="number" id="round-size" class="cnum custom-num" min="1" value="20">
+        <span class="custom-of" id="clbl-of"></span>
+        <label class="cb custom-cb" style="margin-left:auto;"><input type="checkbox" id="all-countries-cb" checked onchange="toggleAllCountries()"><span id="clbl-all"></span></label>
+      </div>
     </div>
-    <div id="country-tags" style="display:flex;flex-wrap:wrap;gap:4px;max-height:200px;overflow-y:auto;"></div>
-  </div>
 
-  <div style="text-align:center;">
-    <button class="start-btn" id="cbtn-start" onclick="startCustom()"></button>
+    <div class="custom-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div class="custom-label" id="clbl-countries"></div>
+        <button onclick="selAllC(true)" id="cbtn-all" class="custom-mini-btn custom-mini-btn--on"></button>
+        <button onclick="selAllC(false)" id="cbtn-none" class="custom-mini-btn"></button>
+      </div>
+      <div id="country-tags" class="custom-tags"></div>
+    </div>
+
+    <div style="text-align:center;">
+      <button id="cbtn-start" onclick="startCustom()" class="custom-start-btn"></button>
+    </div>
+
   </div>
 </div>
 
