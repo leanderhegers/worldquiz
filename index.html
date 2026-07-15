@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Weltkarte Quiz</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WeltQuiz">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="flag-fb" style="position:fixed;top:52px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;background:#222;border:1px solid #555;z-index:9999;"></div>
+<div id="auth-modal" class="auth-modal" style="display:none;">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeAuth()" aria-label="close">×</button>
+    <h2 id="auth-title" class="auth-title"></h2>
+    <div id="auth-username-wrap" style="display:none;"><input id="auth-username" class="auth-input" type="text" autocomplete="username" maxlength="20"></div>
+    <input id="auth-email" class="auth-input" type="email" autocomplete="email">
+    <input id="auth-pw" class="auth-input" type="password" autocomplete="current-password">
+    <label class="auth-show"><input type="checkbox" id="auth-show-pw" onclick="toggleAuthPw()"><span id="auth-show-lbl"></span></label>
+    <button id="auth-forgot" class="auth-link" onclick="forgotPassword()"></button>
+    <div id="auth-privacy-wrap" style="display:none;">
+      <label class="auth-show auth-privacy-lbl"><input type="checkbox" id="auth-privacy-cb"><span>Ich akzeptiere die <button class="legal-inline-btn" onclick="openDatenschutz()">Datenschutzerklärung</button></span></label>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-info" class="auth-info"></div>
+    <button id="auth-submit" class="auth-submit" onclick="submitAuth()"></button>
+    <div class="auth-sep"><span id="auth-sep-lbl"></span></div>
+    <button id="auth-google" class="auth-google" onclick="signInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22 22-9.8 22-22c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 46c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6C29.6 36.5 26.9 37.5 24 37.5c-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.6 41.6 16.2 46 24 46z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.4l6.6 5.6C41.4 36 44 30.5 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+      <span id="auth-google-lbl"></span>
+    </button>
+    <p id="auth-google-note" class="auth-google-note" style="display:none;"></p>
+    <button id="auth-switch" class="auth-switch" onclick="switchAuthMode()"></button>
+  </div>
+</div>
+<div id="root">
+<div id="home-screen" style="display:none;">
+  <div class="home-bg"></div>
+  <div id="home-account" class="home-account"></div>
+  <div class="home-inner">
+    <div class="home-globe">🌍</div>
+    <h1 id="home-title" class="home-title"></h1>
+    <p id="home-sub" class="home-sub"></p>
+    <button id="home-play" class="home-play" onclick="goToGames()"></button>
+    <button id="home-options-btn" class="home-options-btn" onclick="openHomeOpts()"></button>
+  </div>
+  <div class="home-footer">
+    <button class="home-footer-link" onclick="openImpressum()">Impressum</button>
+    <span class="home-footer-sep">·</span>
+    <button class="home-footer-link" onclick="openDatenschutz()">Datenschutz</button>
+  </div>
+</div>
+<div id="home-opts-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeHomeOpts()">
+  <div class="auth-box opts-box">
+    <button class="auth-close" onclick="closeHomeOpts()" aria-label="close">×</button>
+    <h2 id="home-opts-title" class="auth-title"></h2>
+    <div id="home-opts-content" class="opts-grid"></div>
+    <div class="opts-legal-footer">
+      <button class="home-footer-link" onclick="closeHomeOpts();openImpressum()">Impressum</button>
+      <span class="home-footer-sep">·</span>
+      <button class="home-footer-link" onclick="closeHomeOpts();openDatenschutz()">Datenschutz</button>
+    </div>
+  </div>
+</div>
+
+<div id="impressum-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeImpressum()">
+  <div class="auth-box legal-box">
+    <button class="auth-close" onclick="closeImpressum()" aria-label="close">×</button>
+    <h2 class="auth-title">Impressum</h2>
+    <div class="legal-content">
+      <p><strong>Angaben gemäß § 5 TMG</strong></p>
+      <p>Leander Hegers<br>Fürstenallee 82<br>33102 Paderborn</p>
+      <p><strong>Kontakt</strong><br>E-Mail: <a href="mailto:leanderhegers@gmx.de" class="legal-link">leanderhegers@gmx.de</a></p>
+      <p><strong>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</strong><br>Leander Hegers<br>Fürstenallee 82<br>33102 Paderborn</p>
+      <p><strong>Haftungshinweis</strong><br>Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine Haftung für die Inhalte externer Links. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.</p>
+    </div>
+  </div>
+</div>
+
+<div id="datenschutz-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeDatenschutz()">
+  <div class="auth-box legal-box">
+    <button class="auth-close" onclick="closeDatenschutz()" aria-label="close">×</button>
+    <h2 class="auth-title" id="ds-title"></h2>
+    <div class="legal-content" id="ds-content"></div>
+  </div>
+</div>
+
+<div id="profile-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeProfile()">
+  <div class="auth-box profile-box">
+    <button class="auth-close" onclick="closeProfile()" aria-label="close">×</button>
+    <div id="profile-content"></div>
+  </div>
+</div>
+
+<div id="mode-screen" class="games-scroll" style="display:none;"></div>
+
+<div id="custom-screen" class="custom-full" style="display:none;">
+  <div class="custom-topbar">
+    <button onclick="showScreen('mode-screen')" id="cback" class="gs-home-btn"></button>
+    <h2 id="ctitle" class="custom-topbar-title"></h2>
+    <div style="width:72px;"></div>
+  </div>
+
+  <div class="custom-body">
+
+    <div class="custom-card">
+      <div class="custom-label" id="clbl-cont"></div>
+      <div id="cont-checks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
+    <div class="custom-card">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="custom-label" id="clbl-count"></div>
+        <input type="number" id="round-size" class="cnum custom-num" min="1" value="20">
+        <span class="custom-of" id="clbl-of"></span>
+        <label class="cb custom-cb" style="margin-left:auto;"><input type="checkbox" id="all-countries-cb" checked onchange="toggleAllCountries()"><span id="clbl-all"></span></label>
+      </div>
+    </div>
+
+    <div class="custom-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div class="custom-label" id="clbl-countries"></div>
+        <button onclick="selAllC(true)" id="cbtn-all" class="custom-mini-btn custom-mini-btn--on"></button>
+        <button onclick="selAllC(false)" id="cbtn-none" class="custom-mini-btn"></button>
+      </div>
+      <div id="country-tags" class="custom-tags"></div>
+    </div>
+
+    <div style="text-align:center;">
+      <button id="cbtn-start" onclick="startCustom()" class="custom-start-btn"></button>
+    </div>
+
+  </div>
+</div>
+
+<div id="inputcfg-screen" class="custom-full" style="display:none;">
+  <div class="custom-topbar">
+    <button onclick="showScreen('mode-screen')" id="icfg-back" class="gs-home-btn"></button>
+    <h2 id="icfg-title" class="custom-topbar-title"></h2>
+    <div style="width:72px;"></div>
+  </div>
+  <div class="custom-body" id="icfg-body"></div>
+</div>
+
+<div id="game-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
+    <button onclick="back()" id="btn-back" style="font-size:12px;padding:5px 10px;white-space:nowrap;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;"></button>
+    <div style="flex:1;text-align:center;">
+      <div id="find-label" style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;"></div>
+      <div id="target-name" style="font-size:21px;font-weight:500;line-height:1.2;"></div>
+      <button id="btn-skip" onclick="skip()" style="margin-top:3px;font-size:11px;padding:2px 10px;background:transparent;border:1px solid #444;color:#666;border-radius:6px;cursor:pointer;"></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="text-align:right;">
+        <div id="score-disp" style="font-size:16px;font-weight:500;">0/0</div>
+        <div id="found-label" style="font-size:11px;color:#888;"></div>
+      </div>
+      <button onclick="toggleOpts()" style="padding:6px 8px;border-radius:8px;border:1px solid #444;background:#222;cursor:pointer;font-size:14px;color:#ccc;">⚙</button>
+    </div>
+  </div>
+  <div id="opts-panel" style="display:none;padding:.75rem 1rem;border-bottom:.5px solid #333;background:#151515;">
+    <div id="opts-title" class="ol" style="margin-bottom:.6rem;"></div>
+    <div id="opts-content" class="opts-grid"></div>
+  </div>
+  <div id="map-bg" style="flex:1;min-height:0;position:relative;">
+    <svg id="map" style="width:100%;height:100%;display:block;" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="feedback" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+  </div>
+  <div style="height:4px;background:#222;"><div id="prog-bar" style="height:100%;width:0%;transition:width .4s;"></div></div>
+  <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
+    <span><strong id="stat-c" style="color:#1D9E75;">0</strong> <span id="lbl-c"></span></span>
+    <span><strong id="stat-w" style="color:#D85A30;">0</strong> <span id="lbl-w"></span></span>
+    <span><strong id="stat-s" style="color:#888;">0</strong> <span id="lbl-s"></span></span>
+    <span style="margin-left:auto;" id="stat-r"></span></div>
+</div>
+<div id="flag-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
+    <button onclick="back()" id="flag-btn-back" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;">← Menü</button>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;" id="flag-quiz-lbl"></div>
+      <div id="flag-score" style="font-size:16px;font-weight:500;">0/0</div>
+    </div>
+    <button onclick="toggleFlagOpts()" id="flag-opts-btn" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;">⚙</button>
+    <button onclick="skipFlag()" id="flag-skip-btn" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;"></button>
+  </div>
+  <div id="flag-opts-panel" style="display:none;padding:8px 1rem;border-bottom:.5px solid #333;background:#111;"></div>
+  <div style="display:flex;justify-content:center;align-items:center;padding:2.5rem 1rem .5rem;min-height:200px;">
+    <img id="flag-img" src="" alt="" style="max-height:170px;max-width:min(340px,85vw);width:auto;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:1px solid #333;">
+    <div id="iq-text" style="display:none;font-size:34px;font-weight:600;color:#eaf0f8;text-align:center;line-height:1.25;padding:0 1rem;"></div>
+    <svg id="iq-outline" style="display:none;width:min(320px,80vw);height:190px;" viewBox="0 0 320 190" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1rem 2rem;min-height:0;">
+    <div style="position:relative;width:100%;max-width:380px;">
+      <input id="flag-input" type="text" autocomplete="off" spellcheck="false"
+        style="width:100%;padding:10px 14px;font-size:16px;border-radius:10px;border:1.5px solid #444;background:#1a1a1a;color:#eee;outline:none;box-sizing:border-box;"
+        oninput="handleFlagInput(this.value)">
+      <div id="flag-dropdown" style="position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1e1e1e;border:1px solid #444;border-radius:8px;overflow:hidden;display:none;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.4);"></div>
+    </div>
+  </div>
+  <div style="height:4px;background:#222;"><div id="flag-prog" style="height:100%;width:0%;background:#1D9E75;transition:width .4s;"></div></div>
+  <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
+    <span><strong id="flag-stat-c" style="color:#1D9E75;">0</strong> <span id="flag-lbl-c"></span></span>
+    <span><strong id="flag-stat-w" style="color:#D85A30;">0</strong> <span id="flag-lbl-w"></span></span>
+    <span><strong id="flag-stat-s" style="color:#888;">0</strong> <span id="flag-lbl-s"></span></span>
+    <span style="margin-left:auto;" id="flag-stat-r"></span>
+  </div>
+</div>
+<div id="result-screen" style="display:none;flex-direction:column;min-height:100vh;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;">
+    <button onclick="back()" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;" id="res-btn-back"></button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem;text-align:center;">
+  <div id="res-emoji" style="font-size:52px;margin-bottom:.75rem;"></div>
+  <h2 id="res-title" style="font-size:22px;font-weight:500;margin:0 0 .5rem;"></h2>
+  <p id="res-l1" style="font-size:16px;margin:0 0 .25rem;"></p>
+  <p id="res-l2" style="color:#888;font-size:14px;margin:0 0 2rem;"></p>
+  <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+    <button id="btn-again" onclick="restart()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button>
+    <button id="btn-new" onclick="back()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button></div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="countries.js"></script>
+<script src="capitals.js"></script>
+<script src="cities.js"></script>
+<script src="app.js"></script>
+<script src="auth.js"></script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>
