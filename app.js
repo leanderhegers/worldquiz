@@ -154,7 +154,7 @@ function activeConts(){return game.activeContinents||null;}
 const SCREENS=['home-screen','mode-screen','game-screen','result-screen','custom-screen','flag-screen','inputcfg-screen'];
 function showScreen(id){SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'?'flex':'block'):'none';});}
 function goHome(){showScreen('home-screen');renderHome();}
-function goToGames(section){showScreen('mode-screen');renderModeScreen();const el=$('mode-screen');if(!el)return;const sec=section||0;const apply=()=>{const prev=el.style.scrollBehavior;el.style.scrollBehavior='auto';el.scrollTo(0,sec*el.clientHeight);el.style.scrollBehavior=prev;updateSectionNav();};requestAnimationFrame(apply);setTimeout(apply,60);}
+function goToGames(section){if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();showScreen('mode-screen');renderModeScreen();const el=$('mode-screen');if(!el)return;const sec=section||0;const apply=()=>{const prev=el.style.scrollBehavior;el.style.scrollBehavior='auto';el.scrollTo(0,sec*el.clientHeight);el.style.scrollBehavior=prev;updateSectionNav();};requestAnimationFrame(apply);setTimeout(apply,60);}
 
 function og(label,inner){return `<div class="opt-group"><div class="opt-label">${label}</div><div class="opt-row">${inner}</div></div>`;}
 function langGroup(){return og(t('langLbl'),
@@ -437,6 +437,7 @@ function updateCustomInfo(){
 }
 
 function startCustom(){
+  if(typeof markCustomPlayed==='function')markCustomPlayed();
   const allCb=$('all-countries-cb');
   let pool=[...customCountries];
   let count=allCb.checked?pool.length:Math.min(parseInt($('round-size').value)||10,pool.length);
@@ -510,6 +511,7 @@ function recordCorrectForCurrent(){
   else if(game.lakeMode&&game.current!=null)k='lake:'+lakeDisplayName(game.lakeFeatures[game.current]);
   else if(game.current)k='country:'+game.current;
   if(k)recordCorrect(k);
+  if(typeof checkAchievements==='function')checkAchievements();
 }
 function skip(){if(!canClick||!game||game.current===null||game.current===undefined)return;game.skipped=(game.skipped||0)+1;if(!game.skippedItems)game.skippedItems=new Set();game.skippedItems.add(game.current);clearFeedback();if(showSkipHint)updateColors();updateStats();nextCountry();}
 
@@ -684,6 +686,7 @@ function showPinResult(){
   $('res-l1').textContent=game.pinScore+' / '+max+' '+t('pointsLbl')+' ('+pct+'%)';
   $('res-l2').textContent=t('avgLbl')+': '+avg+' km'+note;
   $('res-btn-back').textContent=t('back');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
+  if(typeof checkAchievements==='function')checkAchievements();
 }
 
 async function startRiverGame(diff){
@@ -1311,7 +1314,7 @@ function updateStats(){
     return;
   }
   const dn=game.found?game.found.size:0,tot=game.total||1,rm=(game.queue?game.queue.length:0)+(game.current?1:0);$('score-disp').textContent=dn+'/'+tot;$('found-label').textContent=t('foundLbl');$('stat-c').textContent=game.correct||0;$('lbl-c').textContent=t('correctLbl');$('stat-w').textContent=game.wrong||0;$('lbl-w').textContent=t('wrongLbl');$('stat-s').textContent=game.skipped||0;$('lbl-s').textContent=t('skippedLbl');$('stat-r').textContent=rm+' '+t('remLbl');$('prog-bar').style.width=Math.round((dn/tot)*100)+'%';}
-function showResult(){const p=game.total>0?Math.round((game.firstTry/game.total)*100):0;const note=resultBestNote();game.current=null;showScreen('result-screen');$('res-btn-back').textContent=t('back');$('res-emoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';$('res-title').textContent=t('resTitle');$('res-l1').textContent=t('res1')(game.firstTry,game.total,p);const sk=game.skipped||0;$('res-l2').textContent=t('res2')(game.correct,game.wrong)+(sk>0?', '+sk+' '+t('skippedLbl'):'')+note;$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');}
+function showResult(){const p=game.total>0?Math.round((game.firstTry/game.total)*100):0;const note=resultBestNote();game.current=null;showScreen('result-screen');$('res-btn-back').textContent=t('back');$('res-emoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';$('res-title').textContent=t('resTitle');$('res-l1').textContent=t('res1')(game.firstTry,game.total,p);const sk=game.skipped||0;$('res-l2').textContent=t('res2')(game.correct,game.wrong)+(sk>0?', '+sk+' '+t('skippedLbl'):'')+note;$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');if(typeof checkAchievements==='function')checkAchievements();}
 
 // ── FLAG QUIZ ──
 let _fMatches=[],_fDdIdx=0;
@@ -1626,6 +1629,7 @@ function showFlagResult(){
   $('res-l2').textContent=t('res2')(game.flagCorrect,game.flagWrong)+note;
   $('res-btn-back').textContent=t('back');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');
   showScreen('result-screen');
+  if(typeof checkAchievements==='function')checkAchievements();
 }
 
 // Flag quiz keyboard handling
