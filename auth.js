@@ -40,7 +40,7 @@ function _persist() {
   if (_auth && _auth.currentUser && _db) {
     const uid=_auth.currentUser.uid;
     _db.collection('users').doc(uid)
-      .set({ settings: _store.settings, scores: _store.scores, misses: _store.misses, correct: _store.correct, achievements: _store.achievements || {}, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false }, { merge: true })
+      .set({ settings: _store.settings, scores: _store.scores, misses: _store.misses, correct: _store.correct, achievements: _store.achievements || {}, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false, avatar: _store.avatar || null }, { merge: true })
       .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
     _updatePublicProfile(uid);
   } else {
@@ -60,6 +60,7 @@ function _updatePublicProfile(uid){
     scores:scores,
     achievements:achs,
     streak:_store.streak||0,
+    avatar:_store.avatar||null,
     updatedAt:Date.now()
   }).catch(()=>{});
 }
@@ -69,7 +70,7 @@ async function loadUserData(u) {
     try {
       const snap = await _db.collection('users').doc(u.uid).get();
       const d = snap.exists ? snap.data() : {};
-      _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false };
+      _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false, avatar: d.avatar || null };
     } catch (e) { console.warn('Firestore-Laden fehlgeschlagen', e); _store = { settings: {}, scores: {}, misses: {}, correct: {}, achievements: {} }; }
   } else {
     _store = _loadLocal() || { settings: {}, scores: {}, misses: {}, correct: {}, achievements: {} };
@@ -511,6 +512,68 @@ function pfSwitchTab(tab) {
   if (box) box.scrollTop = 0;
 }
 
+const AVATAR_EMOJIS=['🌍','🌎','🌏','🗺️','🧭','✈️','🏔️','🌋','🏝️','🗼','🗽','🏛️','⛩️','🕌','🎌','🐪','🐧','🦁','🐨','🦅','🌴','🌊','⭐','💎','🔥','🚀','⚓','🎯','🏆','👑'];
+const AVATAR_COLORS=['#1D9E75','#2563EB','#7C3AED','#DC2626','#EA580C','#D97706','#059669','#0891B2','#4F46E5','#BE185D','#65A30D','#475569'];
+
+function _renderAvatar(av,fallback,size){
+  const sz=size||50;const fs=Math.round(sz*0.48);
+  if(av&&av.emoji){
+    return'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+av.color+';display:flex;align-items:center;justify-content:center;font-size:'+fs+'px;flex-shrink:0;">'+av.emoji+'</div>';
+  }
+  return'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:'+(fs-4)+'px;font-weight:700;color:#fff;flex-shrink:0;">'+escapeHtml(fallback)+'</div>';
+}
+
+function openAvatarPicker(){
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  const av=_store.avatar||{emoji:'🌍',color:'#1D9E75'};
+  let modal=document.getElementById('avatar-picker-modal');
+  if(!modal){modal=document.createElement('div');modal.id='avatar-picker-modal';modal.className='auth-modal';modal.style.zIndex='10001';document.body.appendChild(modal);}
+  modal.style.display='flex';
+  modal.onclick=function(e){if(e.target===modal)closeAvatarPicker();};
+  const selEmoji=av.emoji||'🌍';
+  const selColor=av.color||'#1D9E75';
+  modal.innerHTML=`<div class="auth-box" style="max-width:340px;padding:1.5rem;">
+    <button class="auth-close" onclick="closeAvatarPicker()">×</button>
+    <h2 class="auth-title" style="font-size:17px;">${isDE?'Avatar anpassen':'Customize Avatar'}</h2>
+    <div id="av-preview" style="display:flex;justify-content:center;margin:8px 0 16px;">${_renderAvatar({emoji:selEmoji,color:selColor},'?',72)}</div>
+    <div style="font-size:12px;color:#8aa;margin-bottom:6px;">${isDE?'Emoji wählen':'Choose emoji'}</div>
+    <div id="av-emoji-grid" class="av-grid">${AVATAR_EMOJIS.map(e=>'<button class="av-opt av-emoji'+(e===selEmoji?' active':'')+'" data-emoji="'+e+'" onclick="pickAvatarEmoji(this)">'+e+'</button>').join('')}</div>
+    <div style="font-size:12px;color:#8aa;margin:12px 0 6px;">${isDE?'Farbe wählen':'Choose color'}</div>
+    <div id="av-color-grid" class="av-grid">${AVATAR_COLORS.map(c=>'<button class="av-opt av-color'+(c===selColor?' active':'')+'" data-color="'+c+'" style="background:'+c+';" onclick="pickAvatarColor(this)"></button>').join('')}</div>
+    <button class="auth-submit" style="margin-top:16px;" onclick="saveAvatar()">${isDE?'Speichern':'Save'}</button>
+  </div>`;
+}
+function closeAvatarPicker(){const m=document.getElementById('avatar-picker-modal');if(m)m.style.display='none';}
+
+var _avPick={emoji:null,color:null};
+function pickAvatarEmoji(btn){
+  _avPick.emoji=btn.dataset.emoji;
+  document.querySelectorAll('#av-emoji-grid .av-opt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _updateAvPreview();
+}
+function pickAvatarColor(btn){
+  _avPick.color=btn.dataset.color;
+  document.querySelectorAll('#av-color-grid .av-opt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _updateAvPreview();
+}
+function _updateAvPreview(){
+  const av=_store.avatar||{emoji:'🌍',color:'#1D9E75'};
+  const emoji=_avPick.emoji||av.emoji||'🌍';
+  const color=_avPick.color||av.color||'#1D9E75';
+  const el=document.getElementById('av-preview');
+  if(el)el.innerHTML=_renderAvatar({emoji,color},'?',72);
+}
+function saveAvatar(){
+  const av=_store.avatar||{emoji:'🌍',color:'#1D9E75'};
+  _store.avatar={emoji:_avPick.emoji||av.emoji||'🌍',color:_avPick.color||av.color||'#1D9E75'};
+  _avPick={emoji:null,color:null};
+  _persist();
+  closeAvatarPicker();
+  renderProfile();
+}
+
 function renderProfile() {
   const u = window._authUser;
   if (!u) return;
@@ -537,7 +600,7 @@ function renderProfile() {
   document.getElementById('profile-content').innerHTML =
     '<div class="pf-sticky-header">' +
     '<div class="pf-section" style="margin-bottom:0;">' +
-    '<div class="pf-user-row" style="margin-bottom:0;"><div class="pf-avatar">' + escapeHtml(initial) + '</div>' +
+    '<div class="pf-user-row" style="margin-bottom:0;"><button class="pf-avatar-wrap" type="button" onclick="openAvatarPicker()">' + _renderAvatar(_store.avatar, initial, 50) + '<div class="pf-avatar-edit">✏️</div></button>' +
     '<div><div class="pf-username">' + escapeHtml(nm) + '</div>' +
     '<div class="pf-email">' + escapeHtml(u.email || '') + '</div>' +
     '<div class="pf-badge">' + providerLabel + '</div></div></div>' +
@@ -860,7 +923,7 @@ async function renderFriends(){
     let html='';
     for(const f of friends){
       html+=`<div class="fr-item" onclick="openFriendProfile('${escapeHtml(f.uid)}')">
-        <div class="fr-avatar">${(f.username||'?')[0].toUpperCase()}</div>
+        ${_renderAvatar(f.avatar,(f.username||'?')[0].toUpperCase(),38)}
         <div class="fr-info"><div class="fr-name">${escapeHtml(f.username||'?')}</div>
         <div class="fr-sub">${f.games||0} ${isDE?'Spiele':'Games'} · ${f.achCount||0}/${typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:34} 🏆</div></div>
         <button class="fr-remove" onclick="event.stopPropagation();removeFriend('${escapeHtml(f.uid)}')" title="${isDE?'Entfernen':'Remove'}">✕</button>
@@ -924,7 +987,7 @@ async function _loadFriends(){
           const fd=fdoc.data();
           const games=fd.scores?Object.keys(fd.scores).length:0;
           const achCount=fd.achievements?Object.keys(fd.achievements).length:0;
-          friends.push({uid:fid,username:fd.username||'?',games,achCount,scores:fd.scores||{},achievements:fd.achievements||{},streak:fd.streak||0});
+          friends.push({uid:fid,username:fd.username||'?',games,achCount,scores:fd.scores||{},achievements:fd.achievements||{},streak:fd.streak||0,avatar:fd.avatar||null});
         }
       }catch(e){}
     }
@@ -1051,6 +1114,7 @@ async function openFriendProfile(uid){
     const nm=d.username||'?';
     const scores=d.scores||{};
     const achs=d.achievements||{};
+    const fAvatar=d.avatar||null;
     const games=Object.keys(scores).length;
     const bestPct=Object.values(scores).reduce((m,v)=>Math.max(m,v.pct||0),0);
     const streak=d.streak||0;
@@ -1075,8 +1139,8 @@ async function openFriendProfile(uid){
     }
 
     el.innerHTML=`<div class="pf-sticky-header">
-      <div class="pf-header"><div class="fr-avatar fr-avatar-lg">${nm[0].toUpperCase()}</div>
-      <div><div class="pf-username">${escapeHtml(nm)}</div></div></div></div>
+      <div class="fp-header">${_renderAvatar(fAvatar,nm[0].toUpperCase(),52)}
+      <div class="pf-username">${escapeHtml(nm)}</div></div></div>
       <div class="pf-tab-body">
       <div class="pf-stat-grid" style="grid-template-columns:repeat(3,1fr);">
         <div class="pf-stat-box"><div class="pf-stat-val">${games}</div><div class="pf-stat-lbl">${isDE?'Spiele':'Games'}</div></div>
