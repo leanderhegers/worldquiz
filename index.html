@@ -98,6 +98,20 @@
   </div>
 </div>
 
+<div id="friends-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeFriends()">
+  <div class="auth-box friends-box">
+    <button class="auth-close" onclick="closeFriends()" aria-label="close">×</button>
+    <div id="friends-content"></div>
+  </div>
+</div>
+
+<div id="friend-profile-modal" class="auth-modal" style="display:none;" onclick="if(event.target===this)closeFriendProfile()">
+  <div class="auth-box profile-box">
+    <button class="auth-close" onclick="closeFriendProfile()" aria-label="close">×</button>
+    <div id="friend-profile-content"></div>
+  </div>
+</div>
+
 <div id="mode-screen" class="games-scroll" style="display:none;"></div>
 
 <div id="custom-screen" class="custom-full" style="display:none;">

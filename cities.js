@@ -287,12 +287,126 @@ const PIN_CITIES = [
   {name_de:'Christchurch', name_en:'Christchurch', lon:172.64, lat:-43.53, cont:'OC'},
   {name_de:'Suva', name_en:'Suva', lon:178.44, lat:-18.14, cont:'OC'},
   {name_de:'Port Moresby', name_en:'Port Moresby', lon:147.18, lat:-9.44, cont:'OC'},
-  {name_de:'Nouméa', name_en:'Nouméa', lon:166.46, lat:-22.28, cont:'OC'}
+  {name_de:'Nouméa', name_en:'Nouméa', lon:166.46, lat:-22.28, cont:'OC'},
+
+  // ── CHINA (cont AS, country CN) ──
+  {name_de:'Peking', name_en:'Beijing', lon:116.41, lat:39.90, cont:'AS', country:'CN'},
+  {name_de:'Shanghai', name_en:'Shanghai', lon:121.47, lat:31.23, cont:'AS', country:'CN'},
+  {name_de:'Guangzhou', name_en:'Guangzhou', lon:113.26, lat:23.13, cont:'AS', country:'CN'},
+  {name_de:'Shenzhen', name_en:'Shenzhen', lon:114.07, lat:22.54, cont:'AS', country:'CN'},
+  {name_de:'Chengdu', name_en:'Chengdu', lon:104.07, lat:30.57, cont:'AS', country:'CN'},
+  {name_de:'Chongqing', name_en:'Chongqing', lon:106.55, lat:29.56, cont:'AS', country:'CN'},
+  {name_de:'Tianjin', name_en:'Tianjin', lon:117.20, lat:39.13, cont:'AS', country:'CN'},
+  {name_de:'Wuhan', name_en:'Wuhan', lon:114.31, lat:30.59, cont:'AS', country:'CN'},
+  {name_de:'Hangzhou', name_en:'Hangzhou', lon:120.15, lat:30.27, cont:'AS', country:'CN'},
+  {name_de:'Nanjing', name_en:'Nanjing', lon:118.80, lat:32.06, cont:'AS', country:'CN'},
+  {name_de:'Xi\'an', name_en:'Xi\'an', lon:108.94, lat:34.26, cont:'AS', country:'CN'},
+  {name_de:'Shenyang', name_en:'Shenyang', lon:123.43, lat:41.80, cont:'AS', country:'CN'},
+  {name_de:'Harbin', name_en:'Harbin', lon:126.65, lat:45.75, cont:'AS', country:'CN'},
+  {name_de:'Kunming', name_en:'Kunming', lon:102.83, lat:25.04, cont:'AS', country:'CN'},
+  {name_de:'Ürümqi', name_en:'Ürümqi', lon:87.62, lat:43.83, cont:'AS', country:'CN'},
+  {name_de:'Lhasa', name_en:'Lhasa', lon:91.13, lat:29.65, cont:'AS', country:'CN'},
+  {name_de:'Dalian', name_en:'Dalian', lon:121.61, lat:38.91, cont:'AS', country:'CN'},
+  {name_de:'Qingdao', name_en:'Qingdao', lon:120.38, lat:36.07, cont:'AS', country:'CN'},
+  {name_de:'Xiamen', name_en:'Xiamen', lon:118.09, lat:24.48, cont:'AS', country:'CN'},
+  {name_de:'Hongkong', name_en:'Hong Kong', lon:114.17, lat:22.32, cont:'AS', country:'CN'},
+
+  // ── JAPAN (cont AS, country JP) ──
+  {name_de:'Tokio', name_en:'Tokyo', lon:139.69, lat:35.69, cont:'AS', country:'JP'},
+  {name_de:'Osaka', name_en:'Osaka', lon:135.50, lat:34.69, cont:'AS', country:'JP'},
+  {name_de:'Yokohama', name_en:'Yokohama', lon:139.64, lat:35.44, cont:'AS', country:'JP'},
+  {name_de:'Nagoya', name_en:'Nagoya', lon:136.91, lat:35.18, cont:'AS', country:'JP'},
+  {name_de:'Sapporo', name_en:'Sapporo', lon:141.35, lat:43.06, cont:'AS', country:'JP'},
+  {name_de:'Fukuoka', name_en:'Fukuoka', lon:130.42, lat:33.59, cont:'AS', country:'JP'},
+  {name_de:'Kobe', name_en:'Kobe', lon:135.19, lat:34.69, cont:'AS', country:'JP'},
+  {name_de:'Kyoto', name_en:'Kyoto', lon:135.77, lat:35.01, cont:'AS', country:'JP'},
+  {name_de:'Hiroshima', name_en:'Hiroshima', lon:132.46, lat:34.40, cont:'AS', country:'JP'},
+  {name_de:'Sendai', name_en:'Sendai', lon:140.87, lat:38.27, cont:'AS', country:'JP'},
+  {name_de:'Naha', name_en:'Naha', lon:127.68, lat:26.34, cont:'AS', country:'JP'},
+  {name_de:'Nagasaki', name_en:'Nagasaki', lon:129.87, lat:32.75, cont:'AS', country:'JP'},
+  {name_de:'Niigata', name_en:'Niigata', lon:139.02, lat:37.92, cont:'AS', country:'JP'},
+  {name_de:'Kanazawa', name_en:'Kanazawa', lon:136.63, lat:36.56, cont:'AS', country:'JP'},
+  {name_de:'Kagoshima', name_en:'Kagoshima', lon:130.56, lat:31.60, cont:'AS', country:'JP'},
+
+  // ── INDIEN (cont AS, country IN) ──
+  {name_de:'Neu-Delhi', name_en:'New Delhi', lon:77.21, lat:28.61, cont:'AS', country:'IN'},
+  {name_de:'Mumbai', name_en:'Mumbai', lon:72.88, lat:19.08, cont:'AS', country:'IN'},
+  {name_de:'Bangalore', name_en:'Bangalore', lon:77.59, lat:12.97, cont:'AS', country:'IN'},
+  {name_de:'Kolkata', name_en:'Kolkata', lon:88.36, lat:22.57, cont:'AS', country:'IN'},
+  {name_de:'Chennai', name_en:'Chennai', lon:80.27, lat:13.08, cont:'AS', country:'IN'},
+  {name_de:'Hyderabad', name_en:'Hyderabad', lon:78.47, lat:17.39, cont:'AS', country:'IN'},
+  {name_de:'Ahmedabad', name_en:'Ahmedabad', lon:72.57, lat:23.02, cont:'AS', country:'IN'},
+  {name_de:'Pune', name_en:'Pune', lon:73.86, lat:18.52, cont:'AS', country:'IN'},
+  {name_de:'Jaipur', name_en:'Jaipur', lon:75.79, lat:26.92, cont:'AS', country:'IN'},
+  {name_de:'Lucknow', name_en:'Lucknow', lon:80.95, lat:26.85, cont:'AS', country:'IN'},
+  {name_de:'Kochi', name_en:'Kochi', lon:76.27, lat:9.93, cont:'AS', country:'IN'},
+  {name_de:'Guwahati', name_en:'Guwahati', lon:91.75, lat:26.14, cont:'AS', country:'IN'},
+  {name_de:'Amritsar', name_en:'Amritsar', lon:74.87, lat:31.63, cont:'AS', country:'IN'},
+  {name_de:'Varanasi', name_en:'Varanasi', lon:83.00, lat:25.32, cont:'AS', country:'IN'},
+  {name_de:'Chandigarh', name_en:'Chandigarh', lon:76.78, lat:30.73, cont:'AS', country:'IN'},
+
+  // ── BRASILIEN (cont SA, country BR) ──
+  {name_de:'São Paulo', name_en:'São Paulo', lon:-46.63, lat:-23.55, cont:'SA', country:'BR'},
+  {name_de:'Rio de Janeiro', name_en:'Rio de Janeiro', lon:-43.17, lat:-22.91, cont:'SA', country:'BR'},
+  {name_de:'Brasília', name_en:'Brasília', lon:-47.93, lat:-15.78, cont:'SA', country:'BR'},
+  {name_de:'Salvador', name_en:'Salvador', lon:-38.48, lat:-12.97, cont:'SA', country:'BR'},
+  {name_de:'Fortaleza', name_en:'Fortaleza', lon:-38.54, lat:-3.73, cont:'SA', country:'BR'},
+  {name_de:'Belo Horizonte', name_en:'Belo Horizonte', lon:-43.94, lat:-19.92, cont:'SA', country:'BR'},
+  {name_de:'Porto Alegre', name_en:'Porto Alegre', lon:-51.23, lat:-30.03, cont:'SA', country:'BR'},
+  {name_de:'Manaus', name_en:'Manaus', lon:-60.03, lat:-3.12, cont:'SA', country:'BR'},
+  {name_de:'Recife', name_en:'Recife', lon:-34.87, lat:-8.05, cont:'SA', country:'BR'},
+  {name_de:'Curitiba', name_en:'Curitiba', lon:-49.27, lat:-25.43, cont:'SA', country:'BR'},
+  {name_de:'Belém', name_en:'Belém', lon:-48.50, lat:-1.46, cont:'SA', country:'BR'},
+  {name_de:'Goiânia', name_en:'Goiânia', lon:-49.25, lat:-16.69, cont:'SA', country:'BR'},
+  {name_de:'Campo Grande', name_en:'Campo Grande', lon:-54.62, lat:-20.44, cont:'SA', country:'BR'},
+  {name_de:'Florianópolis', name_en:'Florianópolis', lon:-48.55, lat:-27.60, cont:'SA', country:'BR'},
+  {name_de:'Natal', name_en:'Natal', lon:-35.21, lat:-5.79, cont:'SA', country:'BR'},
+
+  // ── AUSTRALIEN (cont OC, country AU) ──
+  {name_de:'Sydney', name_en:'Sydney', lon:151.21, lat:-33.87, cont:'OC', country:'AU'},
+  {name_de:'Melbourne', name_en:'Melbourne', lon:144.96, lat:-37.81, cont:'OC', country:'AU'},
+  {name_de:'Brisbane', name_en:'Brisbane', lon:153.03, lat:-27.47, cont:'OC', country:'AU'},
+  {name_de:'Perth', name_en:'Perth', lon:115.86, lat:-31.95, cont:'OC', country:'AU'},
+  {name_de:'Adelaide', name_en:'Adelaide', lon:138.60, lat:-34.93, cont:'OC', country:'AU'},
+  {name_de:'Canberra', name_en:'Canberra', lon:149.13, lat:-35.28, cont:'OC', country:'AU'},
+  {name_de:'Gold Coast', name_en:'Gold Coast', lon:153.43, lat:-28.00, cont:'OC', country:'AU'},
+  {name_de:'Hobart', name_en:'Hobart', lon:147.33, lat:-42.88, cont:'OC', country:'AU'},
+  {name_de:'Darwin', name_en:'Darwin', lon:130.84, lat:-12.46, cont:'OC', country:'AU'},
+  {name_de:'Cairns', name_en:'Cairns', lon:145.77, lat:-16.92, cont:'OC', country:'AU'},
+  {name_de:'Townsville', name_en:'Townsville', lon:146.78, lat:-19.26, cont:'OC', country:'AU'},
+  {name_de:'Alice Springs', name_en:'Alice Springs', lon:133.88, lat:-23.70, cont:'OC', country:'AU'},
+  {name_de:'Broome', name_en:'Broome', lon:122.24, lat:-17.96, cont:'OC', country:'AU'},
+  {name_de:'Geelong', name_en:'Geelong', lon:144.35, lat:-38.15, cont:'OC', country:'AU'},
+  {name_de:'Newcastle', name_en:'Newcastle', lon:151.78, lat:-32.93, cont:'OC', country:'AU'},
+
+  // ── MEXIKO (cont NA, country MX) ──
+  {name_de:'Mexiko-Stadt', name_en:'Mexico City', lon:-99.13, lat:19.43, cont:'NA', country:'MX'},
+  {name_de:'Guadalajara', name_en:'Guadalajara', lon:-103.35, lat:20.66, cont:'NA', country:'MX'},
+  {name_de:'Monterrey', name_en:'Monterrey', lon:-100.32, lat:25.69, cont:'NA', country:'MX'},
+  {name_de:'Puebla', name_en:'Puebla', lon:-98.21, lat:19.04, cont:'NA', country:'MX'},
+  {name_de:'Tijuana', name_en:'Tijuana', lon:-117.02, lat:32.53, cont:'NA', country:'MX'},
+  {name_de:'León', name_en:'León', lon:-101.68, lat:21.12, cont:'NA', country:'MX'},
+  {name_de:'Ciudad Juárez', name_en:'Ciudad Juárez', lon:-106.44, lat:31.69, cont:'NA', country:'MX'},
+  {name_de:'Mérida', name_en:'Mérida', lon:-89.62, lat:20.97, cont:'NA', country:'MX'},
+  {name_de:'Cancún', name_en:'Cancún', lon:-86.85, lat:21.16, cont:'NA', country:'MX'},
+  {name_de:'Acapulco', name_en:'Acapulco', lon:-99.88, lat:16.86, cont:'NA', country:'MX'},
+  {name_de:'Oaxaca', name_en:'Oaxaca', lon:-96.73, lat:17.06, cont:'NA', country:'MX'},
+  {name_de:'Hermosillo', name_en:'Hermosillo', lon:-110.97, lat:29.07, cont:'NA', country:'MX'},
+  {name_de:'Veracruz', name_en:'Veracruz', lon:-96.13, lat:19.18, cont:'NA', country:'MX'},
+  {name_de:'Chihuahua', name_en:'Chihuahua', lon:-106.09, lat:28.63, cont:'NA', country:'MX'},
+  {name_de:'Querétaro', name_en:'Querétaro', lon:-100.39, lat:20.59, cont:'NA', country:'MX'}
 ];
 
-// Region = Kontinent (EU/AF/AS/NA/SA/OC) oder Land (DE/FR/US)
+const PIN_COUNTRY_KEYS=['DE','FR','US','CN','JP','IN','BR','AU','MX'];
+
+const PIN_DECAY={
+  DE:120,FR:200,JP:200,
+  IN:500,CN:600,BR:700,US:700,AU:700,MX:400,
+  EU:500,AF:800,AS:1000,NA:800,SA:800,OC:800,world:1200
+};
+
 function getPinCities(region){
   if(!region||region==='world')return PIN_CITIES;
-  if(region==='DE'||region==='FR'||region==='US')return PIN_CITIES.filter(c=>c.country===region);
+  if(PIN_COUNTRY_KEYS.includes(region))return PIN_CITIES.filter(c=>c.country===region);
   return PIN_CITIES.filter(c=>c.cont===region);
 }

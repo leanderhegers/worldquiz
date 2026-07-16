@@ -26,6 +26,7 @@ if (FIREBASE_READY && typeof firebase !== 'undefined') {
 function onAuthChanged(u) {
   renderAuthUI(u);
   loadUserData(u);
+  if(u&&typeof _checkFriendRequests==='function')setTimeout(_checkFriendRequests,1500);
 }
 
 // ── DATENSCHICHT: Einstellungen + Highscores (Cloud wenn eingeloggt, sonst localStorage) ──
@@ -37,12 +38,30 @@ function _loadLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY))
 function _saveLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(_store)); } catch (e) {} }
 function _persist() {
   if (_auth && _auth.currentUser && _db) {
-    _db.collection('users').doc(_auth.currentUser.uid)
+    const uid=_auth.currentUser.uid;
+    _db.collection('users').doc(uid)
       .set({ settings: _store.settings, scores: _store.scores, misses: _store.misses, correct: _store.correct, achievements: _store.achievements || {}, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false }, { merge: true })
       .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
+    _updatePublicProfile(uid);
   } else {
     _saveLocal();
   }
+}
+function _updatePublicProfile(uid){
+  if(!_db)return;
+  const u=_auth&&_auth.currentUser;
+  if(!u)return;
+  const scores=_store.scores||{};
+  const achs=_store.achievements||{};
+  _db.collection('profiles').doc(uid).set({
+    username:u.displayName||'?',
+    games:Object.keys(scores).length,
+    bestPct:Object.values(scores).reduce((m,v)=>Math.max(m,v.pct||0),0),
+    scores:scores,
+    achievements:achs,
+    streak:_store.streak||0,
+    updatedAt:Date.now()
+  }).catch(()=>{});
 }
 
 async function loadUserData(u) {
@@ -58,6 +77,7 @@ async function loadUserData(u) {
   window._scores = _store.scores;
   if (typeof applyRemoteSettings === 'function') applyRemoteSettings(_store.settings);
   if (typeof refreshScoresUI === 'function') refreshScoresUI();
+  if(u&&_db)_updatePublicProfile(u.uid);
 }
 
 function saveSettings() {
@@ -795,9 +815,289 @@ async function pfDeleteAccount() {
   }
 }
 
+// ── FREUNDE-SYSTEM ──
+let _friendsCache=null,_friendRequestsCache=null,_friendsView='list';
+
+function openFriends(){
+  if(!window._authUser){openAuth('login');return;}
+  _friendsView='list';
+  document.getElementById('friends-modal').style.display='flex';
+  renderFriends();
+}
+function closeFriends(){document.getElementById('friends-modal').style.display='none';}
+
+async function renderFriends(){
+  const el=document.getElementById('friends-content');
+  if(!el)return;
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  const u=window._authUser;
+  if(!u){el.innerHTML='';return;}
+
+  const tabs=`<div class="fr-tabs">
+    <button class="fr-tab${_friendsView==='list'?' active':''}" onclick="_friendsView='list';renderFriends()">
+      ${isDE?'Freunde':'Friends'}</button>
+    <button class="fr-tab${_friendsView==='requests'?' active':''}" onclick="_friendsView='requests';renderFriends()">
+      ${isDE?'Anfragen':'Requests'}<span id="fr-req-badge"></span></button>
+    <button class="fr-tab${_friendsView==='search'?' active':''}" onclick="_friendsView='search';renderFriends()">
+      ${isDE?'Suchen':'Search'}</button>
+  </div>`;
+
+  if(_friendsView==='list'){
+    el.innerHTML=`<h2 class="pf-title">👥 ${isDE?'Freunde':'Friends'}</h2>${tabs}<div class="fr-loading">${isDE?'Laden...':'Loading...'}</div>`;
+    const friends=await _loadFriends();
+    _updateReqBadge();
+    if(!friends.length){
+      el.querySelector('.fr-loading').innerHTML=`<div class="fr-empty">${isDE?'Noch keine Freunde. Suche nach Benutzernamen!':'No friends yet. Search by username!'}</div>`;
+      return;
+    }
+    let html='';
+    for(const f of friends){
+      html+=`<div class="fr-item" onclick="openFriendProfile('${escapeHtml(f.uid)}')">
+        <div class="fr-avatar">${(f.username||'?')[0].toUpperCase()}</div>
+        <div class="fr-info"><div class="fr-name">${escapeHtml(f.username||'?')}</div>
+        <div class="fr-sub">${f.games||0} ${isDE?'Spiele':'Games'} · ${f.achCount||0}/${typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:34} 🏆</div></div>
+        <button class="fr-remove" onclick="event.stopPropagation();removeFriend('${escapeHtml(f.uid)}')" title="${isDE?'Entfernen':'Remove'}">✕</button>
+      </div>`;
+    }
+    el.querySelector('.fr-loading').innerHTML=html;
+  } else if(_friendsView==='requests'){
+    el.innerHTML=`<h2 class="pf-title">👥 ${isDE?'Anfragen':'Requests'}</h2>${tabs}<div class="fr-loading">${isDE?'Laden...':'Loading...'}</div>`;
+    const reqs=await _loadFriendRequests();
+    _updateReqBadge();
+    if(!reqs.length){
+      el.querySelector('.fr-loading').innerHTML=`<div class="fr-empty">${isDE?'Keine Anfragen':'No requests'}</div>`;
+      return;
+    }
+    let html='';
+    for(const r of reqs){
+      html+=`<div class="fr-item fr-req">
+        <div class="fr-avatar">${(r.fromName||'?')[0].toUpperCase()}</div>
+        <div class="fr-info"><div class="fr-name">${escapeHtml(r.fromName||'?')}</div>
+        <div class="fr-sub">${isDE?'möchte dich als Freund hinzufügen':'wants to add you as a friend'}</div></div>
+        <button class="fr-accept" onclick="acceptFriendRequest('${escapeHtml(r.id)}')">✓</button>
+        <button class="fr-decline" onclick="declineFriendRequest('${escapeHtml(r.id)}')">✕</button>
+      </div>`;
+    }
+    el.querySelector('.fr-loading').innerHTML=html;
+  } else {
+    el.innerHTML=`<h2 class="pf-title">👥 ${isDE?'Freund suchen':'Find Friend'}</h2>${tabs}
+      <div class="fr-search-wrap">
+        <input type="text" id="fr-search-input" class="fr-search" placeholder="${isDE?'Benutzername eingeben…':'Enter username…'}" autocomplete="off">
+        <button class="fr-search-btn" onclick="searchFriend()">${isDE?'Suchen':'Search'}</button>
+      </div>
+      <div id="fr-search-result"></div>`;
+    _updateReqBadge();
+    const inp=document.getElementById('fr-search-input');
+    if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')searchFriend();});
+  }
+}
+
+function _updateReqBadge(){
+  const badge=document.getElementById('fr-req-badge');
+  if(!badge)return;
+  const n=_friendRequestsCache?_friendRequestsCache.length:0;
+  badge.textContent=n>0?` (${n})`:'';
+  badge.style.display=n>0?'inline':'none';
+  const headerBadge=document.getElementById('fr-header-badge');
+  if(headerBadge){headerBadge.textContent=n;headerBadge.style.display=n>0?'flex':'none';}
+}
+
+async function _loadFriends(){
+  if(!_db||!window._authUser)return[];
+  try{
+    const doc=await _db.collection('users').doc(window._authUser.uid).get();
+    const data=doc.exists?doc.data():{};
+    const friendIds=data.friends||[];
+    if(!friendIds.length){_friendsCache=[];return[];}
+    const friends=[];
+    for(const fid of friendIds){
+      try{
+        const fdoc=await _db.collection('profiles').doc(fid).get();
+        if(fdoc.exists){
+          const fd=fdoc.data();
+          const games=fd.scores?Object.keys(fd.scores).length:0;
+          const achCount=fd.achievements?Object.keys(fd.achievements).length:0;
+          friends.push({uid:fid,username:fd.username||'?',games,achCount,scores:fd.scores||{},achievements:fd.achievements||{},streak:fd.streak||0});
+        }
+      }catch(e){}
+    }
+    _friendsCache=friends;
+    return friends;
+  }catch(e){return[];}
+}
+
+async function _loadFriendRequests(){
+  if(!_db||!window._authUser)return[];
+  try{
+    const snap=await _db.collection('friendRequests').where('to','==',window._authUser.uid).get();
+    const reqs=[];
+    snap.forEach(doc=>{const d=doc.data();reqs.push({id:doc.id,from:d.from,fromName:d.fromName,to:d.to,ts:d.ts});});
+    _friendRequestsCache=reqs;
+    return reqs;
+  }catch(e){return[];}
+}
+
+async function searchFriend(){
+  const inp=document.getElementById('fr-search-input');
+  const res=document.getElementById('fr-search-result');
+  if(!inp||!res)return;
+  const name=inp.value.trim().toLowerCase();
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  if(!name){res.innerHTML=`<div class="fr-empty">${isDE?'Bitte einen Namen eingeben':'Please enter a name'}</div>`;return;}
+  if(!_db){res.innerHTML=`<div class="fr-empty">Firebase nicht verbunden</div>`;return;}
+  res.innerHTML=`<div class="fr-loading">${isDE?'Suche...':'Searching...'}</div>`;
+  try{
+    const snap=await _db.collection('usernames').doc(name).get();
+    if(!snap.exists){res.innerHTML=`<div class="fr-empty">${isDE?'Benutzer nicht gefunden':'User not found'}</div>`;return;}
+    const targetUid=snap.data().uid;
+    if(targetUid===window._authUser.uid){res.innerHTML=`<div class="fr-empty">${isDE?'Das bist du selbst!':'That\'s you!'}</div>`;return;}
+    const userDoc=await _db.collection('profiles').doc(targetUid).get();
+    const userData=userDoc.exists?userDoc.data():{};
+    const myDoc=await _db.collection('users').doc(window._authUser.uid).get();
+    const myData=myDoc.exists?myDoc.data():{};
+    const alreadyFriends=(myData.friends||[]).includes(targetUid);
+    const existingReq=await _db.collection('friendRequests')
+      .where('from','==',window._authUser.uid).where('to','==',targetUid).get();
+    const pendingSent=!existingReq.empty;
+    const games=userData.scores?Object.keys(userData.scores).length:0;
+    const achCount=userData.achievements?Object.keys(userData.achievements).length:0;
+    let actionBtn='';
+    if(alreadyFriends)actionBtn=`<span class="fr-status">${isDE?'Bereits befreundet ✓':'Already friends ✓'}</span>`;
+    else if(pendingSent)actionBtn=`<span class="fr-status">${isDE?'Anfrage gesendet':'Request sent'}</span>`;
+    else actionBtn=`<button class="fr-add-btn" onclick="sendFriendRequest('${targetUid}','${escapeHtml(userData.username||name)}')">${isDE?'Anfrage senden':'Send request'}</button>`;
+    res.innerHTML=`<div class="fr-item fr-search-item">
+      <div class="fr-avatar">${(userData.username||name)[0].toUpperCase()}</div>
+      <div class="fr-info"><div class="fr-name">${escapeHtml(userData.username||name)}</div>
+      <div class="fr-sub">${games} ${isDE?'Spiele':'Games'} · ${achCount} 🏆</div></div>
+      ${actionBtn}
+    </div>`;
+  }catch(e){res.innerHTML=`<div class="fr-empty">${isDE?'Fehler bei der Suche':'Search error'}</div>`;}
+}
+
+async function sendFriendRequest(toUid,toName){
+  if(!_db||!window._authUser)return;
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  try{
+    await _db.collection('friendRequests').add({
+      from:window._authUser.uid,
+      fromName:window._authUser.displayName||'?',
+      to:toUid,
+      ts:Date.now()
+    });
+    const res=document.getElementById('fr-search-result');
+    if(res){
+      const btn=res.querySelector('.fr-add-btn');
+      if(btn){btn.outerHTML=`<span class="fr-status">${isDE?'Anfrage gesendet ✓':'Request sent ✓'}</span>`;}
+    }
+  }catch(e){alert(isDE?'Fehler beim Senden':'Error sending request');}
+}
+
+async function acceptFriendRequest(reqId){
+  if(!_db||!window._authUser)return;
+  try{
+    const reqDoc=await _db.collection('friendRequests').doc(reqId).get();
+    if(!reqDoc.exists)return;
+    const reqData=reqDoc.data();
+    const myUid=window._authUser.uid;
+    const theirUid=reqData.from;
+    await _db.collection('users').doc(myUid).set({friends:firebase.firestore.FieldValue.arrayUnion(theirUid)},{merge:true});
+    await _db.collection('users').doc(theirUid).set({friends:firebase.firestore.FieldValue.arrayUnion(myUid)},{merge:true});
+    await _db.collection('friendRequests').doc(reqId).delete();
+    _friendRequestsCache=null;_friendsCache=null;
+    renderFriends();
+  }catch(e){console.warn('Accept friend error',e);}
+}
+
+async function declineFriendRequest(reqId){
+  if(!_db||!window._authUser)return;
+  try{
+    await _db.collection('friendRequests').doc(reqId).delete();
+    _friendRequestsCache=null;
+    renderFriends();
+  }catch(e){}
+}
+
+async function removeFriend(friendUid){
+  if(!_db||!window._authUser)return;
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  if(!confirm(isDE?'Freund wirklich entfernen?':'Remove friend?'))return;
+  try{
+    const myUid=window._authUser.uid;
+    await _db.collection('users').doc(myUid).set({friends:firebase.firestore.FieldValue.arrayRemove(friendUid)},{merge:true});
+    await _db.collection('users').doc(friendUid).set({friends:firebase.firestore.FieldValue.arrayRemove(myUid)},{merge:true});
+    _friendsCache=null;
+    renderFriends();
+  }catch(e){}
+}
+
+async function openFriendProfile(uid){
+  if(!_db)return;
+  const isDE=typeof lang==='undefined'||lang!=='en';
+  const modal=document.getElementById('friend-profile-modal');
+  const el=document.getElementById('friend-profile-content');
+  if(!modal||!el)return;
+  modal.style.display='flex';
+  el.innerHTML=`<div class="fr-loading">${isDE?'Laden...':'Loading...'}</div>`;
+  try{
+    const doc=await _db.collection('profiles').doc(uid).get();
+    const d=doc.exists?doc.data():{};
+    const nm=d.username||'?';
+    const scores=d.scores||{};
+    const achs=d.achievements||{};
+    const games=Object.keys(scores).length;
+    const bestPct=Object.values(scores).reduce((m,v)=>Math.max(m,v.pct||0),0);
+    const streak=d.streak||0;
+    const achCount=Object.keys(achs).length;
+    const achTotal=typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:34;
+    const achPct=achTotal?Math.round((achCount/achTotal)*100):0;
+
+    let achHtml='';
+    if(typeof ACH_DEFS!=='undefined'&&typeof ACH_CATS!=='undefined'){
+      ACH_CATS.forEach(cat=>{
+        const items=ACH_DEFS.filter(a=>a.cat===cat.key);
+        const unlocked=items.filter(a=>achs[a.id]).length;
+        const catName=isDE?cat.de:cat.en;
+        let icons=items.map(a=>{
+          const done=!!achs[a.id];
+          const name=isDE?a.de:a.en;
+          return`<div class="ach-item${done?' unlocked':' locked'}${a.rare&&done?' rare':''}" title="${escapeHtml(name)}">
+            <span class="ach-icon">${a.icon}</span></div>`;
+        }).join('');
+        achHtml+=`<div class="ach-cat open"><div class="ach-cat-head">${cat.icon} ${escapeHtml(catName)} <span class="ach-cat-count">${unlocked}/${items.length}</span></div><div class="ach-grid">${icons}</div></div>`;
+      });
+    }
+
+    el.innerHTML=`<div class="pf-sticky-header">
+      <div class="pf-header"><div class="fr-avatar fr-avatar-lg">${nm[0].toUpperCase()}</div>
+      <div><div class="pf-username">${escapeHtml(nm)}</div></div></div></div>
+      <div class="pf-tab-body">
+      <div class="pf-stat-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="pf-stat-box"><div class="pf-stat-val">${games}</div><div class="pf-stat-lbl">${isDE?'Spiele':'Games'}</div></div>
+        <div class="pf-stat-box"><div class="pf-stat-val">${bestPct}%</div><div class="pf-stat-lbl">${isDE?'Beste Quote':'Best Score'}</div></div>
+        <div class="pf-stat-box"><div class="pf-stat-val">${streak} 🔥</div><div class="pf-stat-lbl">Streak</div></div>
+      </div>
+      <div class="pf-ach-mini" style="margin:12px 0;">
+        <div class="pf-ach-mini-bar"><div class="pf-ach-mini-fill" style="width:${achPct}%"></div></div>
+        <span style="font-size:11px;color:#8a9bb8;">${achCount}/${achTotal} ${isDE?'Achievements':'Achievements'} (${achPct}%)</span>
+      </div>
+      ${achHtml}
+      <button class="fr-challenge-btn" disabled>⚔️ ${isDE?'Herausfordern (bald verfügbar)':'Challenge (coming soon)'}</button>
+      </div>`;
+  }catch(e){el.innerHTML=`<div class="fr-empty">${isDE?'Fehler beim Laden':'Error loading profile'}</div>`;}
+}
+function closeFriendProfile(){document.getElementById('friend-profile-modal').style.display='none';}
+
+async function _checkFriendRequests(){
+  if(!_db||!window._authUser)return;
+  await _loadFriendRequests();
+  _updateReqBadge();
+}
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.getElementById('profile-modal')?.style.display !== 'none') closeProfile();
+    if (document.getElementById('friend-profile-modal')?.style.display !== 'none') closeFriendProfile();
+    else if (document.getElementById('friends-modal')?.style.display !== 'none') closeFriends();
+    else if (document.getElementById('profile-modal')?.style.display !== 'none') closeProfile();
     if (document.getElementById('impressum-modal')?.style.display !== 'none') closeImpressum();
     if (document.getElementById('datenschutz-modal')?.style.display !== 'none') closeDatenschutz();
   }
