@@ -454,7 +454,8 @@ function _processAchToastQueue() {
   const name = (typeof lang !== 'undefined' && lang === 'en') ? a.en : a.de;
   const el = document.createElement('div');
   el.className = 'ach-toast';
-  el.innerHTML = '<span class="ach-toast-icon">' + a.icon + '</span><div><div class="ach-toast-title">Achievement!</div><div class="ach-toast-name">' + escapeHtml(name) + '</div></div>';
+  const desc = (typeof lang !== 'undefined' && lang === 'en') ? a.desc_en : a.desc_de;
+  el.innerHTML = '<span class="ach-toast-icon">' + a.icon + '</span><div><div class="ach-toast-title">Achievement!</div><div class="ach-toast-name">' + escapeHtml(name) + '</div><div class="ach-toast-desc">' + escapeHtml(desc) + '</div></div>';
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => {
@@ -507,12 +508,15 @@ function renderProfile() {
   else if (_pfTab === 'stats') body = _renderStatsTab(u, provider);
 
   document.getElementById('profile-content').innerHTML =
-    '<div class="pf-section">' +
-    '<div class="pf-user-row"><div class="pf-avatar">' + escapeHtml(initial) + '</div>' +
+    '<div class="pf-sticky-header">' +
+    '<div class="pf-section" style="margin-bottom:0;">' +
+    '<div class="pf-user-row" style="margin-bottom:0;"><div class="pf-avatar">' + escapeHtml(initial) + '</div>' +
     '<div><div class="pf-username">' + escapeHtml(nm) + '</div>' +
     '<div class="pf-email">' + escapeHtml(u.email || '') + '</div>' +
     '<div class="pf-badge">' + providerLabel + '</div></div></div>' +
-    '</div>' + tabsHtml + body;
+    '</div>' + tabsHtml +
+    '</div>' +
+    '<div class="pf-tab-body">' + body + '</div>';
 }
 
 function _renderOverviewTab(u, nm, initial, provider, providerLabel) {

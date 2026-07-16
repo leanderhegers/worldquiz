@@ -350,10 +350,15 @@ function renderModeScreen(){
     ?`<button class="gs-mode-btn${learnMode?' active':''}" onclick="setLearnMode(true)">${t('learnModeLbl')}</button>`
     :`<div class="gs-mode-tooltip-wrap"><button class="gs-mode-btn gs-mode-btn-locked" onclick="toggleLearnTooltip(event)">${t('learnModeLbl')}</button><div class="gs-mode-tooltip"><strong>${t('learnModeLbl')}</strong><p>${t('learnModeDesc')}</p><span class="gs-mode-tooltip-cta" onclick="openAuth(\'login\')">${t('learnModeCta')}</span></div></div>`;
   const modeToggle=`<div class="gs-mode-toggle"><button class="gs-mode-btn${!learnMode?' active':''}" onclick="setLearnMode(false)">${t('normalMode')}</button>${learnBtn}</div>`;
+  const rightBtns=`<div class="gs-topbar-right">`+
+    `<button class="gs-home-btn gs-tb-icon" onclick="openHomeOpts()" title="${t('optionsLbl')}">⚙</button>`+
+    (window._authUser?`<button class="gs-home-btn gs-tb-icon" onclick="openProfile()" title="Profil">👤</button>`:`<button class="gs-home-btn gs-tb-icon" onclick="openAuth('login')" title="${t('signIn')}">👤</button>`)+
+    `</div>`;
   $('mode-screen').innerHTML=`
     <div class="gs-topbar">
       <button class="gs-home-btn" onclick="goHome()">${t('homeBtn')}</button>
       ${modeToggle}
+      ${rightBtns}
     </div>
     <div class="gs-nav">${nav}</div>
     ${sections}`;
@@ -478,7 +483,7 @@ function back(){const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
-function toggleLearnTooltip(e){e.stopPropagation();const wrap=e.currentTarget.closest('.gs-mode-tooltip-wrap');if(!wrap)return;wrap.classList.toggle('show');}
+function toggleLearnTooltip(e){e.stopPropagation();if(!('ontouchstart' in window))return;const wrap=e.currentTarget.closest('.gs-mode-tooltip-wrap');if(!wrap)return;wrap.classList.toggle('show');}
 
 // Lernmodus-Sortierung: häufig falsch vorne, 1-3× richtig hinten, >3× richtig ausgeblendet
 function learnSortIds(ids,prefix){
@@ -1024,7 +1029,7 @@ function renderMap(world){
   visibleIds=new Set(countries.features.map(f=>+f.id));
   REDIRECTS.clear();
   // 304=Greenland, 10=Antarctica — non-clickable, no redirect
-  const NO_REDIRECT=new Set([304,10,540]); // 540=Neukaledonien
+  const NO_REDIRECT=new Set([304,10,540,630,850,660,92,663,652,534]); // 540=Neukaledonien, 630=Puerto Rico, 850=US Virgin Is., 660=Anguilla, 92=Brit. Virgin Is., 663=St.Martin, 652=St.Barthélemy, 534=Sint Maarten
   // Dynamically block territories by centroid bounds (e.g. Französisch-Guayana)
   const GEO_NO_REDIRECT=[[[-56,-50],[1,7]]]; // [lonRange, latRange]
   countries.features.forEach(f=>{const [lo,la]=d3.geoCentroid(f);if(GEO_NO_REDIRECT.some(([[l0,l1],[a0,a1]])=>lo>=l0&&lo<=l1&&la>=a0&&la<=a1))NO_REDIRECT.add(+f.id);});
