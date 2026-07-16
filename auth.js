@@ -129,12 +129,19 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function renderAuthUI(u) {
   const el = document.getElementById('home-account');
   if (!el) return;
+  const isEN=typeof lang!=='undefined'&&lang==='en';
+  const profLabel=isEN?'Profile':'Profil';
+  const frLabel=isEN?'Friends':'Freunde';
+  const loginLabel=t('signIn');
+  const logoutLabel=t('signOut');
   if (u) {
-    const nm = u.displayName || u.email || '';
-    el.innerHTML = '<button class="home-acct-btn" onclick="openProfile()" style="font-weight:600;">' + escapeHtml(nm) + '</button>' +
-      '<button class="home-acct-btn" onclick="authLogout()">' + t('signOut') + '</button>';
+    el.innerHTML = '<button class="home-icon-btn" onclick="openProfile()" data-label="'+profLabel+'"><span>👤</span></button>' +
+      '<button class="home-icon-btn" onclick="openFriends()" data-label="'+frLabel+'"><span>👥</span></button>' +
+      '<button class="home-icon-btn" onclick="authLogout()" data-label="'+logoutLabel+'"><span>🚪</span></button>';
   } else {
-    el.innerHTML = '<button class="home-acct-btn" onclick="openAuth(\'login\')">' + t('signIn') + '</button>';
+    el.innerHTML = '<button class="home-icon-btn" onclick="openAuth(\'login\')" data-label="'+loginLabel+'"><span>🔑</span></button>' +
+      '<button class="home-icon-btn disabled" disabled data-label="'+profLabel+'"><span>👤</span></button>' +
+      '<button class="home-icon-btn disabled" disabled data-label="'+frLabel+'"><span>👥</span></button>';
   }
 }
 
