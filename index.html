@@ -193,6 +193,32 @@
     <span><strong id="stat-s" style="color:#888;">0</strong> <span id="lbl-s"></span></span>
     <span style="margin-left:auto;" id="stat-r"></span></div>
 </div>
+<div id="region-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
+    <button onclick="regionBack()" id="reg-btn-back" style="font-size:12px;padding:5px 10px;white-space:nowrap;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;">← Menü</button>
+    <div style="flex:1;text-align:center;">
+      <div id="reg-find-label" style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;"></div>
+      <div id="reg-target-name" style="font-size:21px;font-weight:500;line-height:1.2;"></div>
+      <button id="reg-btn-skip" onclick="regionSkip()" style="margin-top:3px;font-size:11px;padding:2px 10px;background:transparent;border:1px solid #444;color:#666;border-radius:6px;cursor:pointer;"></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="text-align:right;">
+        <div id="reg-score-disp" style="font-size:16px;font-weight:500;">0/0</div>
+        <div id="reg-found-label" style="font-size:11px;color:#888;"></div>
+      </div>
+    </div>
+  </div>
+  <div id="reg-map-bg" style="flex:1;min-height:0;position:relative;background:#1a2233;">
+    <svg id="reg-map" style="width:100%;height:100%;display:block;" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="reg-feedback" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+  </div>
+  <div style="height:4px;background:#222;"><div id="reg-prog-bar" style="height:100%;width:0%;transition:width .4s;"></div></div>
+  <div style="display:flex;padding:.5rem 1rem;border-top:.5px solid #333;font-size:13px;gap:1.5rem;color:#888;align-items:center;">
+    <span><strong id="reg-stat-c" style="color:#1D9E75;">0</strong> <span id="reg-lbl-c"></span></span>
+    <span><strong id="reg-stat-w" style="color:#D85A30;">0</strong> <span id="reg-lbl-w"></span></span>
+    <span><strong id="reg-stat-s" style="color:#888;">0</strong> <span id="reg-lbl-s"></span></span>
+    <span style="margin-left:auto;" id="reg-stat-r"></span></div>
+</div>
 <div id="flag-screen" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
   <div style="display:flex;align-items:center;padding:.65rem 1rem;border-bottom:.5px solid #333;gap:.75rem;">
     <button onclick="back()" id="flag-btn-back" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;">← Menü</button>
