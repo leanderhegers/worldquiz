@@ -1812,7 +1812,7 @@ async function startRegionQuiz(key){
   const queue=[...names];
   for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]];}
 
-  _regGame={key,cfg,features,names,queue,pos:0,correct:0,wrong:0,skipped:0,firstTry:0,found:new Set(),wrongOnCurrent:false,total:queue.length};
+  _regGame={key,cfg,features,names,queue,pos:0,correct:0,wrong:0,skipped:0,firstTry:0,found:new Set(),skippedItems:new Set(),wrongOnCurrent:false,total:queue.length,busy:false};
   _renderRegionMap(cfg,features);
   _nextRegion();
 }
@@ -1836,7 +1836,7 @@ function _renderRegionMap(cfg,features){
     .style('vector-effect','non-scaling-stroke')
     .style('cursor','pointer')
     .on('mouseover',function(ev,d){
-      if(!_regGame||_regGame.found.has(d.properties[cfg.nameKey]))return;
+      if(!_regGame||_regGame.found.has(d.properties[cfg.nameKey])||_regGame.skippedItems.has(d.properties[cfg.nameKey]))return;
       d3.select(this).attr('fill',th.hov);
     })
     .on('mouseout',function(ev,d){
@@ -1856,25 +1856,28 @@ function _updateRegionColors(){
   const th=THEMES[theme],cfg=_regGame.cfg;
   _regPaths.attr('fill',d=>{
     const nm=d.properties[cfg.nameKey];
+    if(_regGame.skippedItems.has(nm))return th.skipped||'#888';
     if(_regGame.found.has(nm))return th.found;
     return th.avail;
   });
 }
 
 function _handleRegionClick(d){
-  if(!_regGame||_regGame.pos>=_regGame.total)return;
+  if(!_regGame||_regGame.busy||_regGame.pos>=_regGame.total)return;
   const cfg=_regGame.cfg;
   const clickedName=d.properties[cfg.nameKey];
+  if(_regGame.found.has(clickedName)||_regGame.skippedItems.has(clickedName))return;
   const target=_regGame.queue[_regGame.pos];
 
   if(clickedName===target.name){
+    _regGame.busy=true;
     _regGame.correct++;
     if(!_regGame.wrongOnCurrent)_regGame.firstTry++;
     _regGame.found.add(clickedName);
     _regFeedback('✓ '+clickedName,THEMES[theme].found);
     _updateRegionColors();
     _updateRegionStats();
-    setTimeout(_nextRegion,900);
+    setTimeout(()=>{_regGame.busy=false;_nextRegion();},900);
   }else{
     _regGame.wrong++;
     _regGame.wrongOnCurrent=true;
@@ -1896,25 +1899,28 @@ function _nextRegion(){
 }
 
 function regionSkip(){
-  if(!_regGame||_regGame.pos>=_regGame.total)return;
+  if(!_regGame||_regGame.busy||_regGame.pos>=_regGame.total)return;
   const target=_regGame.queue[_regGame.pos];
+  _regGame.busy=true;
   _regGame.skipped++;
   _regGame.found.add(target.name);
+  _regGame.skippedItems.add(target.name);
+  _updateRegionStats();
   if(showSkipHint){
     _regPaths.filter(f=>f.properties[_regGame.cfg.nameKey]===target.name).attr('fill','#D97706');
     _regFeedback(target.name,'#D97706');
-    setTimeout(()=>{_updateRegionColors();_nextRegion();},1200);
+    setTimeout(()=>{_regGame.busy=false;_updateRegionColors();_nextRegion();},1200);
   }else{
+    _regGame.busy=false;
     _updateRegionColors();
     _nextRegion();
   }
-  _updateRegionStats();
 }
 
 function _updateRegionStats(){
   if(!_regGame)return;
   const g=_regGame;
-  $('reg-score-disp').textContent=g.correct+'/'+g.total;
+  $('reg-score-disp').textContent=g.found.size+'/'+g.total;
   $('reg-stat-c').textContent=g.correct;
   $('reg-stat-w').textContent=g.wrong;
   $('reg-stat-s').textContent=g.skipped;
