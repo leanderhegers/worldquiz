@@ -127,7 +127,6 @@ let lang='de',theme='atlas',keepFound=true,showWrongHint=true,showSkipHint=true,
 let countryPaths=null,microstateDots=null,lakePaths=null,lakeDots=null,riverPaths=null,riverHitboxes=null,cityDots=null,worldData=null,borderPath=null,zoomBehavior=null,gGroup=null,islandZoneHits=null,islandZoneVisuals=null,zoneHulls=null;
 let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null,_fbTimer=null;
 let currentProj=null,pinLayer=null;
-let currentLOD='50m',_lodLoading=false,_lodWorldData10m=null;
 
 function showFeedback(text,color){
   const el=$('feedback');
@@ -1006,7 +1005,7 @@ function polyPathD(poly){
 function zonePathD(z){return polyPathD(z.poly);}
 
 function renderMap(world){
-  const svg=d3.select('#map');svg.selectAll('*').remove();borderPath=null;gGroup=null;currentLOD='50m';
+  const svg=d3.select('#map');svg.selectAll('*').remove();borderPath=null;gGroup=null;
   const th=THEMES[theme],W=960,H=500;
   const proj=buildProjection();
   currentProj=proj;
@@ -1277,7 +1276,7 @@ function renderMap(world){
     _lastT=t;
     if(!_pTimer)gNode.style.pointerEvents='none';
     clearTimeout(_pTimer);
-    _pTimer=setTimeout(()=>{gNode.style.pointerEvents='';_pTimer=null;applyDotR(_lastT.k);if(_lastT.k>4&&currentLOD==='50m')_swapLOD('10m');else if(_lastT.k<3.5&&currentLOD==='10m')_swapLOD('50m');},150);
+    _pTimer=setTimeout(()=>{gNode.style.pointerEvents='';_pTimer=null;applyDotR(_lastT.k);},150);
     if(!_raf)_raf=requestAnimationFrame(()=>{
       g.attr('transform',_lastT);
       if(scaleChanged)applyDotR(_lastT.k);
@@ -1288,67 +1287,6 @@ function renderMap(world){
   $('map-bg').style.background=th.bg;updateColors();
 }
 
-async function _swapLOD(target){
-  if(target===currentLOD||_lodLoading)return;
-  if(target==='10m'){
-    _lodLoading=true;
-    if(!_lodWorldData10m){
-      try{_lodWorldData10m=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json').then(r=>r.json());}
-      catch(e){_lodLoading=false;return;}
-    }
-    _applyLODData(_lodWorldData10m);
-    currentLOD='10m';
-    _lodLoading=false;
-  }else{
-    if(!worldData)return;
-    _applyLODData(worldData);
-    currentLOD='50m';
-  }
-}
-function _applyLODData(world){
-  if(!countryPaths||!gGroup||!currentProj)return;
-  const gpath=d3.geoPath().projection(currentProj);
-  const countries=topojson.feature(world,world.objects.countries);
-  const geoms=world.objects.countries.geometries;
-  let _sid=-1;
-  countries.features.forEach(f=>{if(isNaN(+f.id))f.id=_sid--;});
-  countries.features.forEach(f=>{if(+f.id>=0)return;const[lon,lat]=d3.geoCentroid(f);if(lon>20&&lon<21.9&&lat>42&&lat<43.3)f.id=383;});
-  let rf=countries.features;
-  const mp=[];
-  function mi(pid){
-    const pi=rf.findIndex(f=>+f.id===pid);
-    const ci=rf.findIndex(f=>+f.id<0&&REDIRECTS.get(+f.id)===pid);
-    if(pi<0||ci<0)return;
-    const gi=geoms[countries.features.indexOf(rf[pi])];
-    const gj=geoms[countries.features.indexOf(rf[ci])];
-    if(!gi||!gj)return;
-    const m=topojson.merge(world,[gi,gj]);mp.push([gi,gj]);
-    rf=rf.filter((_,i)=>i!==ci).map(f=>+f.id===pid?{...f,geometry:m}:f);
-  }
-  mi(706);mi(196);
-  (function(){
-    const pi=rf.findIndex(f=>+f.id===504);
-    const ci=rf.findIndex(f=>+f.id===732);
-    if(pi<0||ci<0)return;
-    const gi=geoms[countries.features.indexOf(rf[pi])];
-    const gj=geoms[countries.features.indexOf(rf[ci])];
-    if(!gi||!gj)return;
-    const m=topojson.merge(world,[gi,gj]);mp.push([gi,gj]);
-    rf=rf.filter((_,i)=>i!==ci).map(f=>+f.id===504?{...f,geometry:m}:f);
-  })();
-  const fmap=new Map();
-  rf.forEach(f=>fmap.set(+f.id,f));
-  countryPaths.attr('d',function(d){const f=fmap.get(+d.id);return f?gpath(f):gpath(d);});
-  const borderMesh=topojson.mesh(world,world.objects.countries,(a,b)=>{
-    if(a===b)return false;
-    for(const[g1,g2]of mp){if((a===g1&&b===g2)||(a===g2&&b===g1))return false;}
-    return true;
-  });
-  if(borderPath)borderPath.datum(borderMesh).attr('d',gpath);
-  const coastMesh=topojson.mesh(world,world.objects.countries,(a,b)=>a===b);
-  const coastPath=d3.select('#map path.coastline');
-  if(!coastPath.empty())coastPath.datum(coastMesh).attr('d',gpath);
-}
 
 function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
 function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(game.lakeMode||game.riverMode||game.cityMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
@@ -1442,7 +1380,7 @@ async function iqLoadOverrides(){
   _iqOverride=acc;
 }
 async function iqEnsureOutlineGeo(){
-  if(!outlineGeo){try{outlineGeo=_lodWorldData10m||await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json').then(r=>r.json());if(!_lodWorldData10m)_lodWorldData10m=outlineGeo;}catch(e){}}
+  if(!outlineGeo){try{outlineGeo=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json').then(r=>r.json());}catch(e){}}
   await iqLoadOverrides();
 }
 function iqGeomPoints(f){let n=0;const g=f.geometry;if(!g)return 0;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];ps.forEach(p=>p.forEach(r=>n+=r.length));return n;}
