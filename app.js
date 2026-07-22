@@ -1277,11 +1277,35 @@ function renderMap(world){
   const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
   _ro.observe(svg.node());
 
-  // Mercator wrap: reference map content left and right via <use>
+  // Mercator wrap: clone map left and right via <use>, with event forwarding
   if(isMerc){
     g.attr('id','map-main');
+    let _wrapHov=null;
+    function wrapFind(ev,dx){
+      const[px,py]=d3.pointer(ev,g.node());
+      const wx=px-dx;
+      const ll=proj.invert([wx,py]);
+      if(!ll||isNaN(ll[0]))return null;
+      for(const m of(microstateDots?microstateDots.data():[])){
+        const[mx,my]=proj([m.lon,m.lat]);
+        const r=parseFloat(microstateDots.attr('r'))||DOT_R;
+        if((wx-mx)**2+(py-my)**2<r*r*4)return m.id;
+      }
+      for(const z of(zoneHulls||[])){if(d3.geoContains(z.poly[0]?{type:'Polygon',coordinates:[z.poly]}:{type:'Point',coordinates:z.hull[0]},ll))return z.id;}
+      const feat=renderFeatures.find(f=>d3.geoContains(f,ll));
+      return feat?eff(+feat.id):null;
+    }
+    function wrapHover(id){
+      if(id===_wrapHov)return;
+      if(_wrapHov){countryPaths.filter(f=>eff(+f.id)===_wrapHov).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===_wrapHov).attr('fill',x=>getMSColor(x.id));islandZoneVisuals&&islandZoneVisuals.filter(v=>v.id===_wrapHov).attr('stroke-opacity',0.55);}
+      _wrapHov=id;
+      if(id&&!game.found?.has(id)&&C[id]&&isActive(id)&&!game.skippedItems?.has(id)){countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);islandZoneVisuals&&islandZoneVisuals.filter(v=>v.id===id).attr('stroke-opacity',0.9);}
+    }
     for(const dx of[-W,W]){
-      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('pointer-events','none');
+      const u=wrapG.append('use').attr('href','#map-main').attr('x',dx).style('cursor','pointer');
+      u.on('mousemove',function(ev){wrapHover(wrapFind(ev,dx));})
+       .on('mouseout',function(){wrapHover(null);})
+       .on('click',function(ev){const id=wrapFind(ev,dx);if(id)handleClick(id);});
     }
   }
 
