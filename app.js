@@ -7,8 +7,8 @@ const MAP_W=960,MAP_H=500;
 // Central projection builder — switches between Natural Earth and Mercator, same interface for everything
 function buildProjection(){
   if(projection==='mercator'){
-    const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
-    const topY=proj([0,83.5])[1]; // Oberkante ~Nordspitze Grönland
+    const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]);
+    const topY=proj([0,83.5])[1];
     return proj.clipExtent([[-80,topY],[MAP_W+80,MAP_H+260]]);
   }
   return d3.geoNaturalEarth1().scale(153).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
@@ -1011,8 +1011,10 @@ function renderMap(world){
   currentProj=proj;
   const gpath=d3.geoPath().projection(proj);
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
-  svg.append('rect').attr('class','ocean').attr('width',W).attr('height',H).attr('fill',th.bg);
-  const g=svg.append('g');gGroup=g;
+  const isMerc=projection==='mercator';
+  svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',th.bg);
+  const wrapG=svg.append('g');
+  const g=wrapG.append('g');gGroup=g;
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
   g.append('path').attr('class','grat').datum(d3.geoGraticule()()).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
 
@@ -1255,8 +1257,15 @@ function renderMap(world){
     const pinHide=game&&game.pinMode;
     const msDisp=d=>pinHide||(d.id===442&&zoomK>=6)||(d.id===780&&zoomK>=3)||((d.id===548||d.id===90||d.id===270||d.id===388)&&zoomK>=2)?'none':'';
     const lkDisp=d=>zoomK>=(d.properties.min_zoom||4)?'none':'';
-    if(microstateDots)microstateDots.attr('r',dotR(zoomK)).style('display',msDisp);
-    if(microstateHit)microstateHit.attr('r',d=>msHitR(d.id)/svgScale()/zoomK).style('display',msDisp);
+    const dr=dotR(zoomK);
+    if(microstateDots){
+      microstateDots.attr('r',dr).style('display',msDisp);
+      if(isMerc){const m=dr+1;microstateDots.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
+    }
+    if(microstateHit){
+      microstateHit.attr('r',d=>msHitR(d.id)/svgScale()/zoomK).style('display',msDisp);
+      if(isMerc){const m=dr+1;microstateHit.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
+    }
     if(lakeDots)lakeDots.attr('r',dotR(zoomK)).style('display',lkDisp);
     if(lakeHit)lakeHit.attr('r',hitR(zoomK)).style('display',lkDisp);
     if(cityDots)cityDots.attr('r',dotR(zoomK));
@@ -1268,17 +1277,40 @@ function renderMap(world){
   const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
   _ro.observe(svg.node());
 
+  // Mercator wrap: reference map content left and right via <use>
+  if(isMerc){
+    g.attr('id','map-main');
+    for(const dx of[-W,W]){
+      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('pointer-events','none');
+    }
+  }
+
   const gNode=g.node();
-  let _raf=null,_lastT=null,_pTimer=null;
-  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent([[0,0],[MAP_W,MAP_H]]).on('zoom',ev=>{
+  let _raf=null,_lastT=null,_pTimer=null,_wrapping=false;
+  const txExt=isMerc?[[-W*2,0],[W*3,H]]:[[0,0],[W,H]];
+  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt).on('zoom',ev=>{
     const t=ev.transform;
     const scaleChanged=!_lastT||Math.abs(t.k-(_lastT.k||1))>0.001;
     _lastT=t;
+    if(_wrapping){_wrapping=false;return;}
     if(!_pTimer)gNode.style.pointerEvents='none';
     clearTimeout(_pTimer);
-    _pTimer=setTimeout(()=>{gNode.style.pointerEvents='';_pTimer=null;applyDotR(_lastT.k);},150);
+    _pTimer=setTimeout(()=>{
+      gNode.style.pointerEvents='';_pTimer=null;applyDotR(_lastT.k);
+      if(isMerc){
+        const period=W*_lastT.k;
+        let nx=_lastT.x%period;
+        if(nx>0)nx-=period;
+        if(Math.abs(nx-_lastT.x)>1){
+          _wrapping=true;
+          svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(nx,_lastT.y).scale(_lastT.k));
+          _lastT=d3.zoomTransform(svg.node());
+          wrapG.attr('transform',_lastT);
+        }
+      }
+    },150);
     if(!_raf)_raf=requestAnimationFrame(()=>{
-      g.attr('transform',_lastT);
+      wrapG.attr('transform',_lastT);
       if(scaleChanged)applyDotR(_lastT.k);
       _raf=null;
     });
