@@ -1027,13 +1027,10 @@ function renderMap(world){
   if(theme==='terrain'&&terrainData){
     g.append('path').datum(land).attr('d',gpath).attr('fill','#6a9a58').attr('stroke','none').style('pointer-events','none');
     const lyr=Object.keys(terrainData.objects)[0];
-    const byType={};
-    terrainData.objects[lyr].geometries.forEach((geom,i)=>{const t=geom.properties.t||'g';(byType[t]=byType[t]||[]).push(i);});
-    const tg=g.append('g').attr('class','terrain-regions');
-    for(const[t,indices] of Object.entries(byType)){
-      const merged=topojson.merge(terrainData,indices.map(i=>terrainData.objects[lyr].geometries[i]));
-      tg.append('path').datum(merged).attr('d',gpath).attr('fill',TERRAIN_COLORS[t]||'#7CAA5A').attr('stroke','none').style('pointer-events','none');
-    }
+    const regions=topojson.feature(terrainData,terrainData.objects[lyr]);
+    const tg=g.append('g').attr('class','terrain-regions').style('shape-rendering','optimizeSpeed');
+    tg.selectAll('path').data(regions.features).enter().append('path')
+      .attr('d',gpath).attr('fill',d=>TERRAIN_COLORS[d.properties.t]||'#7CAA5A').attr('stroke','none').style('pointer-events','none');
     const oceanD=gpath({type:'Sphere'})+gpath(land);
     tg.append('path').attr('d',oceanD).attr('fill',th.bg).attr('fill-rule','evenodd').style('pointer-events','none');
   }
