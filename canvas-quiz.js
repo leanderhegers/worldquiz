@@ -21,10 +21,23 @@ const PICK_SCALE=2; // supersample the pick buffer so thin/small countries stay 
 
 let cw=0,ch=0,dpr=Math.max(1,window.devicePixelRatio||1),scaleF=1,offsetX=0,offsetY=0;
 let transform=d3.zoomIdentity;
-let proj=null,gpath=null,pickPath=null;
+let proj=null,gpath=null,gpathBase=null,pickPath=null;
 let features=[],idToFeature=new Map(),pickIdToId=new Map();
 let borderMesh=null,coastMesh=null;
 let hoverId=null,wrongId=null,wrongTimer=null;
+
+// ── Base bitmap cache ──
+// Re-rasterizing every country + border mesh on a <canvas> for every single zoom/pan
+// tick (which fires dozens of times/sec) is what made this prototype slow — unlike SVG,
+// a <canvas> has no retained scene graph, so a naive redraw loop re-draws everything from
+// scratch every frame. Fix: draw the full map into an offscreen "base" bitmap once, then
+// during interaction just blit that bitmap with a cheap image transform (translate+scale —
+// the canvas equivalent of SVG's GPU-composited transform). Only after the gesture settles
+// do we pay for a full, crisp vector re-render at the new zoom/pan.
+const baseCanvas=document.createElement('canvas');
+const baseCtx=baseCanvas.getContext('2d');
+let baseTransform=null; // {k,x,y} the zoom transform baked into baseCanvas right now
+let settleTimer=null;
 
 const game={pool:[],order:[],idx:0,found:new Set(),correct:0,wrong:0};
 
@@ -40,10 +53,11 @@ function resize(){
   dpr=Math.max(1,window.devicePixelRatio||1);
   canvas.width=cw*dpr;canvas.height=ch*dpr;
   canvas.style.width=cw+'px';canvas.style.height=ch+'px';
+  baseCanvas.width=canvas.width;baseCanvas.height=canvas.height;
   scaleF=Math.min(cw/MAP_W,ch/MAP_H);
   offsetX=(cw-MAP_W*scaleF)/2;
   offsetY=(ch-MAP_H*scaleF)/2;
-  draw();
+  renderBaseNow();
 }
 new ResizeObserver(resize).observe(document.getElementById('map-wrap'));
 
@@ -83,43 +97,68 @@ function countryColor(id){
   return COL.avail;
 }
 
-let frameCount=0;
-function draw(){
-  frameCount++;
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,cw,ch);
-  ctx.fillStyle=COL.bg;ctx.fillRect(0,0,cw,ch);
-  applyCtxTransform(ctx);
+// The expensive full vector render — every country fill, both border meshes, all dots.
+// Only called on load/resize/settle and on actual content changes (found/hover/wrong),
+// never on every zoom/pan tick.
+function drawFull(c){
+  c.setTransform(dpr,0,0,dpr,0,0);
+  c.clearRect(0,0,cw,ch);
+  c.fillStyle=COL.bg;c.fillRect(0,0,cw,ch);
+  applyCtxTransform(c);
+  const p=(c===baseCtx)?gpathBase:gpath;
 
-  // Countries — colored by game state; only countries with a quiz entry (C[id]) are interactive,
-  // everything else renders as a flat neutral land tone.
   features.forEach(f=>{
     const id=+f.id;
     const active=C[id];
-    ctx.beginPath();gpath(f);
-    ctx.fillStyle=active?countryColor(id):'#9fae8a';
-    ctx.fill();
+    c.beginPath();p(f);
+    c.fillStyle=active?countryColor(id):'#9fae8a';
+    c.fill();
   });
 
-  // Borders — lineWidth compensated so stroke stays a constant screen width across zoom/fit-scale.
-  ctx.lineWidth=baseLen(0.8);ctx.strokeStyle=COL.border;ctx.lineJoin='round';
-  ctx.beginPath();gpath(coastMesh);ctx.stroke();
-  ctx.beginPath();gpath(borderMesh);ctx.stroke();
+  c.lineWidth=baseLen(0.8);c.strokeStyle=COL.border;c.lineJoin='round';
+  c.beginPath();p(coastMesh);c.stroke();
+  c.beginPath();p(borderMesh);c.stroke();
 
-  // Microstate dots (Monaco, Singapore, Vatican, …) — radius compensated to stay ~constant on screen.
   const r=Math.max(1.2,baseLen(DOT_R));
   MICROSTATES.forEach(m=>{
     if(!isActive(m.id))return;
-    const p=proj([m.lon,m.lat]);if(!p)return;
-    ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);
-    ctx.fillStyle=countryColor(m.id);
-    ctx.fill();ctx.lineWidth=baseLen(1.2);ctx.strokeStyle=COL.border;ctx.stroke();
+    const pt=proj([m.lon,m.lat]);if(!pt)return;
+    c.beginPath();c.arc(pt[0],pt[1],r,0,Math.PI*2);
+    c.fillStyle=countryColor(m.id);
+    c.fill();c.lineWidth=baseLen(1.2);c.strokeStyle=COL.border;c.stroke();
   });
+}
+// Bakes the current view (transform + game state) into the offscreen base bitmap.
+function renderBaseNow(){
+  drawFull(baseCtx);
+  baseTransform={k:transform.k,x:transform.x,y:transform.y};
+  blit();
+}
+// Cheap per-frame draw: just blits the cached bitmap with a translate+scale approximating
+// the current transform relative to what's actually baked into it (same trick a browser
+// uses to composite an SVG transform without re-rendering vectors).
+let frameCount=0;
+function blit(){
+  frameCount++;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!baseTransform)return;
+  const s=transform.k/baseTransform.k;
+  const tx=dpr*(transform.x-s*baseTransform.x);
+  const ty=dpr*(transform.y-s*baseTransform.y);
+  ctx.setTransform(s,0,0,s,tx,ty);
+  ctx.drawImage(baseCanvas,0,0);
 }
 // Converts a desired constant *screen*-pixel length into the equivalent length in
 // 960×500 geo-space at the current zoom/fit scale (so strokes/dots don't grow with zoom).
 function baseLen(px){return px/(transform.k*scaleF);}
-function requestDraw(){requestAnimationFrame(draw);}
+function requestDraw(){requestAnimationFrame(blit);}
+// After a zoom/pan gesture settles (no events for a short pause), pay for one crisp
+// full re-render at the final view instead of staying on a scaled/blurred bitmap.
+function scheduleSettle(){
+  clearTimeout(settleTimer);
+  settleTimer=setTimeout(renderBaseNow,150);
+}
 
 function isActive(id){return !!C[id];}
 
@@ -182,21 +221,21 @@ function showFeedback(text,color){
   showFeedback._t=setTimeout(()=>{el.style.opacity='0';},1400);
 }
 function skipCountry(){
-  game.idx++;requestDraw();nextCountry();
+  game.idx++;renderBaseNow();nextCountry();
 }
 function handleClick(id){
   const target=game.order[game.idx];
   if(id===target){
     game.correct++;game.found.add(id);
     showFeedback('✓ Richtig! '+cn(id),'#7fd06a');
-    requestDraw();
-    setTimeout(()=>{game.idx++;requestDraw();nextCountry();},700);
+    renderBaseNow();
+    setTimeout(()=>{game.idx++;renderBaseNow();nextCountry();},700);
   }else{
     game.wrong++;
     showFeedback('✗ Das war '+cn(target),'#e06a52');
-    wrongId=id;requestDraw();
+    wrongId=id;renderBaseNow();
     if(wrongTimer)clearTimeout(wrongTimer);
-    wrongTimer=setTimeout(()=>{wrongId=null;requestDraw();},650);
+    wrongTimer=setTimeout(()=>{wrongId=null;renderBaseNow();},650);
     updateStats();
   }
 }
@@ -214,12 +253,12 @@ canvas.addEventListener('mousemove',ev=>{
     const[px,py]=clientToCanvas(ev);
     const id=hitTest(px,py);
     const next=(id!=null&&!game.found.has(id))?id:null;
-    if(next!==hoverId){hoverId=next;requestDraw();}
+    if(next!==hoverId){hoverId=next;renderBaseNow();}
   });
 });
-canvas.addEventListener('mouseleave',()=>{if(hoverId!==null){hoverId=null;requestDraw();}});
+canvas.addEventListener('mouseleave',()=>{if(hoverId!==null){hoverId=null;renderBaseNow();}});
 
-const zoom=d3.zoom().scaleExtent([1,20]).on('zoom',ev=>{transform=ev.transform;requestDraw();});
+const zoom=d3.zoom().scaleExtent([1,20]).on('zoom',ev=>{transform=ev.transform;requestDraw();scheduleSettle();});
 d3.select(canvas).call(zoom).on('click',function(ev){
   // d3.zoom consumes drag gestures; a plain click (no drag) still fires here.
   const[px,py]=clientToCanvas(ev);
@@ -237,6 +276,7 @@ setInterval(()=>{
 fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(r=>r.json()).then(world=>{
   proj=buildProjection();
   gpath=d3.geoPath().projection(proj).context(ctx);
+  gpathBase=d3.geoPath().projection(proj).context(baseCtx);
   pickPath=d3.geoPath().projection(proj).context(pickCtx);
   const countries=topojson.feature(world,world.objects.countries);
   features=countries.features;
