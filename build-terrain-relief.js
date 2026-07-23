@@ -5,18 +5,20 @@
 // background <image> under the SVG map using the same projection math app.js already uses
 // (RELIEF_LAT_MAX/RELIEF_LAT_MIN) — no per-user runtime reprojection needed.
 //
-// Usage:
+// Usage (10m/high-res source — current terrain-relief.webp was built from this at width 8000):
 //   npm install sharp --no-save
-//   curl -L -o relief.zip https://naciscdn.org/naturalearth/50m/raster/HYP_50M_SR_W.zip
+//   curl -L -o relief.zip https://naciscdn.org/naturalearth/10m/raster/HYP_HR_SR.zip
 //   unzip -o relief.zip -d relief_raw
-//   node build-terrain-relief.js
+//   RELIEF_SRC=relief_raw/HYP_HR_SR.tif RELIEF_W=8000 node build-terrain-relief.js
+//
+// (50m/HYP_50M_SR_W.zip also works for a smaller/blurrier file — swap RELIEF_SRC and drop RELIEF_W.)
 const sharp = require('sharp');
 
-const SRC = 'relief_raw/HYP_50M_SR_W.tif';
-const OUT = 'terrain-relief.webp';
+const SRC = process.env.RELIEF_SRC || 'relief_raw/HYP_50M_SR_W.tif';
+const OUT = process.env.RELIEF_OUT || 'terrain-relief.webp';
 const LAT_MAX = 85.05112878; // standard Web Mercator limit — must match RELIEF_LAT_MAX in app.js
 const LAT_MIN = -85.05112878;
-const SRC_W = 2700; // downsample columns before warping (longitude maps 1:1, no resampling needed there)
+const SRC_W = +(process.env.RELIEF_W || 2700); // downsample columns before warping (longitude maps 1:1, no resampling needed there)
 
 function mercY(latDeg) {
   const lat = latDeg * Math.PI / 180;
