@@ -103,10 +103,6 @@ const TERRAIN_BIOME=(()=>{const m=new Map();
   return m;
 })();
 function terrainFill(rawId){return TERRAIN_BIOME.get(eff(rawId))||THEMES.terrain.avail;}
-// Terrain theme (Mercator only) shows a pre-warped shaded-relief photo (terrain-relief.webp)
-// as a static background image under the country layer — reprojected offline into Web
-// Mercator (see build-terrain-relief.js) so the browser never has to do per-pixel work for it.
-const RELIEF_LAT_MAX=85.05112878,RELIEF_LAT_MIN=-85.05112878;
 const ISO2={4:'af',8:'al',12:'dz',20:'ad',24:'ao',28:'ag',31:'az',32:'ar',36:'au',40:'at',44:'bs',48:'bh',50:'bd',51:'am',52:'bb',56:'be',64:'bt',68:'bo',70:'ba',72:'bw',76:'br',84:'bz',90:'sb',96:'bn',100:'bg',104:'mm',108:'bi',112:'by',116:'kh',120:'cm',124:'ca',132:'cv',140:'cf',144:'lk',148:'td',152:'cl',156:'cn',158:'tw',170:'co',174:'km',178:'cg',180:'cd',188:'cr',191:'hr',192:'cu',196:'cy',203:'cz',204:'bj',208:'dk',212:'dm',214:'do',218:'ec',222:'sv',226:'gq',231:'et',232:'er',233:'ee',242:'fj',246:'fi',250:'fr',262:'dj',266:'ga',268:'ge',270:'gm',275:'ps',276:'de',288:'gh',296:'ki',300:'gr',308:'gd',320:'gt',324:'gn',328:'gy',332:'ht',336:'va',340:'hn',348:'hu',352:'is',356:'in',360:'id',364:'ir',368:'iq',372:'ie',376:'il',380:'it',383:'xk',384:'ci',388:'jm',392:'jp',398:'kz',400:'jo',404:'ke',408:'kp',410:'kr',414:'kw',417:'kg',418:'la',422:'lb',426:'ls',428:'lv',430:'lr',434:'ly',438:'li',440:'lt',442:'lu',450:'mg',454:'mw',458:'my',462:'mv',466:'ml',470:'mt',478:'mr',480:'mu',484:'mx',492:'mc',496:'mn',498:'md',499:'me',504:'ma',508:'mz',512:'om',516:'na',520:'nr',524:'np',528:'nl',548:'vu',554:'nz',558:'ni',562:'ne',566:'ng',578:'no',583:'fm',584:'mh',585:'pw',586:'pk',591:'pa',598:'pg',600:'py',604:'pe',608:'ph',616:'pl',620:'pt',624:'gw',626:'tl',634:'qa',642:'ro',643:'ru',646:'rw',659:'kn',662:'lc',670:'vc',674:'sm',678:'st',682:'sa',686:'sn',688:'rs',690:'sc',694:'sl',702:'sg',703:'sk',704:'vn',705:'si',706:'so',710:'za',716:'zw',724:'es',728:'ss',729:'sd',740:'sr',748:'sz',752:'se',756:'ch',760:'sy',762:'tj',764:'th',768:'tg',776:'to',780:'tt',784:'ae',788:'tn',792:'tr',795:'tm',798:'tv',800:'ug',804:'ua',807:'mk',818:'eg',826:'gb',834:'tz',840:'us',854:'bf',858:'uy',860:'uz',862:'ve',882:'ws',887:'ye',894:'zm'};
 // Flag-quiz difficulty buckets — disjoint sets; HARD = all remaining ISO2 countries
 const FLAG_BEGINNER=new Set([276,250,380,724,826,840,124,392,156,76,36,756,752,208,578,792,356,484,528,410,32,643,56,40,616,372,710,554,804,300]);
@@ -1023,20 +1019,6 @@ function renderMap(world){
   g.append('path').attr('class','grat').datum(d3.geoGraticule()()).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
 
   const countries=topojson.feature(world,world.objects.countries);
-  const land=topojson.merge(world,world.objects.countries.geometries);
-
-  if(theme==='terrain'){
-    if(isMerc){
-      const p0=proj([-180,RELIEF_LAT_MAX]),p1=proj([180,RELIEF_LAT_MIN]);
-      g.append('image').attr('href','terrain-relief.webp')
-        .attr('x',p0[0]).attr('y',p0[1]).attr('width',p1[0]-p0[0]).attr('height',p1[1]-p0[1])
-        .attr('preserveAspectRatio','none').style('pointer-events','none');
-    }else{
-      // Natural-Earth projection can't drape a rectangular photo onto its curved graticule —
-      // fall back to the flat per-country biome tint instead.
-      g.append('path').datum(land).attr('d',gpath).attr('fill','#6a9a58').attr('stroke','none').style('pointer-events','none');
-    }
-  }
 
   // Island zone outlines — convex hull of each nation's islands.
   // Hit areas rendered BELOW country paths so clicks on real land take priority.
@@ -1114,7 +1096,7 @@ function renderMap(world){
   })();
 
   countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke','none')
-    .on('mouseover',function(ev,d){const id=eff(+d.id);if(!game.found||game.found.has(id)||!C[id]||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id)))return;const hc=THEMES[theme].hov;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',hc);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',hc);})
+    .on('mouseover',function(ev,d){const id=eff(+d.id);if(!game.found||game.found.has(id)||!C[id]||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id)))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){countryPaths.filter(f=>eff(+f.id)===eff(+d.id)).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===eff(+d.id)).attr('fill',x=>getMSColor(x.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
 
@@ -1362,7 +1344,7 @@ function renderMap(world){
 }
 
 
-function _avail(rawId){if(theme==='terrain')return projection==='mercator'?'rgba(255,255,255,0.08)':terrainFill(rawId);return THEMES[theme].avail;}
+function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
 function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(game.lakeMode||game.riverMode||game.cityMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
 function getMSColor(id){const th=THEMES[theme];if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
