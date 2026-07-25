@@ -1310,42 +1310,52 @@ function renderMap(world){
   }
 
   const gNode=g.node();
-  let _raf=null,_lastT=null,_pTimer=null,_wrapping=false;
+  let _raf=null,_lastT=null,_wrapping=false;
   const txExt=isMerc?[[-W*2,0],[W*3,H]]:[[0,0],[W,H]];
-  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt).on('zoom',ev=>{
-    const t=ev.transform;
-    const scaleChanged=!_lastT||Math.abs(t.k-(_lastT.k||1))>0.001;
-    _lastT=t;
-    if(_wrapping){_wrapping=false;return;}
-    // Disabling pointer-events during the gesture avoids hover-triggered mouseover/mouseout
-    // spam while dragging with a mouse. Touch has no hover state to suppress, and toggling
-    // pointer-events on a group with hundreds of country/border paths forces an expensive
-    // style/hit-region recalculation — skip it entirely on coarse (touch) pointers.
-    if(!COARSE){
-      if(!_pTimer)gNode.style.pointerEvents='none';
-    }
-    clearTimeout(_pTimer);
-    _pTimer=setTimeout(()=>{
+  // Wrap-boundary re-normalization (below, in 'end') used to run off a 150ms debounce inside
+  // the 'zoom' handler — which could fire mid-gesture during a brief pause (finger still down),
+  // reentrantly calling zoomBehavior.transform() from inside d3-zoom's own dispatch while a
+  // touch gesture was still active. That confused d3-zoom's internal touch-gesture bookkeeping
+  // enough to make the *next* pan unresponsive for a few seconds — exactly the reported bug.
+  // Fix: only ever touch the transform on a genuine 'end' event (gesture fully released), and
+  // even then defer the reentrant call to a fresh task (setTimeout 0) so it never runs from
+  // inside d3-zoom's own event dispatch.
+  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt)
+    .on('start',()=>{
+      if(_wrapping)return;
+      // See touch-action/pointer-events note above: this suppresses mouse hover spam only;
+      // touch has no hover to suppress, so skip the (potentially costly) style toggle there.
+      if(!COARSE)gNode.style.pointerEvents='none';
+    })
+    .on('zoom',ev=>{
+      const t=ev.transform;
+      const scaleChanged=!_lastT||Math.abs(t.k-(_lastT.k||1))>0.001;
+      _lastT=t;
+      if(_wrapping){_wrapping=false;return;}
+      if(!_raf)_raf=requestAnimationFrame(()=>{
+        wrapG.attr('transform',_lastT);
+        if(scaleChanged)applyDotR(_lastT.k);
+        _raf=null;
+      });
+    })
+    .on('end',()=>{
+      if(_wrapping)return;
       if(!COARSE)gNode.style.pointerEvents='';
-      _pTimer=null;applyDotR(_lastT.k);
+      applyDotR(_lastT.k);
       if(isMerc){
         const period=W*_lastT.k;
         let nx=_lastT.x%period;
         if(nx>0)nx-=period;
         if(Math.abs(nx-_lastT.x)>1){
-          _wrapping=true;
-          svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(nx,_lastT.y).scale(_lastT.k));
-          _lastT=d3.zoomTransform(svg.node());
-          wrapG.attr('transform',_lastT);
+          setTimeout(()=>{
+            _wrapping=true;
+            svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(nx,_lastT.y).scale(_lastT.k));
+            _lastT=d3.zoomTransform(svg.node());
+            wrapG.attr('transform',_lastT);
+          },0);
         }
       }
-    },150);
-    if(!_raf)_raf=requestAnimationFrame(()=>{
-      wrapG.attr('transform',_lastT);
-      if(scaleChanged)applyDotR(_lastT.k);
-      _raf=null;
     });
-  });
   svg.call(zoomBehavior);
   $('map-bg').style.background=th.bg;updateColors();
 }
