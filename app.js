@@ -1,3 +1,6 @@
+// Bumped on every pushed change so the live site's build can be visually compared
+// against what was just deployed (shown in the home screen footer).
+const BUILD_ID='2026-07-25 22:10';
 const REDIRECTS=new Map();
 function norm(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[łŁ]/g,'l').replace(/[đĐ]/g,'d').replace(/[øØ]/g,'o').replace(/[æÆ]/g,'ae').toLowerCase();}
 
@@ -277,6 +280,7 @@ function renderHome(){
   setTxt('home-title',t('homeTitle'));setTxt('home-sub',t('homeSub'));
   setTxt('home-play',t('playBtn'));setTxt('home-options-btn','⚙ '+t('optionsLbl'));
   setTxt('home-opts-title',t('optionsLbl'));
+  setTxt('build-stamp','Build '+BUILD_ID);
   renderOptions();
   if(typeof renderAuthUI==='function')renderAuthUI(window._authUser||null);
   if(typeof renderAuthForm==='function'&&$('auth-modal')&&$('auth-modal').style.display!=='none')renderAuthForm();
