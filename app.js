@@ -1317,10 +1317,17 @@ function renderMap(world){
     const scaleChanged=!_lastT||Math.abs(t.k-(_lastT.k||1))>0.001;
     _lastT=t;
     if(_wrapping){_wrapping=false;return;}
-    if(!_pTimer)gNode.style.pointerEvents='none';
+    // Disabling pointer-events during the gesture avoids hover-triggered mouseover/mouseout
+    // spam while dragging with a mouse. Touch has no hover state to suppress, and toggling
+    // pointer-events on a group with hundreds of country/border paths forces an expensive
+    // style/hit-region recalculation — skip it entirely on coarse (touch) pointers.
+    if(!COARSE){
+      if(!_pTimer)gNode.style.pointerEvents='none';
+    }
     clearTimeout(_pTimer);
     _pTimer=setTimeout(()=>{
-      gNode.style.pointerEvents='';_pTimer=null;applyDotR(_lastT.k);
+      if(!COARSE)gNode.style.pointerEvents='';
+      _pTimer=null;applyDotR(_lastT.k);
       if(isMerc){
         const period=W*_lastT.k;
         let nx=_lastT.x%period;
