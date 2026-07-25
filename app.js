@@ -125,7 +125,7 @@ const TX={
 
 let lang='de',theme='atlas',keepFound=true,showWrongHint=true,showSkipHint=true,showDropdown=true,projection='mercator',game={},quizRoundLimit=10,learnMode=false,allTargets=false;
 let countryPaths=null,microstateDots=null,lakePaths=null,lakeDots=null,riverPaths=null,riverHitboxes=null,cityDots=null,worldData=null,borderPath=null,zoomBehavior=null,gGroup=null,islandZoneHits=null,islandZoneVisuals=null,zoneHulls=null;
-let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null,_fbTimer=null;
+let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,wrongFlash=null,_fbTimer=null,wrongFlashId=null;
 let currentProj=null,pinLayer=null;
 
 function showFeedback(text,color){
@@ -536,6 +536,7 @@ function getLakeFeatures(diff){
 }
 function getLakeColor(idx){
   const th=THEMES[theme];
+  if(wrongFlashId!=null&&idx===wrongFlashId)return th.wrong;
   if(!game.lakeMode)return th.sph;
   if(game.found&&game.lakeRep){const rep=game.lakeRep[lakeDisplayName(game.lakeFeatures[idx])];if(game.found.has(rep))return th.found;}
   return th.sph;
@@ -556,12 +557,13 @@ function getRiverFeatures(diff){
   const sorted=named.slice().sort((a,b)=>(a.properties.scalerank||99)-(b.properties.scalerank||99));
   return sorted.slice(0,n);
 }
-function getRiverColor(idx){const th=THEMES[theme];if(game.found&&game.found.has(idx))return th.found;return th.sph;}
+function getRiverColor(idx){const th=THEMES[theme];if(wrongFlashId!=null&&idx===wrongFlashId)return th.wrong;if(game.found&&game.found.has(idx))return th.found;return th.sph;}
 function updateRiverColors(){if(!riverPaths)return;riverPaths.attr('stroke',d=>getRiverColor(d._i));}
 
 // ── CITY QUIZ ──
 function cityDisplayName(c){return(lang==='de'?c.name_de:c.name_en)||c.name_de||'?';}
 function getCityColor(idx){const th=THEMES[theme];
+  if(wrongFlashId!=null&&idx===wrongFlashId)return th.wrong;
   if(game.skippedItems&&game.skippedItems.has(idx))return th.skipped;
   if(game.found&&game.found.has(idx))return th.found;
   return th.border;}
@@ -610,9 +612,10 @@ function handleCityClick(idx){
   }else{
     game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
     if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
+    wrongFlashId=idx;
     cityDots&&cityDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
     if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(updateCityColors,700);
+    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateCityColors();},700);
     updateStats();
   }
 }
@@ -744,9 +747,10 @@ function handleRiverClick(idx){
   }else{
     game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
     if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
+    wrongFlashId=idx;
     riverPaths&&riverPaths.filter(d=>d._i===idx).attr('stroke',THEMES[theme].wrong);
     if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(updateRiverColors,700);
+    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateRiverColors();},700);
     updateStats();
   }
 }
@@ -788,10 +792,11 @@ function handleLakeClick(idx){
   }else{
     game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
     if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
+    wrongFlashId=idx;
     lakePaths&&lakePaths.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
     lakeDots&&lakeDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
     if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(updateLakeColors,700);
+    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateLakeColors();},700);
     updateStats();
   }
 }
@@ -1096,7 +1101,7 @@ function renderMap(world){
   })();
 
   countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke','none')
-    .on('mouseover',function(ev,d){const id=eff(+d.id);if(!game.found||game.found.has(id)||!C[id]||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id)))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const id=eff(+d.id);if(wrongFlashId!=null&&id===wrongFlashId)return;if(!game.found||game.found.has(id)||!C[id]||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id)))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){countryPaths.filter(f=>eff(+f.id)===eff(+d.id)).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===eff(+d.id)).attr('fill',x=>getMSColor(x.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
 
@@ -1171,7 +1176,7 @@ function renderMap(world){
       .style('vector-effect','non-scaling-stroke');
     if(lakeMode){
       lakePaths.style('cursor','pointer')
-        .on('mouseover',function(ev,d){if(game.found&&game.found.has(d._i))return;d3.select(this).attr('fill',th.hov);})
+        .on('mouseover',function(ev,d){if(wrongFlashId!=null&&d._i===wrongFlashId)return;if(game.found&&game.found.has(d._i))return;d3.select(this).attr('fill',th.hov);})
         .on('mouseout',function(ev,d){d3.select(this).attr('fill',getLakeColor(d._i));})
         .on('click',(ev,d)=>handleLakeClick(d._i));
     }else{
@@ -1189,7 +1194,7 @@ function renderMap(world){
         lakeHit=g.append('g').attr('class','lake-hit').selectAll('circle').data(smallFeats).enter().append('circle')
           .attr('cx',d=>gpath.centroid(d)[0]).attr('cy',d=>gpath.centroid(d)[1])
           .attr('r',HIT_R).attr('fill','transparent').style('cursor','pointer')
-          .on('mouseover',function(ev,d){const t=nearestDot(ev,lakeHit)||d;if(game.found&&game.found.has(t._i))return;lakeDots.filter(x=>x._i===t._i).attr('fill',th.hov);})
+          .on('mouseover',function(ev,d){const t=nearestDot(ev,lakeHit)||d;if(wrongFlashId!=null&&t._i===wrongFlashId)return;if(game.found&&game.found.has(t._i))return;lakeDots.filter(x=>x._i===t._i).attr('fill',th.hov);})
           .on('mouseout',function(){lakeDots.attr('fill',x=>getLakeColor(x._i));})
           .on('click',function(ev,d){const t=nearestDot(ev,lakeHit)||d;handleLakeClick(t._i);});
       }
@@ -1205,7 +1210,7 @@ function renderMap(world){
   microstateHit=g.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
-    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id)))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashId!=null&&t.id===wrongFlashId)return;if((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id)))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(){microstateDots.attr('fill',x=>getMSColor(x.id));countryPaths&&countryPaths.attr('fill',f=>getColor(+f.id));})
     .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(t.id);});
 
@@ -1228,7 +1233,7 @@ function renderMap(world){
     cityHit=g.append('g').attr('class','city-hit').selectAll('circle').data(cf).enter().append('circle')
       .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
       .attr('r',HIT_R).attr('fill','transparent').style('cursor','pointer')
-      .on('mouseover',function(ev,d){const t=nearestDot(ev,cityHit)||d;if(game.found&&game.found.has(t._i))return;cityDots.filter(x=>x._i===t._i).attr('fill',THEMES[theme].hov);})
+      .on('mouseover',function(ev,d){const t=nearestDot(ev,cityHit)||d;if(wrongFlashId!=null&&t._i===wrongFlashId)return;if(game.found&&game.found.has(t._i))return;cityDots.filter(x=>x._i===t._i).attr('fill',THEMES[theme].hov);})
       .on('mouseout',function(){cityDots.attr('fill',x=>getCityColor(x._i));})
       .on('click',function(ev,d){const t=nearestDot(ev,cityHit)||d;handleCityClick(t._i);});
   }
@@ -1340,8 +1345,8 @@ function renderMap(world){
 
 
 function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(game.lakeMode||game.riverMode||game.cityMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashId!=null&&id===wrongFlashId)return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashId!=null&&id===wrongFlashId)return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode;
   if(neutral){
@@ -1373,7 +1378,7 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   updateCityColors();
 }
 function nextCountry(){canClick=true;if(game.queue&&game.found){while(game.queue.length&&game.found.has(game.queue[0]))game.queue.shift();}if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;if(game.riverMode){const f=game.riverFeatures[game.current];$('target-name').textContent=f?riverDisplayName(f):'?';}else if(game.lakeMode){const f=game.lakeFeatures[game.current];$('target-name').textContent=f?lakeDisplayName(f):'?';}else if(game.cityMode){const c=game.cityFeatures[game.current];$('target-name').textContent=c?cityDisplayName(c):'?';}else{$('target-name').textContent=cn(game.current);}clearFeedback();updateStats();updateColors();}
-function flashWrong(rawId){countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);if(wrongFlash)clearTimeout(wrongFlash);wrongFlash=setTimeout(updateColors,700);}
+function flashWrong(rawId){wrongFlashId=eff(rawId);countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);if(wrongFlash)clearTimeout(wrongFlash);wrongFlash=setTimeout(()=>{wrongFlashId=null;updateColors();},700);}
 function handleClick(rawId){if(!canClick||!game||!game.current)return;const id=eff(rawId);const info=C[id];if(!info||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id))||(keepFound&&game.found.has(id)))return;if(id===game.current){canClick=false;game.correct++;if(!game.wrongOnCurrent)game.firstTry++;if(keepFound)game.found.add(id);if(showWrongHint)showFeedback(t('correctFb')(cn(id)),THEMES[theme].found);recordCorrectForCurrent();updateColors();updateStats();setTimeout(nextCountry,1100);}else{game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;if(showWrongHint)showFeedback(t('wrongFb')(cn(id)),THEMES[theme].wrong);flashWrong(rawId);updateStats();}}
 function updateStats(){
   $('btn-skip').style.display=game.pinMode?'none':'';
@@ -1801,7 +1806,7 @@ async function startRegionQuiz(key){
   const queue=[...names];
   for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]];}
 
-  _regGame={key,cfg,features,names,queue,pos:0,correct:0,wrong:0,skipped:0,firstTry:0,found:new Set(),skippedItems:new Set(),wrongOnCurrent:false,total:queue.length,busy:false};
+  _regGame={key,cfg,features,names,queue,pos:0,correct:0,wrong:0,skipped:0,firstTry:0,found:new Set(),skippedItems:new Set(),wrongOnCurrent:false,total:queue.length,busy:false,wrongName:null};
   _renderRegionMap(cfg,features);
   _nextRegion();
 }
@@ -1825,7 +1830,8 @@ function _renderRegionMap(cfg,features){
     .style('vector-effect','non-scaling-stroke')
     .style('cursor','pointer')
     .on('mouseover',function(ev,d){
-      if(!_regGame||_regGame.found.has(d.properties[cfg.nameKey])||_regGame.skippedItems.has(d.properties[cfg.nameKey]))return;
+      const nm=d.properties[cfg.nameKey];
+      if(!_regGame||_regGame.wrongName===nm||_regGame.found.has(nm)||_regGame.skippedItems.has(nm))return;
       d3.select(this).attr('fill',th.hov);
     })
     .on('mouseout',function(ev,d){
@@ -1845,6 +1851,7 @@ function _updateRegionColors(){
   const th=THEMES[theme],cfg=_regGame.cfg;
   _regPaths.attr('fill',d=>{
     const nm=d.properties[cfg.nameKey];
+    if(_regGame.wrongName===nm)return th.wrong;
     if(_regGame.skippedItems.has(nm))return th.skipped||'#888';
     if(_regGame.found.has(nm))return th.found;
     return th.avail;
@@ -1870,9 +1877,10 @@ function _handleRegionClick(d){
   }else{
     _regGame.wrong++;
     _regGame.wrongOnCurrent=true;
+    _regGame.wrongName=clickedName;
     _regFeedback('✗ '+clickedName,THEMES[theme].wrong);
     _regPaths.filter(f=>f.properties[cfg.nameKey]===clickedName).attr('fill',THEMES[theme].wrong);
-    setTimeout(_updateRegionColors,600);
+    setTimeout(()=>{_regGame.wrongName=null;_updateRegionColors();},600);
     _updateRegionStats();
   }
 }
