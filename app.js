@@ -1277,11 +1277,30 @@ function renderMap(world){
   const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
   _ro.observe(svg.node());
 
-  // Mercator wrap: reference map content left and right via <use>
+  // Mercator wrap: clone map content left and right via <use> so panning looks infinite.
+  // Clicks on a clone are forwarded to the real country underneath it — but only on
+  // 'click' (a single discrete event), never on 'mousemove': an earlier version ran this
+  // same point-in-polygon lookup on every mousemove over the clones, which was expensive
+  // enough (linear scan over every country) to visibly lag the whole page while panning.
   if(isMerc){
     g.attr('id','map-main');
+    function wrapFind(ev,dx){
+      const[px,py]=d3.pointer(ev,g.node());
+      const wx=px-dx;
+      const ll=proj.invert([wx,py]);
+      if(!ll||isNaN(ll[0]))return null;
+      for(const m of(microstateDots?microstateDots.data():[])){
+        const[mx,my]=proj([m.lon,m.lat]);
+        const r=parseFloat(microstateDots.attr('r'))||DOT_R;
+        if((wx-mx)**2+(py-my)**2<r*r*4)return m.id;
+      }
+      for(const z of(zoneHulls||[])){if(d3.geoContains(z.poly[0]?{type:'Polygon',coordinates:[z.poly]}:{type:'Point',coordinates:z.hull[0]},ll))return z.id;}
+      const feat=renderFeatures.find(f=>d3.geoContains(f,ll));
+      return feat?eff(+feat.id):null;
+    }
     for(const dx of[-W,W]){
-      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('pointer-events','none');
+      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('cursor','pointer')
+        .on('click',function(ev){const id=wrapFind(ev,dx);if(id)handleClick(id);});
     }
   }
 
