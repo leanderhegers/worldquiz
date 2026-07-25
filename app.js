@@ -1,6 +1,17 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-25 22:35';
+const BUILD_ID='2026-07-25 23:05';
+// iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
+// WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
+// two-finger touches, independent of touch/pointer events and independent of the
+// touch-action CSS property. Left unprevented, a pinch on the map can trigger the
+// OS's own page-zoom gesture fighting with d3-zoom's pinch handling — matching the
+// "pinch does nothing for ~3s then jumps, next pan is unresponsive" reports, which
+// persisted through several fixes aimed at our own zoom event handling because the
+// actual conflict was happening a layer above any of that code.
+['gesturestart','gesturechange','gestureend'].forEach(evt=>{
+  document.addEventListener(evt,e=>e.preventDefault(),{passive:false});
+});
 const REDIRECTS=new Map();
 function norm(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[łŁ]/g,'l').replace(/[đĐ]/g,'d').replace(/[øØ]/g,'o').replace(/[æÆ]/g,'ae').toLowerCase();}
 
