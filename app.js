@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-25 23:20';
+const BUILD_ID='2026-07-26 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1036,7 +1036,17 @@ function renderMap(world){
   const isMerc=projection==='mercator';
   svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',th.bg);
   const wrapG=svg.append('g');
+  // Two sibling layers, deliberately separated for the infinite-wrap tiling's sake:
+  //   g (#map-main) holds only content that is NEVER mutated during pan/zoom. This is the
+  //     subtree the wrap <use> clones reference, and in WebKit *any* DOM mutation inside a
+  //     <use> source forces a full rebuild of every shadow tree referencing it (~700 paths
+  //     per clone here) — that rebuild, running per animation frame, is what froze pinch-zoom
+  //     on iOS while one-finger panning (which mutates nothing) stayed smooth.
+  //   dynG holds everything applyDotR() resizes on zoom: dots, hit circles, pin markers.
+  //     Nothing <use>-references it, so mutating it is cheap. The wrap copies of the
+  //     microstate dots are real offset circles instead of clones (see dotCopies below).
   const g=wrapG.append('g');gGroup=g;
+  const dynG=wrapG.append('g').attr('class','dyn');
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
   g.append('path').attr('class','grat').datum(d3.geoGraticule()()).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
 
@@ -1204,11 +1214,11 @@ function renderMap(world){
     if(lakeMode){
       const smallFeats=indexed.filter(f=>(f.properties.min_zoom||4)>1);
       if(smallFeats.length>0){
-        lakeDots=g.append('g').attr('class','lake-dots').selectAll('circle').data(smallFeats).enter().append('circle')
+        lakeDots=dynG.append('g').attr('class','lake-dots').selectAll('circle').data(smallFeats).enter().append('circle')
           .attr('cx',d=>gpath.centroid(d)[0]).attr('cy',d=>gpath.centroid(d)[1])
           .attr('r',DOT_R).attr('fill',d=>getLakeColor(d._i)).attr('stroke',th.border).attr('stroke-width',1.5)
           .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
-        lakeHit=g.append('g').attr('class','lake-hit').selectAll('circle').data(smallFeats).enter().append('circle')
+        lakeHit=dynG.append('g').attr('class','lake-hit').selectAll('circle').data(smallFeats).enter().append('circle')
           .attr('cx',d=>gpath.centroid(d)[0]).attr('cy',d=>gpath.centroid(d)[1])
           .attr('r',HIT_R).attr('fill','transparent').style('cursor','pointer')
           .on('mouseover',function(ev,d){const t=nearestDot(ev,lakeHit)||d;if(wrongFlashId!=null&&t._i===wrongFlashId)return;if(game.found&&game.found.has(t._i))return;lakeDots.filter(x=>x._i===t._i).attr('fill',th.hov);})
@@ -1221,10 +1231,16 @@ function renderMap(world){
   // Suppress the dot for any nation that now has a zone outline (the zone replaces the dot).
   const zonedIds=new Set(zoneHulls.map(z=>z.id));
   const activeDots=MICROSTATES.filter(m=>isActive(m.id)&&!zonedIds.has(m.id));
-  microstateDots=g.selectAll('.ms').data(activeDots).enter().append('circle').attr('class','ms')
-    .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
+  // Visual dots are drawn once per wrap tile as real circles (≈36×3 — trivially cheap) rather
+  // than riding along in the <use> clones, so that resizing them on zoom never dirties the
+  // clone source. cx is baked in at creation and never mutated afterwards.
+  const dotCopies=isMerc?[-W,0,W]:[0];
+  const msVis=activeDots.flatMap(d=>dotCopies.map(dx=>({...d,dx})));
+  microstateDots=dynG.selectAll('.ms').data(msVis).enter().append('circle').attr('class','ms')
+    .attr('cx',d=>proj([d.lon,d.lat])[0]+d.dx).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',DOT_R).attr('stroke-width',1.5).style('vector-effect','non-scaling-stroke').style('pointer-events','none');
-  microstateHit=g.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
+  // Hit circles exist only on the centre tile; taps on a wrap clone are resolved by wrapFind().
+  microstateHit=dynG.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
     .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashId!=null&&t.id===wrongFlashId)return;if((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id)))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
@@ -1243,11 +1259,11 @@ function renderMap(world){
   cityDots=null;let cityHit=null;
   if(game.cityMode&&game.cityFeatures){
     const cf=game.cityFeatures.map((c,i)=>({...c,_i:i}));
-    cityDots=g.append('g').attr('class','city-dots').selectAll('circle').data(cf).enter().append('circle')
+    cityDots=dynG.append('g').attr('class','city-dots').selectAll('circle').data(cf).enter().append('circle')
       .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
       .attr('r',DOT_R).attr('fill',d=>getCityColor(d._i)).attr('stroke',th.avail).attr('stroke-width',1.5)
       .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
-    cityHit=g.append('g').attr('class','city-hit').selectAll('circle').data(cf).enter().append('circle')
+    cityHit=dynG.append('g').attr('class','city-hit').selectAll('circle').data(cf).enter().append('circle')
       .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
       .attr('r',HIT_R).attr('fill','transparent').style('cursor','pointer')
       .on('mouseover',function(ev,d){const t=nearestDot(ev,cityHit)||d;if(wrongFlashId!=null&&t._i===wrongFlashId)return;if(game.found&&game.found.has(t._i))return;cityDots.filter(x=>x._i===t._i).attr('fill',THEMES[theme].hov);})
@@ -1258,16 +1274,19 @@ function renderMap(world){
   // Drop-A-Pin: full-area overlay captures clicks anywhere; pinLayer holds the dropped markers
   pinLayer=null;
   if(game.pinMode){
-    g.append('rect').attr('class','pin-overlay pin-cursor').attr('x',-5000).attr('y',-5000).attr('width',10000).attr('height',10000)
+    dynG.append('rect').attr('class','pin-overlay pin-cursor').attr('x',-5000).attr('y',-5000).attr('width',10000).attr('height',10000)
       .attr('fill','transparent').style('pointer-events','all').on('click',function(ev){handlePinClick(ev);});
-    pinLayer=g.append('g').attr('class','pin-layer').style('pointer-events','none');
+    pinLayer=dynG.append('g').attr('class','pin-layer').style('pointer-events','none');
   }
 
-  // Returns dot radius in SVG units so it stays DOT_R screen-pixels regardless of window size or zoom
-  function svgScale(){const r=svg.node().getBoundingClientRect();return r.width/960;}
+  // Dot radii live in SVG units but must stay DOT_R *screen* pixels at any window size or
+  // zoom, hence /_sc/zoomK. _sc is cached and only refreshed by the ResizeObserver below:
+  // it used to be read via getBoundingClientRect() from inside a per-element d3 accessor,
+  // forcing dozens of synchronous layouts on every animation frame of a pinch gesture.
+  let _sc=(svg.node().getBoundingClientRect().width/960)||1;
   function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(COARSE?50:20));}
-  function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/svgScale()/zoomK;}
-  function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/svgScale()/zoomK;}
+  function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
+  function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/_sc/zoomK;}
   // Among a hit-circle selection, return the datum whose centre is nearest the pointer (nearest-wins on overlap)
   function nearestDot(ev,sel){
     const p=d3.pointer(ev,g.node());let best=null,bestD=Infinity;
@@ -1280,23 +1299,22 @@ function renderMap(world){
     const msDisp=d=>pinHide||(d.id===442&&zoomK>=6)||(d.id===780&&zoomK>=3)||((d.id===548||d.id===90||d.id===270||d.id===388)&&zoomK>=2)?'none':'';
     const lkDisp=d=>zoomK>=(d.properties.min_zoom||4)?'none':'';
     const dr=dotR(zoomK);
-    if(microstateDots){
-      microstateDots.attr('r',dr).style('display',msDisp);
-      if(isMerc){const m=dr+1;microstateDots.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
-    }
-    if(microstateHit){
-      microstateHit.attr('r',d=>msHitR(d.id)/svgScale()/zoomK).style('display',msDisp);
-      if(isMerc){const m=dr+1;microstateHit.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
-    }
-    if(lakeDots)lakeDots.attr('r',dotR(zoomK)).style('display',lkDisp);
+    // cx/cy are set once at creation and never touched here — the old edge-clamping of cx was
+    // only needed back when dots rode inside the wrap <use> clones instead of being tiled.
+    if(microstateDots)microstateDots.attr('r',dr).style('display',msDisp);
+    if(microstateHit)microstateHit.attr('r',d=>msHitR(d.id)/_sc/zoomK).style('display',msDisp);
+    if(lakeDots)lakeDots.attr('r',dr).style('display',lkDisp);
     if(lakeHit)lakeHit.attr('r',hitR(zoomK)).style('display',lkDisp);
-    if(cityDots)cityDots.attr('r',dotR(zoomK));
+    if(cityDots)cityDots.attr('r',dr);
     if(cityHit)cityHit.attr('r',hitR(zoomK));
   }
   applyDotR();
 
-  // Update dots on window resize (SVG scale changes)
-  const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
+  // Update dots on window resize (SVG scale changes) — the only place _sc is recomputed.
+  const _ro=new ResizeObserver(()=>{
+    _sc=(svg.node().getBoundingClientRect().width/960)||1;
+    applyDotR(_lastT?_lastT.k:1);
+  });
   _ro.observe(svg.node());
 
   // Mercator wrap: clone map content left and right via <use> so panning looks infinite.
@@ -1310,7 +1328,10 @@ function renderMap(world){
       const wx=px-dx;
       const ll=proj.invert([wx,py]);
       if(!ll||isNaN(ll[0]))return null;
+      // microstateDots is tiled (one datum per wrap copy) — only test the centre tile, since
+      // wx has already been un-offset back into centre-tile coordinates above.
       for(const m of(microstateDots?microstateDots.data():[])){
+        if(m.dx)continue;
         const[mx,my]=proj([m.lon,m.lat]);
         const r=parseFloat(microstateDots.attr('r'))||DOT_R;
         if((wx-mx)**2+(py-my)**2<r*r*4)return m.id;
@@ -1320,7 +1341,9 @@ function renderMap(world){
       return feat?eff(+feat.id):null;
     }
     for(const dx of[-W,W]){
-      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('cursor','pointer')
+      // insert() rather than append(): the clones must sit *below* dynG in paint order, or the
+      // clone at ±W would cover the dot tile drawn at that same offset.
+      wrapG.insert('use',()=>dynG.node()).attr('href','#map-main').attr('x',dx).style('cursor','pointer')
         .on('click',function(ev){const id=wrapFind(ev,dx);if(id)handleClick(id);});
     }
   }
