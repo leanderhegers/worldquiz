@@ -269,8 +269,11 @@
 </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<!-- Bundled locally rather than pulled from a CDN: the service worker can only cache
+     same-origin responses, so CDN-hosted copies of these left the app unable to boot at
+     all without a network connection. -->
+<script src="vendor/d3.v7.min.js"></script>
+<script src="vendor/topojson.v3.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>

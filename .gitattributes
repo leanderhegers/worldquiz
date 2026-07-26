@@ -1,0 +1,4 @@
+# Bundled third-party data and libraries: store byte-for-byte as downloaded. Line-ending
+# normalisation would rewrite multi-megabyte files for no benefit and make diffs meaningless.
+data/** -text
+vendor/** -text

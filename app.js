@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-26 A';
+const BUILD_ID='2026-07-26 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -831,9 +831,9 @@ async function loadMap(){
   if(worldData){renderMap(worldData);return;}
   try{
     [worldData,lakesData,riversData]=await Promise.all([
-      fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(r=>r.json()),
-      fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_lakes.geojson').then(r=>r.json()).catch(()=>null),
-      fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null)
+      fetch('data/countries-50m.json').then(r=>r.json()),
+      fetch('data/ne_50m_lakes.geojson').then(r=>r.json()).catch(()=>null),
+      fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null)
     ]);
     // Normalize known river sections to their common names, then merge same-named segments
     const RIVER_ALIASES={
@@ -1484,7 +1484,7 @@ async function iqLoadOverrides(){
   const acc={};
   await Promise.all(Object.entries(OUTLINE_SRC).map(async([id,nm])=>{
     try{
-      const j=await fetch('https://cdn.jsdelivr.net/gh/georgique/world-geojson@main/countries/'+nm+'.json').then(r=>r.json());
+      const j=await fetch('data/outline/'+nm+'.json').then(r=>r.json());
       const gj=j.type==='FeatureCollection'?j.features[0]:j;const geom=gj.geometry||gj;
       if(geom&&geom.coordinates)acc[+id]={type:'Feature',id:+id,geometry:_rewindGeom(geom)};
     }catch(e){}
@@ -1492,7 +1492,7 @@ async function iqLoadOverrides(){
   _iqOverride=acc;
 }
 async function iqEnsureOutlineGeo(){
-  if(!outlineGeo){try{outlineGeo=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json').then(r=>r.json());}catch(e){}}
+  if(!outlineGeo){try{outlineGeo=await fetch('data/countries-10m.json').then(r=>r.json());}catch(e){}}
   await iqLoadOverrides();
 }
 function iqGeomPoints(f){let n=0;const g=f.geometry;if(!g)return 0;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];ps.forEach(p=>p.forEach(r=>n+=r.length));return n;}
@@ -1803,14 +1803,14 @@ const REGION_QUIZZES={
   DE:{
     name:{de:'Deutschland',en:'Germany'},
     sub:{de:'Bundesländer',en:'Federal States'},
-    url:'https://cdn.jsdelivr.net/gh/AliceWi/TopoJSON-Germany@master/germany.json',
+    url:'data/regions/germany.json',
     objectKey:'states',nameKey:'name',count:16,
     proj:'fit',filter:null
   },
   US:{
     name:{de:'USA',en:'USA'},
     sub:{de:'Bundesstaaten',en:'States'},
-    url:'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json',
+    url:'data/regions/us-states-10m.json',
     objectKey:'states',nameKey:'name',count:51,
     proj:'albers-usa',
     filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands'].includes(f.properties.name)
@@ -1818,7 +1818,7 @@ const REGION_QUIZZES={
   FR:{
     name:{de:'Frankreich',en:'France'},
     sub:{de:'Regionen',en:'Regions'},
-    url:'https://cdn.jsdelivr.net/gh/gregoiredavid/france-geojson@master/regions.geojson',
+    url:'data/regions/france-regions.geojson',
     objectKey:null,nameKey:'nom',count:13,
     proj:'fit',filter:null,isGeoJSON:true
   }

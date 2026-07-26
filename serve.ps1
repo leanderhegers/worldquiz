@@ -18,6 +18,8 @@ while ($listener.IsListening) {
             '.css'  { 'text/css; charset=utf-8' }
             '.js'   { 'application/javascript; charset=utf-8' }
             '.json' { 'application/json' }
+            '.geojson' { 'application/geo+json' }
+            '.topojson' { 'application/json' }
             '.png'  { 'image/png' }
             '.jpg'  { 'image/jpeg' }
             '.jpeg' { 'image/jpeg' }
