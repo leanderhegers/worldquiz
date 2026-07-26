@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-25 23:05';
+const BUILD_ID='2026-07-25 23:20';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -21,8 +21,10 @@ const MAP_W=960,MAP_H=500;
 // Central projection builder — switches between Natural Earth and Mercator, same interface for everything
 function buildProjection(){
   if(projection==='mercator'){
-    const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
-    const topY=proj([0,83.5])[1]; // Oberkante ~Nordspitze Grönland
+    // No rotate() here: the infinite wrap tiling below assumes the map edges line up
+    // exactly with lon ±180, which a rotation offset would break.
+    const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]);
+    const topY=proj([0,83.5])[1];
     return proj.clipExtent([[-80,topY],[MAP_W+80,MAP_H+260]]);
   }
   return d3.geoNaturalEarth1().scale(153).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
@@ -1031,8 +1033,10 @@ function renderMap(world){
   currentProj=proj;
   const gpath=d3.geoPath().projection(proj);
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
-  svg.append('rect').attr('class','ocean').attr('width',W).attr('height',H).attr('fill',th.bg);
-  const g=svg.append('g');gGroup=g;
+  const isMerc=projection==='mercator';
+  svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',th.bg);
+  const wrapG=svg.append('g');
+  const g=wrapG.append('g');gGroup=g;
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
   g.append('path').attr('class','grat').datum(d3.geoGraticule()()).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
 
@@ -1276,8 +1280,14 @@ function renderMap(world){
     const msDisp=d=>pinHide||(d.id===442&&zoomK>=6)||(d.id===780&&zoomK>=3)||((d.id===548||d.id===90||d.id===270||d.id===388)&&zoomK>=2)?'none':'';
     const lkDisp=d=>zoomK>=(d.properties.min_zoom||4)?'none':'';
     const dr=dotR(zoomK);
-    if(microstateDots)microstateDots.attr('r',dr).style('display',msDisp);
-    if(microstateHit)microstateHit.attr('r',d=>msHitR(d.id)/svgScale()/zoomK).style('display',msDisp);
+    if(microstateDots){
+      microstateDots.attr('r',dr).style('display',msDisp);
+      if(isMerc){const m=dr+1;microstateDots.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
+    }
+    if(microstateHit){
+      microstateHit.attr('r',d=>msHitR(d.id)/svgScale()/zoomK).style('display',msDisp);
+      if(isMerc){const m=dr+1;microstateHit.attr('cx',d=>{let x=proj([d.lon,d.lat])[0];if(x>W-m)x=W-m;else if(x<m)x=m;return x;});}
+    }
     if(lakeDots)lakeDots.attr('r',dotR(zoomK)).style('display',lkDisp);
     if(lakeHit)lakeHit.attr('r',hitR(zoomK)).style('display',lkDisp);
     if(cityDots)cityDots.attr('r',dotR(zoomK));
@@ -1289,10 +1299,44 @@ function renderMap(world){
   const _ro=new ResizeObserver(()=>applyDotR(_lastT?_lastT.k:1));
   _ro.observe(svg.node());
 
+  // Mercator wrap: clone map content left and right via <use> so panning looks infinite.
+  // Clicks on a clone are forwarded to the real country underneath it — but only on
+  // 'click' (a single discrete event), never on 'mousemove' (that was expensive enough,
+  // scanning every country on every pixel of movement, to visibly lag the whole page).
+  if(isMerc){
+    g.attr('id','map-main');
+    function wrapFind(ev,dx){
+      const[px,py]=d3.pointer(ev,g.node());
+      const wx=px-dx;
+      const ll=proj.invert([wx,py]);
+      if(!ll||isNaN(ll[0]))return null;
+      for(const m of(microstateDots?microstateDots.data():[])){
+        const[mx,my]=proj([m.lon,m.lat]);
+        const r=parseFloat(microstateDots.attr('r'))||DOT_R;
+        if((wx-mx)**2+(py-my)**2<r*r*4)return m.id;
+      }
+      for(const z of(zoneHulls||[])){if(d3.geoContains(z.poly[0]?{type:'Polygon',coordinates:[z.poly]}:{type:'Point',coordinates:z.hull[0]},ll))return z.id;}
+      const feat=renderFeatures.find(f=>d3.geoContains(f,ll));
+      return feat?eff(+feat.id):null;
+    }
+    for(const dx of[-W,W]){
+      wrapG.append('use').attr('href','#map-main').attr('x',dx).style('cursor','pointer')
+        .on('click',function(ev){const id=wrapFind(ev,dx);if(id)handleClick(id);});
+    }
+  }
+
   const gNode=g.node();
-  let _raf=null,_lastT=null;
-  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent([[0,0],[W,H]])
+  let _raf=null,_lastT=null,_wrapping=false;
+  const txExt=isMerc?[[-W*2,0],[W*3,H]]:[[0,0],[W,H]];
+  // Wrap-boundary re-normalization keeps _lastT.x within translateExtent so panning in one
+  // direction never hits a wall. It only ever runs on a genuine 'end' event (gesture fully
+  // released, never mid-gesture) and defers the reentrant zoomBehavior.transform() call to a
+  // fresh task (setTimeout 0) so it never executes from inside d3-zoom's own event dispatch —
+  // both are required to avoid corrupting d3-zoom's touch-gesture bookkeeping (see history:
+  // this previously made the *next* pan gesture unresponsive for a few seconds on iOS).
+  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt)
     .on('start',()=>{
+      if(_wrapping)return;
       // Disabling pointer-events during the gesture avoids hover-triggered mouseover/mouseout
       // spam while dragging with a mouse. Touch has no hover state to suppress, and toggling
       // pointer-events on a group with hundreds of country/border paths forces an expensive
@@ -1303,15 +1347,30 @@ function renderMap(world){
       const t=ev.transform;
       const scaleChanged=!_lastT||Math.abs(t.k-(_lastT.k||1))>0.001;
       _lastT=t;
+      if(_wrapping){_wrapping=false;return;}
       if(!_raf)_raf=requestAnimationFrame(()=>{
-        g.attr('transform',_lastT);
+        wrapG.attr('transform',_lastT);
         if(scaleChanged)applyDotR(_lastT.k);
         _raf=null;
       });
     })
     .on('end',()=>{
+      if(_wrapping)return;
       if(!COARSE)gNode.style.pointerEvents='';
       applyDotR(_lastT.k);
+      if(isMerc){
+        const period=W*_lastT.k;
+        let nx=_lastT.x%period;
+        if(nx>0)nx-=period;
+        if(Math.abs(nx-_lastT.x)>1){
+          setTimeout(()=>{
+            _wrapping=true;
+            svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(nx,_lastT.y).scale(_lastT.k));
+            _lastT=d3.zoomTransform(svg.node());
+            wrapG.attr('transform',_lastT);
+          },0);
+        }
+      }
     });
   svg.call(zoomBehavior);
   $('map-bg').style.background=th.bg;updateColors();
