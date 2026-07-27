@@ -108,25 +108,83 @@ test('the bundled map data still contains what the quizzes expect', () => {
   assert.ok(namedRivers >= 214, `only ${namedRivers} named rivers, but the quiz offers up to 214`);
 });
 
-test('each region quiz dataset exists and has the advertised number of regions', () => {
-  const expected = { DE: 16, US: 51, FR: 13 };
-  const urls = [...appJs.matchAll(/url:'(data\/regions\/[^']+)'/g)].map(m => m[1]);
-  assert.strictEqual(urls.length, 3, `expected 3 region datasets, found ${urls.length}`);
+test('every region quiz delivers exactly the number of regions it advertises', () => {
+  // Driven by REGION_QUIZZES itself, so a newly added quiz is checked automatically. The count
+  // is printed on the menu card, and the quiz asks for every feature in the file — if the two
+  // disagree the round silently runs short or repeats.
+  const block = appJs.match(/const REGION_QUIZZES=\{([\s\S]*?)\n\};/);
+  assert.ok(block, 'REGION_QUIZZES not found in app.js');
 
-  for (const url of urls) {
+  // Split into per-quiz chunks on the two-space-indented keys.
+  const chunks = block[1].split(/\n  (?=[A-Z]{2}:\{)/).filter(c => /url:/.test(c));
+  assert.ok(chunks.length >= 7, `expected at least 7 region quizzes, found ${chunks.length}`);
+
+  for (const chunk of chunks) {
+    const key = chunk.match(/^\s*([A-Z]{2}):/)[1];
+    const url = chunk.match(/url:'([^']+)'/)[1];
+    const declared = Number(chunk.match(/count:(\d+)/)[1]);
+    const objectKey = (chunk.match(/objectKey:'([^']+)'/) || [])[1];
+    const filtered = /filter:f=>/.test(chunk);
+
     const full = path.join(ROOT, url);
-    assert.ok(fs.existsSync(full), `${url} is missing`);
+    assert.ok(fs.existsSync(full), `${key}: ${url} is missing`);
     const d = JSON.parse(fs.readFileSync(full, 'utf8'));
-    const count = d.objects
-      ? d.objects.states.geometries.length            // TopoJSON (DE, US)
-      : d.features.length;                            // GeoJSON (FR)
-    assert.ok(count > 0, `${url} contains no regions`);
-  }
+    const features = d.objects ? d.objects[objectKey].geometries : d.features;
+    assert.ok(features && features.length > 0, `${key}: ${url} contains no regions`);
 
-  // Counts shown on the menu cards must match what the data can actually deliver.
-  for (const [key, n] of Object.entries(expected)) {
-    const m = appJs.match(new RegExp(`${key}:\\{[\\s\\S]*?count:(\\d+)`));
-    assert.ok(m, `region quiz ${key} not found`);
-    assert.strictEqual(Number(m[1]), n, `region quiz ${key} advertises ${m[1]} regions, expected ${n}`);
+    // Quizzes with a filter drop entries at runtime, so the file legitimately holds more.
+    if (filtered) {
+      assert.ok(features.length >= declared,
+        `${key}: file has ${features.length} regions but the quiz advertises ${declared}`);
+    } else {
+      assert.strictEqual(features.length, declared,
+        `${key}: ${url} has ${features.length} regions but the quiz advertises ${declared}`);
+    }
+
+    // Every region needs a usable name — it is the question being asked.
+    const nameKey = chunk.match(/nameKey:'([^']+)'/)[1];
+    const props = d.objects ? features.map(g => g.properties) : features.map(f => f.properties);
+    const unnamed = props.filter(p => !p || !p[nameKey]).length;
+    assert.strictEqual(unnamed, 0, `${key}: ${unnamed} regions have no "${nameKey}" property`);
+
+    // …and a shape. Simplification can delete a very small region entirely, leaving a feature
+    // with null geometry: it draws nothing, so the quiz would ask for something unclickable.
+    if (!d.objects) {
+      const shapeless = features.filter(f => !f.geometry || !f.geometry.coordinates ||
+        !f.geometry.coordinates.length).map(f => f.properties[nameKey]);
+      assert.deepStrictEqual(shapeless, [],
+        `${key}: these regions have no geometry and could never be answered: ${shapeless.join(', ')}`);
+    }
+  }
+});
+
+test('region outlines are wound the way d3-geo expects', () => {
+  // d3-geo predates RFC 7946 and uses the OPPOSITE winding: exterior rings must run clockwise
+  // in lon/lat order. mapshaper (and RFC 7946) emit counterclockwise, and d3 then treats each
+  // polygon as covering the whole sphere, rendering the country as one filled rectangle.
+  // That is a silent, total rendering failure, so it is worth asserting. france-regions.geojson
+  // is the reference: it has always rendered correctly and is wound clockwise throughout.
+  const dir = path.join(ROOT, 'data/regions');
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.geojson'));
+  assert.ok(files.length > 0, 'expected GeoJSON region datasets');
+
+  for (const file of files) {
+    const d = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+    let counterclockwise = 0;
+    for (const feat of d.features) {
+      if (!feat.geometry) continue;
+      const polys = feat.geometry.type === 'Polygon'
+        ? [feat.geometry.coordinates] : feat.geometry.coordinates;
+      for (const rings of polys) {
+        const r = rings[0];
+        // Shoelace sum; positive means counterclockwise, which is what d3 cannot use here.
+        let a = 0;
+        for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+        if (a > 0) counterclockwise++;
+      }
+    }
+    assert.strictEqual(counterclockwise, 0,
+      `${file}: ${counterclockwise} exterior ring(s) run counterclockwise. d3-geo needs them ` +
+      `clockwise — reverse every ring after exporting, or the country renders as a filled box.`);
   }
 });

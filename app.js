@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-26 D';
+const BUILD_ID='2026-07-26 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1850,6 +1850,38 @@ const REGION_QUIZZES={
     sub:{de:'Regionen',en:'Regions'},
     url:'data/regions/france-regions.geojson',
     objectKey:null,nameKey:'nom',count:13,
+    proj:'fit',filter:null,isGeoJSON:true
+  },
+  // The four below are derived from Natural Earth admin-1 (see data/regions/README.md).
+  // Region names are kept in the country's own language, as with Germany and France.
+  IT:{
+    name:{de:'Italien',en:'Italy'},
+    sub:{de:'Regionen',en:'Regions'},
+    url:'data/regions/italy.geojson',
+    objectKey:null,nameKey:'name',count:20,
+    proj:'fit',filter:null,isGeoJSON:true
+  },
+  ES:{
+    name:{de:'Spanien',en:'Spain'},
+    sub:{de:'Autonome Gemeinschaften',en:'Autonomous Communities'},
+    url:'data/regions/spain.geojson',
+    // The 17 autonomous communities. Ceuta and Melilla are left out: they are autonomous cities,
+    // and at ~12-19 km² they disappear at this simplification and would be unhittable anyway.
+    objectKey:null,nameKey:'name',count:17,
+    proj:'fit',filter:null,isGeoJSON:true
+  },
+  AT:{
+    name:{de:'Österreich',en:'Austria'},
+    sub:{de:'Bundesländer',en:'Federal States'},
+    url:'data/regions/austria.geojson',
+    objectKey:null,nameKey:'name',count:9,
+    proj:'fit',filter:null,isGeoJSON:true
+  },
+  JP:{
+    name:{de:'Japan',en:'Japan'},
+    sub:{de:'Präfekturen',en:'Prefectures'},
+    url:'data/regions/japan.geojson',
+    objectKey:null,nameKey:'name',count:47,
     proj:'fit',filter:null,isGeoJSON:true
   }
 };
