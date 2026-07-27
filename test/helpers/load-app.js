@@ -75,7 +75,12 @@ function loadApp(names) {
   const src = ['countries.js', 'capitals.js', 'cities.js', 'app.js']
     .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8'))
     .join('\n;\n');
-  return vm.runInContext(`${src}\n;({ ${names.join(', ')} })`, sandbox, { filename: 'app-under-test' });
+  const bindings = vm.runInContext(
+    `${src}\n;({ ${names.join(', ')} })`, sandbox, { filename: 'app-under-test' });
+  // Exposed so a test can swap sandbox.setTimeout and assert on scheduled work (e.g. that a
+  // correct answer queues the next question) instead of waiting for it in real time.
+  Object.defineProperty(bindings, 'sandbox', { value: sandbox, enumerable: false });
+  return bindings;
 }
 
 module.exports = { loadApp };

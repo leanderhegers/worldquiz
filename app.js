@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-26 B';
+const BUILD_ID='2026-07-26 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -542,6 +542,50 @@ function recordCorrectForCurrent(){
 }
 function skip(){if(!canClick||!game||game.current===null||game.current===undefined)return;game.skipped=(game.skipped||0)+1;if(!game.skippedItems)game.skippedItems=new Set();game.skippedItems.add(game.current);clearFeedback();if(showSkipHint)updateColors();updateStats();nextCountry();}
 
+// ── Shared answer handling ──
+// Every map quiz (countries, lakes, rivers, cities) scores a click the same way; only what
+// counts as "the same item", how a wrong pick is painted red, and which repaint function
+// restores the colours differ. Those differences are the arguments below — the scoring,
+// feedback, learn-mode bookkeeping and flash timing live here once.
+
+/** True if `key` is still an open target: a game is running and it is neither found nor skipped. */
+function canAnswer(key){
+  if(!canClick||!game||game.current===null||game.current===undefined)return false;
+  if(game.skippedItems&&game.skippedItems.has(key))return false;
+  if(game.found&&game.found.has(key))return false;
+  return true;
+}
+
+/**
+ * Applies one answer.
+ *   key       what to remember as found (the lake quiz keys by representative, not by polygon)
+ *   correct   whether this was the target
+ *   name      display name, shown in the feedback line
+ *   flashKey  value for wrongFlashId, so getColor() keeps the target red until the timer ends
+ *             even if the pointer moves away (this is why the flash is not a pure CSS effect)
+ *   flash     paints the wrongly picked item red
+ *   repaint   restores that layer's colours
+ *   keepOnFound  the country quiz only remembers finds when the "stay green" option is on
+ */
+function resolveAnswer({key,correct,name,flashKey,flash,repaint,keepOnFound=true}){
+  if(correct){
+    canClick=false;game.correct++;
+    if(!game.wrongOnCurrent)game.firstTry++;
+    if(keepOnFound)game.found.add(key);
+    if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
+    recordCorrectForCurrent();repaint();updateStats();
+    setTimeout(nextCountry,1100);
+  }else{
+    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
+    if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
+    wrongFlashId=flashKey;
+    if(flash)flash();
+    if(wrongFlash)clearTimeout(wrongFlash);
+    wrongFlash=setTimeout(()=>{wrongFlashId=null;repaint();},700);
+    updateStats();
+  }
+}
+
 function lakeDisplayName(feat){const p=feat.properties;return(lang==='de'?p.name_de:p.name_en)||p.name||'?';}
 const BEGINNER_LAKES=new Set(['Lake Baikal','Lake Victoria','Lake Superior','Lake Huron','Lake Michigan','Lake Erie','Lake Ontario','Lago Titicaca','Lake Tanganyika','Dead Sea','Lake Geneva','Bodensee','Lake Balaton']);
 function getLakeFeatures(diff){
@@ -615,26 +659,13 @@ async function startCityGame(diffOrCountry){
   nextCountry();
 }
 function handleCityClick(idx){
-  if(!canClick||!game||game.current===null||game.current===undefined)return;
-  if(game.skippedItems&&game.skippedItems.has(idx))return;
-  if(game.found.has(idx))return;
-  const name=cityDisplayName(game.cityFeatures[idx]);
-  if(idx===game.current){
-    canClick=false;game.correct++;
-    if(!game.wrongOnCurrent)game.firstTry++;
-    game.found.add(idx);
-    if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
-    recordCorrectForCurrent();updateCityColors();updateStats();
-    setTimeout(nextCountry,1100);
-  }else{
-    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
-    if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
-    wrongFlashId=idx;
-    cityDots&&cityDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
-    if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateCityColors();},700);
-    updateStats();
-  }
+  if(!canAnswer(idx))return;
+  resolveAnswer({
+    key:idx,correct:idx===game.current,flashKey:idx,
+    name:cityDisplayName(game.cityFeatures[idx]),
+    flash:()=>cityDots&&cityDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong),
+    repaint:updateCityColors
+  });
 }
 
 // ── DROP-A-PIN ──
@@ -749,27 +780,14 @@ async function startRiverGame(diff){
 }
 
 function handleRiverClick(idx){
-  if(!canClick||!game||game.current===null||game.current===undefined)return;
-  if(game.skippedItems&&game.skippedItems.has(idx))return;
-  if(game.found.has(idx))return;
-  const feat=game.riverFeatures[idx];
-  const name=riverDisplayName(feat);
-  if(idx===game.current){
-    canClick=false;game.correct++;
-    if(!game.wrongOnCurrent)game.firstTry++;
-    game.found.add(idx);
-    if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
-    recordCorrectForCurrent();updateRiverColors();updateStats();
-    setTimeout(nextCountry,1100);
-  }else{
-    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
-    if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
-    wrongFlashId=idx;
-    riverPaths&&riverPaths.filter(d=>d._i===idx).attr('stroke',THEMES[theme].wrong);
-    if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateRiverColors();},700);
-    updateStats();
-  }
+  if(!canAnswer(idx))return;
+  resolveAnswer({
+    key:idx,correct:idx===game.current,flashKey:idx,
+    name:riverDisplayName(game.riverFeatures[idx]),
+    // Rivers are lines, so the wrong pick is marked on the stroke rather than the fill.
+    flash:()=>riverPaths&&riverPaths.filter(d=>d._i===idx).attr('stroke',THEMES[theme].wrong),
+    repaint:updateRiverColors
+  });
 }
 
 async function startLakeGame(diff){
@@ -794,28 +812,19 @@ async function startLakeGame(diff){
 
 function handleLakeClick(idx){
   if(!canClick||!game||game.current===null||game.current===undefined)return;
-  const feat=game.lakeFeatures[idx];
-  const name=lakeDisplayName(feat);
+  // One named lake can be several polygons, so progress is keyed by its representative index
+  // and matching goes by name — but the red flash marks the polygon actually clicked.
+  const name=lakeDisplayName(game.lakeFeatures[idx]);
   const rep=game.lakeRep[name];
-  if(game.skippedItems&&game.skippedItems.has(rep))return;
-  if(game.found.has(rep))return;
-  if(name===lakeDisplayName(game.lakeFeatures[game.current])){
-    canClick=false;game.correct++;
-    if(!game.wrongOnCurrent)game.firstTry++;
-    game.found.add(rep);
-    if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
-    recordCorrectForCurrent();updateLakeColors();updateStats();
-    setTimeout(nextCountry,1100);
-  }else{
-    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
-    if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
-    wrongFlashId=idx;
-    lakePaths&&lakePaths.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
-    lakeDots&&lakeDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
-    if(wrongFlash)clearTimeout(wrongFlash);
-    wrongFlash=setTimeout(()=>{wrongFlashId=null;updateLakeColors();},700);
-    updateStats();
-  }
+  if(!canAnswer(rep))return;
+  resolveAnswer({
+    key:rep,correct:name===lakeDisplayName(game.lakeFeatures[game.current]),flashKey:idx,name,
+    flash:()=>{
+      lakePaths&&lakePaths.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
+      lakeDots&&lakeDots.filter(d=>d._i===idx).attr('fill',THEMES[theme].wrong);
+    },
+    repaint:updateLakeColors
+  });
 }
 
 function zoomTo(cx,cy,k){
@@ -1434,8 +1443,29 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   updateCityColors();
 }
 function nextCountry(){canClick=true;if(game.queue&&game.found){while(game.queue.length&&game.found.has(game.queue[0]))game.queue.shift();}if(!game.queue||game.queue.length===0){showResult();return;}game.current=game.queue.shift();game.wrongOnCurrent=false;if(game.riverMode){const f=game.riverFeatures[game.current];$('target-name').textContent=f?riverDisplayName(f):'?';}else if(game.lakeMode){const f=game.lakeFeatures[game.current];$('target-name').textContent=f?lakeDisplayName(f):'?';}else if(game.cityMode){const c=game.cityFeatures[game.current];$('target-name').textContent=c?cityDisplayName(c):'?';}else{$('target-name').textContent=cn(game.current);}clearFeedback();updateStats();updateColors();}
-function flashWrong(rawId){wrongFlashId=eff(rawId);countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);if(wrongFlash)clearTimeout(wrongFlash);wrongFlash=setTimeout(()=>{wrongFlashId=null;updateColors();},700);}
-function handleClick(rawId){if(!canClick||!game||!game.current)return;const id=eff(rawId);const info=C[id];if(!info||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id))||(keepFound&&game.found.has(id)))return;if(id===game.current){canClick=false;game.correct++;if(!game.wrongOnCurrent)game.firstTry++;if(keepFound)game.found.add(id);if(showWrongHint)showFeedback(t('correctFb')(cn(id)),THEMES[theme].found);recordCorrectForCurrent();updateColors();updateStats();setTimeout(nextCountry,1100);}else{game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;if(showWrongHint)showFeedback(t('wrongFb')(cn(id)),THEMES[theme].wrong);flashWrong(rawId);updateStats();}}
+// Paints a wrongly picked country red. Setting wrongFlashId and clearing it again is
+// resolveAnswer's job, so this only draws.
+function flashWrong(rawId){
+  countryPaths&&countryPaths.filter(d=>+d.id===rawId).attr('fill',THEMES[theme].wrong);
+  microstateDots&&microstateDots.filter(d=>d.id===rawId).attr('fill',THEMES[theme].wrong);
+}
+function handleClick(rawId){
+  if(!canClick||!game||!game.current)return;
+  const id=eff(rawId);
+  // Guards of its own: the clicked shape must be a country that is part of this round, and with
+  // "stay green" off an already-found country stays clickable.
+  if(!C[id]||!isActive(id))return;
+  if(game.skippedItems&&game.skippedItems.has(id))return;
+  if(keepFound&&game.found.has(id))return;
+  resolveAnswer({
+    key:id,correct:id===game.current,name:cn(id),
+    // Flash by effective id so a click on a merged territory highlights its parent country.
+    flashKey:eff(rawId),
+    flash:()=>flashWrong(rawId),
+    repaint:updateColors,
+    keepOnFound:keepFound
+  });
+}
 function updateStats(){
   $('btn-skip').style.display=game.pinMode?'none':'';
   if(game.pinMode){

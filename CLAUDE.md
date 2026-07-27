@@ -62,10 +62,22 @@ so anything in it is in the hot path:
 - `sw.js` — offline cache. `style.css`, `index.html` — UI shell (8 screens, toggled by
   `showScreen()`).
 
+## Adding a quiz mode
+
 Quiz modes are distinguished by flags on the `game` object (`game.lakeMode`, `game.cityMode`,
-`game.pinMode`, …). These are checked in ~40 places, and each mode has its own near-duplicate
-`handle*Click` and `get*Color`/`update*Colors` functions — so adding a mode currently means
-touching ~10 scattered places. Worth refactoring behind one mode descriptor before adding more.
+`game.pinMode`, …), checked in ~40 places. Consolidating that is a work in progress:
+
+**Already shared — use it.** Scoring, feedback, learn-mode bookkeeping and the wrong-answer flash
+live in `resolveAnswer()`, with `canAnswer()` for the "is this still an open target" guard. The
+country, lake, river and city handlers are thin wrappers over them; a new mode's click handler
+should be too. Do not hand-roll the scoring again — it was copy-pasted four times before and the
+copies had already drifted apart.
+
+**Still duplicated.** Each mode keeps its own `get*Color`/`update*Colors` pair, and `renderMap()`
+branches on the mode flags. A mode descriptor (one object per mode: items, display name, hit
+test, colours, score key) is the obvious next step and is worth doing before adding many more
+modes — but note `renderMap()` is a ~370-line function, so that refactor needs care and cannot
+be covered by the test suite.
 
 ## Testing
 
