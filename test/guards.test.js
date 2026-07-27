@@ -14,9 +14,9 @@ const indexHtml = read('index.html');
 const swJs = read('sw.js');
 
 // Remote hosts the app is allowed to talk to. Everything else must be vendored locally.
-// flagcdn: flag images (the flag quiz knowingly needs a connection).
-// gstatic: the Firebase SDK, which is guarded and falls back to localStorage.
-const ALLOWED_HOSTS = ['flagcdn.com', 'www.gstatic.com', 'firebase.google.com'];
+// Only Firebase is left: it is a network service by nature, is guarded, and falls back to
+// localStorage, so the app still starts and plays without it.
+const ALLOWED_HOSTS = ['www.gstatic.com', 'firebase.google.com'];
 
 /** Body of a top-level `function name(...) { ... }`, found by brace matching. */
 function functionBody(src, name) {
@@ -105,6 +105,32 @@ test('Rule 3: the zoom hot path never forces a synchronous layout', () => {
       `${fn}() calls getBoundingClientRect(), which forces a synchronous layout on every zoom ` +
       `frame. Use the cached _sc value instead (refreshed by the ResizeObserver).`);
   }
+});
+
+test('every country in the flag quiz has a bundled flag image', () => {
+  // A missing file here shows up as a blank card mid-quiz, which is easy to ship and easy to miss.
+  const m = appJs.match(/const ISO2=\{([^}]+)\}/);
+  assert.ok(m, 'ISO2 map not found in app.js');
+  const codes = [...new Set(m[1].split(',').map(p => p.split(':')[1]).filter(Boolean)
+    .map(s => s.trim().replace(/'/g, '')))];
+
+  const missing = codes.filter(c => !fs.existsSync(path.join(ROOT, `data/flags/w320/${c}.png`)));
+  assert.deepStrictEqual(missing, [],
+    `No flag image for: ${missing.join(', ')}. Fetch it into data/flags/w320/ and regenerate ` +
+    `data/flags/index.json.`);
+});
+
+test('the flag index the service worker precaches from is in sync with the files', () => {
+  const idx = JSON.parse(read('data/flags/index.json'));
+  for (const [size, codes] of [['w320', idx.w320], ['h20', idx.h20]]) {
+    const onDisk = fs.readdirSync(path.join(ROOT, 'data/flags', size))
+      .filter(f => f.endsWith('.png')).map(f => f.replace('.png', '')).sort();
+    assert.deepStrictEqual([...codes].sort(), onDisk,
+      `data/flags/index.json disagrees with data/flags/${size}/ — regenerate it, or the service ` +
+      `worker will precache a file that is gone (or miss one that is new).`);
+  }
+  assert.ok(swJs.includes('data/flags/index.json'),
+    'sw.js must read the flag index, otherwise the flag quiz will not work offline');
 });
 
 test('Rule 4: BUILD_ID is present and looks like a version', () => {

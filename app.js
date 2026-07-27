@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-26 C';
+const BUILD_ID='2026-07-26 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -175,8 +175,8 @@ function goToGames(section){if(typeof triggerStreakOnPlay==='function')triggerSt
 
 function og(label,inner){return `<div class="opt-group"><div class="opt-label">${label}</div><div class="opt-row">${inner}</div></div>`;}
 function langGroup(){return og(t('langLbl'),
-  `<button class="lb lb-flag${lang==='de'?' active':''}" onclick="setLang('de')"><img class="lbflag" src="https://flagcdn.com/h20/de.png" alt="">Deutsch</button>`+
-  `<button class="lb lb-flag${lang==='en'?' active':''}" onclick="setLang('en')"><img class="lbflag" src="https://flagcdn.com/h20/gb.png" alt="">English</button>`);}
+  `<button class="lb lb-flag${lang==='de'?' active':''}" onclick="setLang('de')"><img class="lbflag" src="data/flags/h20/de.png" alt="">Deutsch</button>`+
+  `<button class="lb lb-flag${lang==='en'?' active':''}" onclick="setLang('en')"><img class="lbflag" src="data/flags/h20/gb.png" alt="">English</button>`);}
 function themeGroup(){return og(t('themeLbl'),
   ['atlas','neon','terrain'].map(k=>`<button class="tp${theme===k?' active':''}" onclick="setTheme('${k}')"><span class="dot" style="background:${THEME_DOT[k]};"></span><span>${t('themes')[k]}</span></button>`).join(''));}
 const MERC_ICON=`<svg width="21" height="14" viewBox="0 0 21 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:4px;flex-shrink:0"><rect x="1" y="1" width="19" height="12" rx="0" stroke="currentColor" stroke-width="1.3"/><line x1="1" y1="4.7" x2="20" y2="4.7" stroke="currentColor" stroke-width="0.6" opacity="0.55"/><line x1="1" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="0.6" opacity="0.55"/><line x1="1" y1="9.3" x2="20" y2="9.3" stroke="currentColor" stroke-width="0.6" opacity="0.55"/><line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" stroke-width="0.6" opacity="0.55"/><line x1="14" y1="1" x2="14" y2="13" stroke="currentColor" stroke-width="0.6" opacity="0.55"/></svg>`;
@@ -1704,7 +1704,7 @@ function nextFlag(){
   const id=game.flagCurrent,mode=game.inputMode||'flag';
   const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline');
   img.style.display='none';txt.style.display='none';out.style.display='none';
-  if(mode==='flag'){img.src='https://flagcdn.com/w320/'+ISO2[id]+'.png';img.style.display='';}
+  if(mode==='flag'){img.src='data/flags/w320/'+ISO2[id]+'.png';img.style.display='';}
   else if(mode==='outline'){if(!renderOutline(id)){nextFlag();return;}out.style.display='';}
   else{txt.textContent=game.capitalDir==='c2cap'?(lang==='de'?C[id].de:C[id].en):(lang==='de'?CAPITALS[id].de:CAPITALS[id].en);txt.style.display='';}
   $('flag-quiz-lbl').textContent=iqAnswerCapital()?t('iqAskCapital'):t('iqAskCountry');

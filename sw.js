@@ -1,6 +1,6 @@
 // Bump this whenever the precached asset list or any file in it changes — activating a new
 // cache name is what evicts the old one.
-const CACHE_NAME = 'weltquiz-v3';
+const CACHE_NAME = 'weltquiz-v4';
 
 // Precached on install: the app shell plus everything the world-map quiz (the entry point for
 // most players) needs. After this the core game is fully playable with no network at all.
@@ -27,16 +27,33 @@ const ASSETS = [
 // install stays light. countries-10m.json alone is 3.5 MB and only the outline quiz needs it.
 const RUNTIME_CACHEABLE = /\/(data|vendor)\//;
 
+// The flag quiz needs ~700 KB of images. Listing them here by hand would rot the moment a
+// country is added, so the list is read from a generated index instead.
+async function flagAssets() {
+  try {
+    const idx = await fetch('./data/flags/index.json').then(r => r.json());
+    return [
+      ...(idx.w320 || []).map(c => `./data/flags/w320/${c}.png`),
+      ...(idx.h20 || []).map(c => `./data/flags/h20/${c}.png`)
+    ];
+  } catch (err) {
+    // Not fatal: without the index the flags simply get cached on first use instead.
+    console.warn('[sw] flag index unavailable, flags will be cached on demand', err);
+    return [];
+  }
+}
+
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME)
-      // addAll() is atomic: a single 404 would reject the whole install and leave the app with
-      // no service worker at all. Adding individually keeps one bad entry from breaking the rest.
-      .then(cache => Promise.all(
-        ASSETS.map(url => cache.add(url).catch(err => console.warn('[sw] skipped', url, err)))
-      ))
-      .then(() => self.skipWaiting())
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const urls = [...ASSETS, ...await flagAssets()];
+    // addAll() is atomic: a single 404 would reject the whole install and leave the app with
+    // no service worker at all. Adding individually keeps one bad entry from breaking the rest.
+    await Promise.all(
+      urls.map(url => cache.add(url).catch(err => console.warn('[sw] skipped', url, err)))
+    );
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', e => {
