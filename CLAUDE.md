@@ -69,6 +69,18 @@ touching ~10 scattered places. Worth refactoring behind one mode descriptor befo
 
 ## Testing
 
-There are no automated tests yet. Desktop verification is not sufficient: several bugs here were
-touch-only or offline-only. When changing map interaction, say plainly that it was only checked
-on desktop and ask for a phone check, rather than implying it is verified.
+`npm test` — Node's built-in runner, no dependencies to install, nothing to build.
+
+- `test/guards.test.js` enforces the four rules above. If you break one, this is what tells you.
+- `test/data.test.js` checks the hand-edited game data (names, ids, difficulty tiers, region
+  counts) and that the bundled map files still hold what the quizzes advertise.
+- `test/logic.test.js` covers pure logic — `norm()` diacritics folding, `haversine()`, `shuffle()`,
+  flag difficulty tiers — via `test/helpers/load-app.js`, which evaluates app.js against a fake
+  DOM. Add a name to that helper's argument list to reach a new function.
+
+Run it after any change, and add a case when fixing a bug that unit-testable logic caused.
+
+What tests cannot cover here: rendering, touch gestures and offline behaviour. Several bugs in
+this project were touch-only or offline-only and looked fine on a desktop browser. So when
+changing map interaction, say plainly that it was only checked on desktop and ask for a check on
+a phone, rather than implying it is verified.

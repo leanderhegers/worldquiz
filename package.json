@@ -1,0 +1,9 @@
+{
+  "name": "weltkarten-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser geography quiz. Static site, no build step — this file exists for the test runner only.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

@@ -1,0 +1,7 @@
+# The test suite runs on Node's built-in runner and needs no packages, but keep these out in
+# case a dependency is ever added.
+node_modules/
+package-lock.json
+
+# Local editor/agent settings, not project configuration.
+.claude/settings.local.json
