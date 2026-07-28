@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 E';
+const BUILD_ID='2026-07-28 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1845,7 +1845,10 @@ const REGION_QUIZZES={
     proj:'albers-usa',
     // District of Columbia is excluded too: at this scale it renders as a sliver invisible next
     // to Virginia/Maryland, so it can never actually be found on the map.
-    filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands','District of Columbia'].includes(f.properties.name)
+    filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands','District of Columbia'].includes(f.properties.name),
+    // geoAlbersUsa already positions these as insets; just mark them with the same dashed frame
+    // Spain's Canarias inset gets, so it's clear they aren't drawn at their real location.
+    insetFrameNames:['Alaska','Hawaii']
   },
   FR:{
     name:{de:'Frankreich',en:'France'},
@@ -2037,14 +2040,26 @@ function _renderRegionMap(cfg,features){
     .on('mouseout',hoverOut)
     .on('click',click);
 
-  if(insetSet){
-    // A thin frame around the inset marks it as a separate little map, the same way printed
-    // atlases box off an Alaska/Hawaii inset so it isn't mistaken for the region's real location.
-    const [[bx0,by0],[bx1,by1]]=cfg.inset.box;
+  // A thin dashed frame marks an inset as a separate little map, the same way printed atlases
+  // box off Alaska/Hawaii so they aren't mistaken for their real location.
+  const drawInsetFrame=(x0,y0,x1,y1)=>{
+    const pad=6;
     g.append('rect').attr('class','rg-inset-frame')
-      .attr('x',bx0-6).attr('y',by0-6).attr('width',bx1-bx0+12).attr('height',by1-by0+12)
+      .attr('x',x0-pad).attr('y',y0-pad).attr('width',x1-x0+pad*2).attr('height',y1-y0+pad*2)
       .attr('fill','none').attr('stroke',th.border).attr('stroke-width',1).attr('stroke-dasharray','3,3')
       .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
+  };
+  if(insetSet){
+    const [[bx0,by0],[bx1,by1]]=cfg.inset.box;
+    drawInsetFrame(bx0,by0,bx1,by1);
+  }
+  if(cfg.insetFrameNames){
+    // geoAlbersUsa positions Alaska/Hawaii itself; there's no separate projection to fit a box
+    // to, so just frame wherever it actually drew them.
+    for(const f of features.filter(f=>cfg.insetFrameNames.includes(f.properties[cfg.nameKey]))){
+      const b=mainPath.bounds(f);
+      drawInsetFrame(b[0][0],b[0][1],b[1][0],b[1][1]);
+    }
   }
 
   // Tiny regions (Germany's city-states Berlin/Hamburg/Bremen) are easy to miss when their real
