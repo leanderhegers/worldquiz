@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 G';
+const BUILD_ID='2026-07-28 H';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1851,7 +1851,12 @@ const REGION_QUIZZES={
     // real location. Hawaii gets its own custom inset box below instead of geoAlbersUsa's
     // built-in spot, so its bottom edge can be lined up exactly with Alaska's.
     insetFrameNames:['Alaska'],
-    insets:[{match:f=>f.properties.name==='Hawaii',box:[[265,489.7],[364,553.1]]}]
+    // Box is narrower and further left than a straight "shift right of Alaska" placement would
+    // give: at this width the frame's top-right corner would sit right under Texas's southern
+    // tip (verified against Texas's actual projected coastline, not just its bounding box) — at
+    // x≈360 Texas dips to y≈483, almost exactly the box's old top edge. This box keeps roughly
+    // a 12px gap from Alaska's frame on the left and a 25px+ gap from Texas's tip on the right.
+    insets:[{match:f=>f.properties.name==='Hawaii',box:[[264,490],[319,553]]}]
   },
   FR:{
     name:{de:'Frankreich',en:'France'},
@@ -1885,7 +1890,9 @@ const REGION_QUIZZES={
     // point of fitFilter above), so they'd be a target the player could never actually click.
     // Give them their own small projection into an empty corner of the map, the same way
     // Alaska/Hawaii sit as insets next to the mainland US.
-    insets:[{match:f=>f.properties.name==='Canarias',box:[[10,470],[125,585]]}]
+    // Mainland Spain's nearest point at this height (Cádiz/Huelva) sits at x≈222, so this still
+    // leaves a wide margin after shifting right.
+    insets:[{match:f=>f.properties.name==='Canarias',box:[[40,470],[155,585]]}]
   },
   AT:{
     name:{de:'Österreich',en:'Austria'},
