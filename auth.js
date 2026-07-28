@@ -36,16 +36,50 @@ let _missTimer = null;
 
 function _loadLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch (e) { return null; } }
 function _saveLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(_store)); } catch (e) {} }
+// For settings/streak/lastPlayDay/customPlayed/avatar only: single-owner scalar-ish fields that
+// aren't independently added to by other devices the way scores/achievements are, so re-sending
+// the whole field on every save is fine here.
 function _persist() {
   if (_auth && _auth.currentUser && _db) {
     const uid=_auth.currentUser.uid;
     _db.collection('users').doc(uid)
-      .set({ settings: _store.settings, scores: _store.scores, misses: _store.misses, correct: _store.correct, achievements: _store.achievements || {}, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false, avatar: _store.avatar || null }, { merge: true })
+      .set({ settings: _store.settings, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false, avatar: _store.avatar || null }, { merge: true })
       .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
     _updatePublicProfile(uid);
   } else {
     _saveLocal();
   }
+}
+// For scores/achievements/misses/correct: these grow independently on every device signed into
+// the same account, so a device can hold a stale in-memory copy of entries another device already
+// added. Firestore's {merge:true} replaces whole nested map fields wholesale rather than deep-
+// merging them — sending the entire local `scores`/`achievements` object back would silently wipe
+// out anything added elsewhere since this device last loaded. Dot-notation field paths (e.g.
+// 'scores.map:EU') make Firestore treat each entry as its own field, so a save here only ever
+// touches the one key that actually changed. Keys used in practice (quiz mode ids, achievement
+// ids) never contain a literal '.', which is what this relies on.
+function _persistFields(fields) {
+  if (_auth && _auth.currentUser && _db) {
+    const uid=_auth.currentUser.uid;
+    _db.collection('users').doc(uid).set(fields, { merge: true })
+      .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
+    _updatePublicProfile(uid);
+  } else {
+    _saveLocal();
+  }
+}
+// Batches dirty map-entry writes behind one debounce timer so two quick calls (e.g. a miss then a
+// correct on the same question) don't cancel each other's pending Firestore write — every prior
+// implementation shared one timer per call site, which was fine when each fired an identical
+// whole-store persist, but would silently drop one side once persisting became field-specific.
+let _dirtyFields = {};
+function _queuePersist(dotPath, value) {
+  _dirtyFields[dotPath] = value;
+  clearTimeout(_missTimer);
+  _missTimer = setTimeout(() => {
+    const fields = _dirtyFields; _dirtyFields = {};
+    _persistFields(fields);
+  }, 2500);
 }
 function _updatePublicProfile(uid){
   if(!_db)return;
@@ -71,7 +105,13 @@ async function loadUserData(u) {
       const snap = await _db.collection('users').doc(u.uid).get();
       const d = snap.exists ? snap.data() : {};
       _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false, avatar: d.avatar || null };
-    } catch (e) { console.warn('Firestore-Laden fehlgeschlagen', e); _store = { settings: {}, scores: {}, misses: {}, correct: {}, achievements: {} }; }
+    } catch (e) {
+      console.warn('Firestore-Laden fehlgeschlagen', e);
+      // Fall back to this device's last-known local snapshot rather than blank defaults — a
+      // transient network hiccup here must never look like "your progress is gone", and blank
+      // defaults could otherwise get written back to the cloud on the next save.
+      _store = _loadLocal() || { settings: {}, scores: {}, misses: {}, correct: {}, achievements: {} };
+    }
   } else {
     _store = _loadLocal() || { settings: {}, scores: {}, misses: {}, correct: {}, achievements: {} };
   }
@@ -94,16 +134,14 @@ function recordMiss(qkey) {
   if (!qkey) return;
   if (!_store.misses) _store.misses = {};
   _store.misses[qkey] = (_store.misses[qkey] || 0) + 1;
-  clearTimeout(_missTimer);
-  _missTimer = setTimeout(_persist, 2500);
+  _queuePersist('misses.'+qkey, _store.misses[qkey]);
 }
 function getMisses() { return _store.misses || {}; }
 function recordCorrect(qkey) {
   if (!qkey) return;
   if (!_store.correct) _store.correct = {};
   _store.correct[qkey] = (_store.correct[qkey] || 0) + 1;
-  clearTimeout(_missTimer);
-  _missTimer = setTimeout(_persist, 2500);
+  _queuePersist('correct.'+qkey, _store.correct[qkey]);
 }
 function getCorrects() { return _store.correct || {}; }
 
@@ -116,7 +154,7 @@ function recordScore(key, score, total) {
   if (better) {
     if (prev) _store._justImproved = true;
     _store.scores[key] = { score, total, pct, ts: Date.now() };
-    _persist();
+    _persistFields({ ['scores.'+key]: _store.scores[key] });
   }
   return better;
 }
@@ -462,7 +500,9 @@ function checkAchievements() {
   });
   delete _store._justImproved;
   if (newlyUnlocked.length > 0) {
-    _persist();
+    const fields = {};
+    newlyUnlocked.forEach(a => { fields['achievements.'+a.id] = _store.achievements[a.id]; });
+    _persistFields(fields);
     newlyUnlocked.forEach(a => _showAchToast(a));
   }
   return newlyUnlocked;
