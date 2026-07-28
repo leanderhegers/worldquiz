@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 B';
+const BUILD_ID='2026-07-28 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1945,6 +1945,45 @@ async function startRegionQuiz(key){
   _nextRegion();
 }
 
+// Centroid of a closed ring of projected [x,y] points, by signed area (not a plain average —
+// that would pull off-centre on a concave shape). Falls back to averaging the points for a
+// degenerate (zero-area) ring.
+function _ringCentroid(ring){
+  let a=0,cx=0,cy=0;
+  for(let i=0;i<ring.length-1;i++){
+    const [x0,y0]=ring[i],[x1,y1]=ring[i+1];
+    const cross=x0*y1-x1*y0;
+    a+=cross;cx+=(x0+x1)*cross;cy+=(y0+y1)*cross;
+  }
+  a*=0.5;
+  if(Math.abs(a)<1e-6){
+    let sx=0,sy=0;
+    for(let i=0;i<ring.length-1;i++){sx+=ring[i][0];sy+=ring[i][1];}
+    return [sx/(ring.length-1),sy/(ring.length-1)];
+  }
+  return [cx/(6*a),cy/(6*a)];
+}
+
+// Builds an invisible, enlarged hit-target path for a tiny region by scaling its actual
+// contour, not a generic circle at the bounding-box centre. A region like Bremen is two
+// separate exclaves (Bremen-Stadt and Bremerhaven) with Niedersachsen in between — scaling
+// around one shared centroid would drag both parts toward each other and eat into that gap.
+// Scaling each polygon part around its own centroid instead grows every part in place.
+function _scaledHitPath(feature,proj,factor){
+  const geom=feature.geometry;
+  const polys=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates;
+  let d='';
+  for(const poly of polys){
+    const projRings=poly.map(ring=>ring.map(pt=>proj(pt)));
+    const [ccx,ccy]=_ringCentroid(projRings[0]);
+    for(const ring of projRings){
+      const scaled=ring.map(([x,y])=>[ccx+(x-ccx)*factor,ccy+(y-ccy)*factor]);
+      d+='M'+scaled.map(p=>p[0].toFixed(2)+','+p[1].toFixed(2)).join('L')+'Z';
+    }
+  }
+  return d;
+}
+
 function _renderRegionMap(cfg,features){
   const svg=d3.select('#reg-map');svg.selectAll('*').remove();
   const W=960,H=600;
@@ -1979,19 +2018,17 @@ function _renderRegionMap(cfg,features){
     .on('mouseout',hoverOut)
     .on('click',click);
 
-  // Tiny regions (Germany's city-states Berlin/Hamburg/Bremen, and similarly small regions in
-  // other quizzes) are easy to miss when their real shape covers only a handful of pixels next
-  // to a whole country. Area rather than bounding-box size is what matters here — Hamburg's
-  // box is wide but mostly empty water, while its actual land area is tiny. Give any region
-  // below this pixel-area an invisible, larger circular click target centred on it, forwarding
-  // to the same handlers as the real polygon.
-  const MIN_AREA=600,HIT_R=16;
+  // Tiny regions (Germany's city-states Berlin/Hamburg/Bremen) are easy to miss when their real
+  // shape covers only a handful of pixels next to a whole country. Area rather than
+  // bounding-box size is what matters here — Hamburg's box is wide but mostly empty water,
+  // while its actual land area is tiny. Give any region below this pixel-area an invisible,
+  // enlarged click target — its own contour scaled up 1.2x — forwarding to the same handlers
+  // as the real polygon.
+  const MIN_AREA=600,HIT_SCALE=1.2;
   const tiny=cfg.tinyHit===false?[]:features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
   if(tiny.length){
-    g.selectAll('.rg-hit').data(tiny).enter().append('circle').attr('class','rg-hit')
-      .attr('cx',f=>{const b=gpath.bounds(f);return (b[0][0]+b[1][0])/2;})
-      .attr('cy',f=>{const b=gpath.bounds(f);return (b[0][1]+b[1][1])/2;})
-      .attr('r',HIT_R)
+    g.selectAll('.rg-hit').data(tiny).enter().append('path').attr('class','rg-hit')
+      .attr('d',f=>_scaledHitPath(f,proj,HIT_SCALE))
       .attr('fill','transparent')
       .style('cursor','pointer')
       .on('mouseover',(ev,d)=>hoverIn(d))
