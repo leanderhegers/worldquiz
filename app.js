@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 C';
+const BUILD_ID='2026-07-28 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2024,7 +2024,7 @@ function _renderRegionMap(cfg,features){
   // while its actual land area is tiny. Give any region below this pixel-area an invisible,
   // enlarged click target — its own contour scaled up 1.2x — forwarding to the same handlers
   // as the real polygon.
-  const MIN_AREA=600,HIT_SCALE=1.2;
+  const MIN_AREA=600,HIT_SCALE=1.4;
   const tiny=cfg.tinyHit===false?[]:features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
   if(tiny.length){
     g.selectAll('.rg-hit').data(tiny).enter().append('path').attr('class','rg-hit')
