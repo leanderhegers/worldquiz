@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 F';
+const BUILD_ID='2026-07-28 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1846,9 +1846,12 @@ const REGION_QUIZZES={
     // District of Columbia is excluded too: at this scale it renders as a sliver invisible next
     // to Virginia/Maryland, so it can never actually be found on the map.
     filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands','District of Columbia'].includes(f.properties.name),
-    // geoAlbersUsa already positions these as insets; just mark them with the same dashed frame
-    // Spain's Canarias inset gets, so it's clear they aren't drawn at their real location.
-    insetFrameNames:['Alaska','Hawaii']
+    // geoAlbersUsa already positions Alaska as an inset in a sensible spot; just mark it with
+    // the same dashed frame Spain's Canarias inset gets, so it's clear it isn't drawn at its
+    // real location. Hawaii gets its own custom inset box below instead of geoAlbersUsa's
+    // built-in spot, so its bottom edge can be lined up exactly with Alaska's.
+    insetFrameNames:['Alaska'],
+    insets:[{match:f=>f.properties.name==='Hawaii',box:[[265,489.7],[364,553.1]]}]
   },
   FR:{
     name:{de:'Frankreich',en:'France'},
@@ -1882,7 +1885,7 @@ const REGION_QUIZZES={
     // point of fitFilter above), so they'd be a target the player could never actually click.
     // Give them their own small projection into an empty corner of the map, the same way
     // Alaska/Hawaii sit as insets next to the mainland US.
-    inset:{match:f=>f.properties.name==='Canarias',box:[[10,470],[125,585]]}
+    insets:[{match:f=>f.properties.name==='Canarias',box:[[10,470],[125,585]]}]
   },
   AT:{
     name:{de:'Österreich',en:'Austria'},
@@ -2007,20 +2010,20 @@ function _renderRegionMap(cfg,features){
   svg.append('rect').attr('width',W).attr('height',H).attr('fill',th.bg);
   const g=svg.append('g');
 
-  // An inset draws some features (e.g. the Canary Islands) with their own projection fit into
-  // an empty corner of the map, the same idea as Alaska/Hawaii next to the mainland US — their
-  // real coordinates would otherwise place them far off-screen, exactly what fitFilter above
-  // avoids for the main map, but that leaves them with nowhere to be drawn at all.
-  let insetPath=null,insetSet=null;
-  if(cfg.inset){
-    const insetFeatures=features.filter(cfg.inset.match);
-    if(insetFeatures.length){
-      const insetProj=d3.geoMercator().fitExtent(cfg.inset.box,{type:'FeatureCollection',features:insetFeatures});
-      insetPath=d3.geoPath().projection(insetProj);
-      insetSet=new Set(insetFeatures);
-    }
-  }
-  const pathFor=f=>insetSet&&insetSet.has(f)?insetPath:mainPath;
+  // An inset draws some features (e.g. the Canary Islands, or Hawaii — positioned by hand here
+  // rather than relying on geoAlbersUsa's built-in spot) with their own projection fit into a
+  // chosen box, the same idea as Alaska/Hawaii next to the mainland US on a printed atlas —
+  // their real coordinates would otherwise place them far off-screen or somewhere inconvenient.
+  const insetLayers=(cfg.insets||[]).map(ins=>{
+    const insetFeatures=features.filter(ins.match);
+    if(!insetFeatures.length)return null;
+    const insetProj=d3.geoMercator().fitExtent(ins.box,{type:'FeatureCollection',features:insetFeatures});
+    return {box:ins.box,path:d3.geoPath().projection(insetProj),set:new Set(insetFeatures)};
+  }).filter(Boolean);
+  const pathFor=f=>{
+    for(const layer of insetLayers)if(layer.set.has(f))return layer.path;
+    return mainPath;
+  };
 
   const hoverIn=d=>{
     const nm=d.properties[cfg.nameKey];
@@ -2049,8 +2052,8 @@ function _renderRegionMap(cfg,features){
       .attr('fill','none').attr('stroke',th.border).attr('stroke-width',1).attr('stroke-dasharray','3,3')
       .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
   };
-  if(insetSet){
-    const [[bx0,by0],[bx1,by1]]=cfg.inset.box;
+  for(const layer of insetLayers){
+    const [[bx0,by0],[bx1,by1]]=layer.box;
     drawInsetFrame(bx0,by0,bx1,by1);
   }
   if(cfg.insetFrameNames){
