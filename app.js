@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 A';
+const BUILD_ID='2026-07-28 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1892,7 +1892,13 @@ const REGION_QUIZZES={
     proj:'fit',filter:null,isGeoJSON:true,
     // Okinawa's island chain stretches far south of the main archipelago; excluding it from the
     // fit-extent box (same reasoning as Spain/Canarias above) keeps the mainland readable.
-    fitFilter:f=>f.properties.name!=='Okinawa'
+    fitFilter:f=>f.properties.name!=='Okinawa',
+    // Japan's 47 prefectures are uniformly small — unlike Germany's three city-states among
+    // 13 much larger Länder, most of them fall under the tiny-region area threshold. Giving
+    // nearly every prefecture an overlapping r=16 hit circle made clicks resolve to whichever
+    // circle happened to be on top rather than the region actually under the cursor. Prefecture
+    // borders are dense enough here that the real polygons are the more accurate hit target.
+    tinyHit:false
   }
 };
 const REGION_QUIZ_LIST=Object.entries(REGION_QUIZZES).map(([k,v])=>({key:k,name:v.name,count:v.count}));
@@ -1980,7 +1986,7 @@ function _renderRegionMap(cfg,features){
   // below this pixel-area an invisible, larger circular click target centred on it, forwarding
   // to the same handlers as the real polygon.
   const MIN_AREA=600,HIT_R=16;
-  const tiny=features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
+  const tiny=cfg.tinyHit===false?[]:features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
   if(tiny.length){
     g.selectAll('.rg-hit').data(tiny).enter().append('circle').attr('class','rg-hit')
       .attr('cx',f=>{const b=gpath.bounds(f);return (b[0][0]+b[1][0])/2;})
