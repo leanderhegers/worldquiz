@@ -58,10 +58,18 @@ function _persist() {
 // 'scores.map:EU') make Firestore treat each entry as its own field, so a save here only ever
 // touches the one key that actually changed. Keys used in practice (quiz mode ids, achievement
 // ids) never contain a literal '.', which is what this relies on.
+//
+// This MUST be .update(), not .set(..., {merge:true}): only update() parses dot-notation string
+// keys as nested field paths. set() with merge treats 'scores.map:SA' as one literal field name
+// containing a dot — which is exactly what shipped here briefly and produced stray top-level
+// fields like "achievements.sa_master" sitting next to (not inside) the real achievements map.
+// _healStrayDotFields() below cleans up any document that already has those. update() requires
+// the document to already exist, which it always does by the time gameplay can call this (the
+// user doc is created at registration/first Google sign-in, before any quiz can be played).
 function _persistFields(fields) {
   if (_auth && _auth.currentUser && _db) {
     const uid=_auth.currentUser.uid;
-    _db.collection('users').doc(uid).set(fields, { merge: true })
+    _db.collection('users').doc(uid).update(fields)
       .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
     _updatePublicProfile(uid);
   } else {
@@ -99,12 +107,50 @@ function _updatePublicProfile(uid){
   }).catch(()=>{});
 }
 
+// One-time repair for documents written by the brief period where _persistFields used set()
+// instead of update() (see the note there): those writes landed as literal top-level fields named
+// e.g. "achievements.sa_master" or "scores.map:SA", siblings of the real achievements/scores maps
+// rather than entries inside them — so they loaded correctly nowhere. Runs on every load; folds
+// any such stray field into its real map in memory immediately (so this session sees it right
+// away) and issues a background fix moving it into the map and deleting the stray copy in
+// Firestore, so each affected account heals itself the next time it loads rather than needing a
+// manual per-user fix.
+function _healStrayDotFields(uid, rawData) {
+  const MAPS = ['scores', 'achievements', 'misses', 'correct'];
+  const setPatch = {};
+  const strayKeys = [];
+  for (const k of Object.keys(rawData)) {
+    const dot = k.indexOf('.');
+    if (dot === -1) continue;
+    const mapName = k.slice(0, dot);
+    if (!MAPS.includes(mapName)) continue;
+    const subKey = k.slice(dot + 1);
+    if (!_store[mapName]) _store[mapName] = {};
+    if (!(subKey in _store[mapName])) _store[mapName][subKey] = rawData[k];
+    setPatch[mapName + '.' + subKey] = rawData[k];
+    strayKeys.push(k);
+  }
+  if (!strayKeys.length || !_db) return;
+  // Two separate calls, deliberately not combined into one: a plain dot-notation string field
+  // ('scores.map:SA' as a two-segment nested path) and a FieldPath naming that exact same string
+  // as one literal segment (the stray field as it's actually stored) both parse from identical
+  // JS text but mean different things to Firestore — safer to move the value into its real nested
+  // field first, let that succeed, then delete the stray literal field as its own step rather than
+  // risk the two operations resolving against each other in a single update().
+  _db.collection('users').doc(uid).update(setPatch).then(() => {
+    const delArgs = [];
+    strayKeys.forEach(k => { delArgs.push(new firebase.firestore.FieldPath(k), firebase.firestore.FieldValue.delete()); });
+    return _db.collection('users').doc(uid).update(...delArgs);
+  }).catch(e => console.warn('Reparatur fehlerhafter Felder fehlgeschlagen', e));
+}
+
 async function loadUserData(u) {
   if (u && _db) {
     try {
       const snap = await _db.collection('users').doc(u.uid).get();
       const d = snap.exists ? snap.data() : {};
       _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false, avatar: d.avatar || null };
+      _healStrayDotFields(u.uid, d);
     } catch (e) {
       console.warn('Firestore-Laden fehlgeschlagen', e);
       // Fall back to this device's last-known local snapshot rather than blank defaults — a
