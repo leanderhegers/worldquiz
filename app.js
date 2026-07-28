@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 D';
+const BUILD_ID='2026-07-28 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1873,9 +1873,13 @@ const REGION_QUIZZES={
     proj:'fit',filter:null,isGeoJSON:true,
     // The Canary Islands sit far off the African coast, so including them in the fit-extent
     // bounding box shrinks mainland Spain down to a fraction of the map. Fit on the mainland
-    // only; the islands still render (and are still a valid quiz target), just wherever their
-    // real coordinates place them, off to the side.
-    fitFilter:f=>f.properties.name!=='Canarias'
+    // only; the islands are still a valid quiz target, drawn via their own inset (below).
+    fitFilter:f=>f.properties.name!=='Canarias',
+    // Off their real coordinates the Canaries would render far off-screen (that's the whole
+    // point of fitFilter above), so they'd be a target the player could never actually click.
+    // Give them their own small projection into an empty corner of the map, the same way
+    // Alaska/Hawaii sit as insets next to the mainland US.
+    inset:{match:f=>f.properties.name==='Canarias',box:[[10,470],[125,585]]}
   },
   AT:{
     name:{de:'Österreich',en:'Austria'},
@@ -1995,10 +1999,25 @@ function _renderRegionMap(cfg,features){
   const proj=cfg.proj==='albers-usa'
     ? d3.geoAlbersUsa().scale(1100).translate([W/2,H/2])
     : d3.geoMercator().fitExtent([[40,40],[W-40,H-40]],fc);
-  const gpath=d3.geoPath().projection(proj);
+  const mainPath=d3.geoPath().projection(proj);
   const th=THEMES[theme];
   svg.append('rect').attr('width',W).attr('height',H).attr('fill',th.bg);
   const g=svg.append('g');
+
+  // An inset draws some features (e.g. the Canary Islands) with their own projection fit into
+  // an empty corner of the map, the same idea as Alaska/Hawaii next to the mainland US — their
+  // real coordinates would otherwise place them far off-screen, exactly what fitFilter above
+  // avoids for the main map, but that leaves them with nowhere to be drawn at all.
+  let insetPath=null,insetSet=null;
+  if(cfg.inset){
+    const insetFeatures=features.filter(cfg.inset.match);
+    if(insetFeatures.length){
+      const insetProj=d3.geoMercator().fitExtent(cfg.inset.box,{type:'FeatureCollection',features:insetFeatures});
+      insetPath=d3.geoPath().projection(insetProj);
+      insetSet=new Set(insetFeatures);
+    }
+  }
+  const pathFor=f=>insetSet&&insetSet.has(f)?insetPath:mainPath;
 
   const hoverIn=d=>{
     const nm=d.properties[cfg.nameKey];
@@ -2009,7 +2028,7 @@ function _renderRegionMap(cfg,features){
   const click=(ev,d)=>_handleRegionClick(d);
 
   _regPaths=g.selectAll('.rg').data(features).enter().append('path').attr('class','rg')
-    .attr('d',gpath)
+    .attr('d',f=>pathFor(f)(f))
     .attr('fill',th.avail)
     .attr('stroke',th.border).attr('stroke-width',1)
     .style('vector-effect','non-scaling-stroke')
@@ -2018,17 +2037,27 @@ function _renderRegionMap(cfg,features){
     .on('mouseout',hoverOut)
     .on('click',click);
 
+  if(insetSet){
+    // A thin frame around the inset marks it as a separate little map, the same way printed
+    // atlases box off an Alaska/Hawaii inset so it isn't mistaken for the region's real location.
+    const [[bx0,by0],[bx1,by1]]=cfg.inset.box;
+    g.append('rect').attr('class','rg-inset-frame')
+      .attr('x',bx0-6).attr('y',by0-6).attr('width',bx1-bx0+12).attr('height',by1-by0+12)
+      .attr('fill','none').attr('stroke',th.border).attr('stroke-width',1).attr('stroke-dasharray','3,3')
+      .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
+  }
+
   // Tiny regions (Germany's city-states Berlin/Hamburg/Bremen) are easy to miss when their real
   // shape covers only a handful of pixels next to a whole country. Area rather than
   // bounding-box size is what matters here — Hamburg's box is wide but mostly empty water,
   // while its actual land area is tiny. Give any region below this pixel-area an invisible,
-  // enlarged click target — its own contour scaled up 1.2x — forwarding to the same handlers
+  // enlarged click target — its own contour scaled up 1.4x — forwarding to the same handlers
   // as the real polygon.
   const MIN_AREA=600,HIT_SCALE=1.4;
-  const tiny=cfg.tinyHit===false?[]:features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
+  const tiny=cfg.tinyHit===false?[]:features.filter(f=>Math.abs(pathFor(f).area(f))<MIN_AREA);
   if(tiny.length){
     g.selectAll('.rg-hit').data(tiny).enter().append('path').attr('class','rg-hit')
-      .attr('d',f=>_scaledHitPath(f,proj,HIT_SCALE))
+      .attr('d',f=>_scaledHitPath(f,pathFor(f).projection(),HIT_SCALE))
       .attr('fill','transparent')
       .style('cursor','pointer')
       .on('mouseover',(ev,d)=>hoverIn(d))
