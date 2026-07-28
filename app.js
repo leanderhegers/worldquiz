@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 H';
+const BUILD_ID='2026-07-28 I';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1367,6 +1367,14 @@ function renderMap(world){
   // both are required to avoid corrupting d3-zoom's touch-gesture bookkeeping (see history:
   // this previously made the *next* pan gesture unresponsive for a few seconds on iOS).
   zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt)
+    // d3-zoom's default clickDistance is 0: ANY mouse movement between mousedown and mouseup,
+    // even a single pixel of the jitter a real mouse or trackpad almost always has, makes it
+    // treat the gesture as a pan and swallow the resulting click entirely — permanently, since
+    // the tracking lives in d3-zoom's own closures and every click after the first one that
+    // jitters gets silently eaten. Synthetic/automated clicks land at an exact pixel with zero
+    // movement, which is why this never showed up in testing. A few pixels of tolerance here
+    // fixes real clicks without meaningfully weakening drag detection.
+    .clickDistance(6)
     .on('start',()=>{
       if(_wrapping)return;
       // Disabling pointer-events during the gesture avoids hover-triggered mouseover/mouseout
@@ -2090,7 +2098,9 @@ function _renderRegionMap(cfg,features){
       .on('click',click);
   }
 
-  const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).on('zoom',ev=>{
+  // Same clickDistance fix as the world map's zoomBehavior (see there for why): without it, any
+  // real-mouse jitter between mousedown and mouseup gets misread as a pan and eats the click.
+  const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).clickDistance(6).on('zoom',ev=>{
     g.attr('transform',ev.transform);
   });
   svg.call(zoom);
