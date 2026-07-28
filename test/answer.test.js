@@ -52,7 +52,7 @@ test('a wrong answer scores against you and does not advance', () => {
   assert.ok(game.wrongOnCurrent, 'the current target must be marked as already missed');
   assert.strictEqual(game.found.size, 0, 'a wrong answer must not count as found');
   assert.strictEqual(calls.flash, 1, 'the wrong pick should be painted red');
-  assert.ok(timers.some(t => t.ms === 700), 'the red flash should be scheduled to clear');
+  assert.ok(timers.some(t => t.ms === 1000), 'the red flash should be scheduled to clear after 1s');
   assert.ok(!timers.some(t => t.ms === 1100),
     'the quiz must not advance to the next question on a wrong answer');
 });
@@ -69,26 +69,47 @@ test('getting it right after a mistake scores, but not as a first try', () => {
 
 test('the red flash survives the pointer moving away, then clears itself', () => {
   // Regression guard: the flash used to be reset by the mouseout handler, cutting it short.
-  // getColor() consults wrongFlashId, so the id has to stay set for the full 700 ms.
-  const app = loadApp(['resolveAnswer', 'wrongFlashId', 'game']);
+  // getColor() consults wrongFlashIds, so the key has to stay in the set for the full second.
+  const app = loadApp(['resolveAnswer', 'wrongFlashIds', 'game']);
   const timers = [];
   app.sandbox.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
   app.sandbox.clearTimeout = () => {};
   Object.assign(app.game, { current: 1, found: new Set(), skippedItems: new Set(), correct: 0, wrong: 0, firstTry: 0 });
 
-  const read = () => vmRead(app, 'wrongFlashId');
   app.resolveAnswer({ key: 42, correct: false, name: 'X', flashKey: 42, flash() {}, repaint() {} });
-  assert.strictEqual(read(), 42, 'wrongFlashId must be set while the flash is showing');
+  assert.ok(app.wrongFlashIds.has(42), 'wrongFlashIds must contain the key while the flash is showing');
 
-  timers.find(t => t.ms === 700).fn();          // fast-forward the flash timer
-  assert.strictEqual(read(), null, 'wrongFlashId must be cleared once the flash ends');
+  timers.find(t => t.ms === 1000).fn();          // fast-forward the flash timer
+  assert.ok(!app.wrongFlashIds.has(42), 'the key must be removed once the flash ends');
 });
 
-// wrongFlashId is a `let` binding, so the value captured at load time goes stale — read it live.
-function vmRead(app, name) {
-  const vm = require('node:vm');
-  return vm.runInContext(name, app.sandbox);
-}
+test('two wrong picks flash independently — the second must not cut the first short', () => {
+  // Regression guard: wrongFlashId/wrongFlash used to be a single value and a single shared
+  // timer, so picking a second wrong item reset the first one back to its normal colour early.
+  const app = loadApp(['resolveAnswer', 'wrongFlashIds', 'game']);
+  const timers = [];
+  let nextId = 1;
+  app.sandbox.setTimeout = (fn, ms) => { const id = nextId++; timers.push({ id, fn, ms }); return id; };
+  app.sandbox.clearTimeout = id => { const t = timers.find(t => t.id === id); if (t) t.cancelled = true; };
+  Object.assign(app.game, { current: 1, found: new Set(), skippedItems: new Set(), correct: 0, wrong: 0, firstTry: 0 });
+
+  app.resolveAnswer({ key: 1, correct: false, name: 'A', flashKey: 1, flash() {}, repaint() {} });
+  app.resolveAnswer({ key: 2, correct: false, name: 'B', flashKey: 2, flash() {}, repaint() {} });
+  assert.ok(app.wrongFlashIds.has(1) && app.wrongFlashIds.has(2), 'both keys should be flashing');
+
+  // Each resolveAnswer() call runs fully synchronously, so its 1s flash timer is scheduled before
+  // the next call's — the two 1000ms timers appear in the same order as the two keys.
+  const flashTimers = timers.filter(t => t.ms === 1000);
+  assert.strictEqual(flashTimers.length, 2, 'each key should have gotten its own flash timer');
+  const [timerFor1, timerFor2] = flashTimers;
+
+  timerFor2.fn();
+  assert.ok(!app.wrongFlashIds.has(2), 'key 2 clears once its own timer fires');
+  assert.ok(app.wrongFlashIds.has(1), 'key 1 must still be flashing — the second click must not have cancelled it');
+
+  timerFor1.fn();
+  assert.ok(!app.wrongFlashIds.has(1), 'key 1 clears once its own timer fires');
+});
 
 test('canAnswer() blocks clicks that should do nothing', () => {
   const { canAnswer, game } = setup();
