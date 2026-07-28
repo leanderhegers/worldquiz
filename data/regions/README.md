@@ -5,7 +5,7 @@ All of these are bundled rather than fetched at runtime — see rule 1 in `CLAUD
 | File | Regions | Source |
 |---|---|---|
 | `germany.json` | 16 Bundesländer | [AliceWi/TopoJSON-Germany](https://github.com/AliceWi/TopoJSON-Germany) (TopoJSON, object `states`) |
-| `us-states-10m.json` | 51 states + DC | [us-atlas](https://github.com/topojson/us-atlas) (TopoJSON, object `states`) |
+| `us-states-10m.json` | 50 states | [us-atlas](https://github.com/topojson/us-atlas) (TopoJSON, object `states`). DC is in the file but filtered out at runtime — at this map scale it's a sliver invisible next to Virginia/Maryland. |
 | `france-regions.geojson` | 13 régions | [gregoiredavid/france-geojson](https://github.com/gregoiredavid/france-geojson) |
 | `italy.geojson` | 20 regioni | Natural Earth admin-1, dissolved |
 | `spain.geojson` | 19 comunidades | Natural Earth admin-1, dissolved |
@@ -24,15 +24,20 @@ curl -sL -o adm1.zip https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin
 unzip -oq adm1.zip -d adm1
 SHP=adm1/ne_10m_admin_1_states_provinces.shp
 
-npx mapshaper $SHP -filter "admin==='Japan'"   -filter-fields name -simplify 12% -o japan.geojson
-npx mapshaper $SHP -filter "admin==='Austria'" -filter-fields name -simplify 12% -o austria.geojson
-npx mapshaper $SHP -filter "admin==='Spain'" -dissolve region -each 'name=region' -filter-fields name -simplify 12% -o spain.geojson
-npx mapshaper $SHP -filter "admin==='Italy'" -dissolve region -each 'name=region' -filter-fields name -simplify 12% -o italy.geojson
+npx mapshaper $SHP -filter "admin==='Japan'"   -filter-fields name -simplify 50% keep-shapes -o japan.geojson
+npx mapshaper $SHP -filter "admin==='Austria'" -filter-fields name -simplify 50% keep-shapes -o austria.geojson
+npx mapshaper $SHP -filter "admin==='Spain' && region!=='Ceuta' && region!=='Melilla'" -dissolve region -each 'name=region' -filter-fields name -simplify 50% keep-shapes -o spain.geojson
+npx mapshaper $SHP -filter "admin==='Italy'" -dissolve region -each 'name=region' -filter-fields name -simplify 50% keep-shapes -o italy.geojson
 ```
 
-Spain additionally excludes Ceuta and Melilla (`region!=='Ceuta' && region!=='Melilla'`): they
-are autonomous *cities*, and at ~12–19 km² they are simplified away to a null geometry, which
-would leave the quiz asking for something that cannot be drawn or clicked.
+`-simplify 12%` (the original recipe) was too aggressive — it left these four visibly blockier
+than the hand-authored Germany/France datasets. 50% keeps enough of Natural Earth's original 10m
+detail to look sharp at the quiz's render size while still keeping file sizes reasonable;
+`keep-shapes` stops small regions from being simplified into a null geometry.
+
+Spain additionally excludes Ceuta and Melilla via the filter above: they are autonomous
+*cities*, and at ~12–19 km² they would be simplified away to a null geometry, which would leave
+the quiz asking for something that cannot be drawn or clicked.
 
 ### Then reverse the ring winding — this is not optional
 
@@ -50,6 +55,11 @@ for (const feat of d.features) {
   for (const p of polys) for (const ring of p) ring.reverse();
 }
 ```
+
+Spain and Japan also have a `fitFilter` in `REGION_QUIZZES` (app.js) that excludes Canarias /
+Okinawa from the map's fit-extent calculation — those outlying islands would otherwise shrink
+the mainland down to a fraction of the map. The islands still render and are still valid quiz
+targets; only the auto-zoom ignores them.
 
 Finally rename the handful of entries where Natural Earth mixes English names or abbreviations
 into an otherwise native-language set, so each quiz stays in one language as the German and

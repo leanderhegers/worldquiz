@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-26 E';
+const BUILD_ID='2026-07-28 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1841,9 +1841,11 @@ const REGION_QUIZZES={
     name:{de:'USA',en:'USA'},
     sub:{de:'Bundesstaaten',en:'States'},
     url:'data/regions/us-states-10m.json',
-    objectKey:'states',nameKey:'name',count:51,
+    objectKey:'states',nameKey:'name',count:50,
     proj:'albers-usa',
-    filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands'].includes(f.properties.name)
+    // District of Columbia is excluded too: at this scale it renders as a sliver invisible next
+    // to Virginia/Maryland, so it can never actually be found on the map.
+    filter:f=>!['American Samoa','Guam','Commonwealth of the Northern Mariana Islands','Puerto Rico','United States Virgin Islands','District of Columbia'].includes(f.properties.name)
   },
   FR:{
     name:{de:'Frankreich',en:'France'},
@@ -1868,7 +1870,12 @@ const REGION_QUIZZES={
     // The 17 autonomous communities. Ceuta and Melilla are left out: they are autonomous cities,
     // and at ~12-19 km² they disappear at this simplification and would be unhittable anyway.
     objectKey:null,nameKey:'name',count:17,
-    proj:'fit',filter:null,isGeoJSON:true
+    proj:'fit',filter:null,isGeoJSON:true,
+    // The Canary Islands sit far off the African coast, so including them in the fit-extent
+    // bounding box shrinks mainland Spain down to a fraction of the map. Fit on the mainland
+    // only; the islands still render (and are still a valid quiz target), just wherever their
+    // real coordinates place them, off to the side.
+    fitFilter:f=>f.properties.name!=='Canarias'
   },
   AT:{
     name:{de:'Österreich',en:'Austria'},
@@ -1882,7 +1889,10 @@ const REGION_QUIZZES={
     sub:{de:'Präfekturen',en:'Prefectures'},
     url:'data/regions/japan.geojson',
     objectKey:null,nameKey:'name',count:47,
-    proj:'fit',filter:null,isGeoJSON:true
+    proj:'fit',filter:null,isGeoJSON:true,
+    // Okinawa's island chain stretches far south of the main archipelago; excluding it from the
+    // fit-extent box (same reasoning as Spain/Canarias above) keeps the mainland readable.
+    fitFilter:f=>f.properties.name!=='Okinawa'
   }
 };
 const REGION_QUIZ_LIST=Object.entries(REGION_QUIZZES).map(([k,v])=>({key:k,name:v.name,count:v.count}));
@@ -1932,7 +1942,11 @@ async function startRegionQuiz(key){
 function _renderRegionMap(cfg,features){
   const svg=d3.select('#reg-map');svg.selectAll('*').remove();
   const W=960,H=600;
-  const fc={type:'FeatureCollection',features};
+  // fitFilter lets a config fit the projection to a subset of features (e.g. mainland Spain,
+  // excluding the Canary Islands) while still rendering and quizzing on all of them — an
+  // outlier far from the mainland would otherwise shrink it to a fraction of the map.
+  const fitOn=cfg.fitFilter?features.filter(cfg.fitFilter):features;
+  const fc={type:'FeatureCollection',features:fitOn};
   const proj=cfg.proj==='albers-usa'
     ? d3.geoAlbersUsa().scale(1100).translate([W/2,H/2])
     : d3.geoMercator().fitExtent([[40,40],[W-40,H-40]],fc);
@@ -1941,21 +1955,43 @@ function _renderRegionMap(cfg,features){
   svg.append('rect').attr('width',W).attr('height',H).attr('fill',th.bg);
   const g=svg.append('g');
 
+  const hoverIn=d=>{
+    const nm=d.properties[cfg.nameKey];
+    if(!_regGame||_regGame.wrongName===nm||_regGame.found.has(nm)||_regGame.skippedItems.has(nm))return;
+    _regPaths.filter(f=>f===d).attr('fill',th.hov);
+  };
+  const hoverOut=()=>_updateRegionColors();
+  const click=(ev,d)=>_handleRegionClick(d);
+
   _regPaths=g.selectAll('.rg').data(features).enter().append('path').attr('class','rg')
     .attr('d',gpath)
     .attr('fill',th.avail)
     .attr('stroke',th.border).attr('stroke-width',1)
     .style('vector-effect','non-scaling-stroke')
     .style('cursor','pointer')
-    .on('mouseover',function(ev,d){
-      const nm=d.properties[cfg.nameKey];
-      if(!_regGame||_regGame.wrongName===nm||_regGame.found.has(nm)||_regGame.skippedItems.has(nm))return;
-      d3.select(this).attr('fill',th.hov);
-    })
-    .on('mouseout',function(ev,d){
-      _updateRegionColors();
-    })
-    .on('click',(ev,d)=>_handleRegionClick(d));
+    .on('mouseover',(ev,d)=>hoverIn(d))
+    .on('mouseout',hoverOut)
+    .on('click',click);
+
+  // Tiny regions (Germany's city-states Berlin/Hamburg/Bremen, and similarly small regions in
+  // other quizzes) are easy to miss when their real shape covers only a handful of pixels next
+  // to a whole country. Area rather than bounding-box size is what matters here — Hamburg's
+  // box is wide but mostly empty water, while its actual land area is tiny. Give any region
+  // below this pixel-area an invisible, larger circular click target centred on it, forwarding
+  // to the same handlers as the real polygon.
+  const MIN_AREA=600,HIT_R=16;
+  const tiny=features.filter(f=>Math.abs(gpath.area(f))<MIN_AREA);
+  if(tiny.length){
+    g.selectAll('.rg-hit').data(tiny).enter().append('circle').attr('class','rg-hit')
+      .attr('cx',f=>{const b=gpath.bounds(f);return (b[0][0]+b[1][0])/2;})
+      .attr('cy',f=>{const b=gpath.bounds(f);return (b[0][1]+b[1][1])/2;})
+      .attr('r',HIT_R)
+      .attr('fill','transparent')
+      .style('cursor','pointer')
+      .on('mouseover',(ev,d)=>hoverIn(d))
+      .on('mouseout',hoverOut)
+      .on('click',click);
+  }
 
   const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).on('zoom',ev=>{
     g.attr('transform',ev.transform);
