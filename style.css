@@ -376,3 +376,5 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .cat-card-icon{font-size:38px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
 .cat-card-title{font-weight:600;font-size:16px;}
 .cat-card-sub{font-size:12px;opacity:.7;line-height:1.4;}
+.cat-card-disabled{cursor:default;opacity:.4;}
+.cat-card-disabled:hover{transform:none;background:var(--cardBg);border-color:var(--cardBorder);}
