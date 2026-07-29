@@ -108,6 +108,15 @@ test('the bundled map data still contains what the quizzes expect', () => {
   assert.ok(namedRivers >= 214, `only ${namedRivers} named rivers, but the quiz offers up to 214`);
 });
 
+test('every country has a population figure for the population quiz', () => {
+  const pop = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/population.json'), 'utf8'));
+  const missing = Object.keys(C).filter(id => pop[id] == null);
+  assert.deepStrictEqual(missing, [],
+    `Countries with no population entry (startPopGame() can't build a round for them): ${missing.map(id => `${id} (${C[id].de})`).join(', ')}`);
+  const nonPositive = Object.entries(pop).filter(([, v]) => !(v > 0));
+  assert.deepStrictEqual(nonPositive, [], `Non-positive population values: ${JSON.stringify(nonPositive)}`);
+});
+
 test('every region quiz delivers exactly the number of regions it advertises', () => {
   // Driven by REGION_QUIZZES itself, so a newly added quiz is checked automatically. The count
   // is printed on the menu card, and the quiz asks for every feature in the file — if the two
