@@ -378,3 +378,22 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .cat-card-sub{font-size:12px;opacity:.7;line-height:1.4;}
 .cat-card-disabled{cursor:default;opacity:.4;}
 .cat-card-disabled:hover{transform:none;background:var(--cardBg);border-color:var(--cardBorder);}
+
+/* Click page ("Auf der Karte anklicken") — two stacked areas, each already a real choice list
+   instead of a tap-through page. Kontinente/Trivia expand inline (accordion), so picking one
+   never leaves this page. */
+.click-inner{max-width:640px;text-align:left;}
+.click-group{margin-top:26px;}
+.click-group:first-of-type{margin-top:8px;}
+.click-group-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.55;margin:0 0 10px;}
+.click-item-wrap{margin-bottom:8px;}
+.click-item{width:100%;display:flex;align-items:center;gap:12px;padding:.8rem 1rem;border-radius:12px;cursor:pointer;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;text-align:left;transition:background .15s,border-color .15s;margin-bottom:8px;}
+.click-item:hover{background:var(--cardHov);border-color:var(--accent);}
+.click-item-icon{font-size:22px;flex-shrink:0;line-height:1;}
+.click-item-text{flex:1;display:flex;flex-direction:column;gap:1px;}
+.click-item-title{font-weight:600;font-size:14px;}
+.click-item-sub{font-size:12px;opacity:.65;}
+.click-item-arrow{font-size:10px;opacity:.6;flex-shrink:0;}
+.click-item-disabled{cursor:default;opacity:.4;}
+.click-panel{padding:2px 2px 6px;animation:secFade .25s ease;}
+.click-panel .gs-grid{gap:8px;}

@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 P';
+const BUILD_ID='2026-07-28 Q';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -177,21 +177,13 @@ const SCREENS=['home-screen','category-screen','mode-screen','game-screen','resu
 function showScreen(id){SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'||s==='region-screen'?'flex':'block'):'none';});}
 function goHome(){showScreen('home-screen');renderHome();}
 
-// ── CATEGORY PICKER & DRILL-DOWN MENUS ──
+// ── CATEGORY PICKER ──
 // "Spielen" lands on a 4-card picker; "pin"/"input"/"other" open the section swipe view exactly
 // as before (openSections, scoped to that category's sections). "click" ("Auf der Karte
-// anklicken") instead drills one level deeper on single pages, since it bundles several
-// unrelated choices (countries by world/continent/trivia/custom, and separately regions):
-// picker → click → (Länder | Regionen) → Länder's own choices → the actual quiz list.
-//
-// Two distinct "back" mechanisms, not one:
-//   - A chooser page's own back button is a literal onclick baked into its HTML at render time
-//     (it always goes to that exact page's parent, e.g. Länder's root → Regionen/Länder chooser).
-//   - _quizBackAction is what a QUIZ's own in-game back button resolves to. It's re-armed to
-//     "return to this page" every time a page that can launch a quiz is rendered, since a quiz
-//     started from e.g. the continents list must return there, not to that page's parent.
-// Sections reached the old way (pin/input/other) don't touch _quizBackAction at all — they keep
-// using goToGames(sectionKey), which already reopens the right section on its own.
+// anklicken") is a single dynamic page instead (see CLICK PAGE below) — it bundles several
+// unrelated choices (countries by world/continent/trivia/custom, and separately regions), and an
+// earlier version drilled through 3 separate pages for that; every one of those quizzes now
+// returns to that one page directly, so no per-page back-target bookkeeping is needed for it.
 const CATEGORIES=[
   {key:'click',icon:'🗺️',cardCls:'gs-map'},
   {key:'pin',icon:'📍',cardCls:'gs-pin'},
@@ -205,26 +197,29 @@ const CATEGORY_META={
   other:{head:()=>t('catOtherTitle'),sub:()=>t('catOtherSub')}
 };
 const SECTION_TO_CATEGORY={pin:'pin',flag:'input',city:'other',river:'other',lake:'other'};
-let _activeSections=['map','region'];
+let _activeSections=['pin'];
 let _modeScreenBackOnclick="openCategoryPicker()";
-let _quizBackAction=openCategoryPicker;
 
 function openCategoryPicker(){
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
-  renderCategoryScreen();
-}
-function renderCategoryScreen(){
   const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
-  _renderChooserPage('goHome()',t('catHeading'),t('catSub'),cards);
+  showScreen('category-screen');
+  $('category-screen').innerHTML=`
+    <div class="cat-bg"></div>
+    <div class="cat-topbar"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button></div>
+    <div class="cat-inner">
+      <h1 class="cat-heading">${t('catHeading')}</h1>
+      <p class="cat-sub">${t('catSub')}</p>
+      <div class="cat-grid">${cards.map(c=>`<button class="cat-card ${c.cls}" onclick="${c.onclick}"><span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span><span class="cat-card-sub">${c.sub}</span></button>`).join('')}</div>
+    </div>`;
 }
 function openCategory(catKey,focusSection){
-  if(catKey==='click'){renderClickRoot();return;}
-  const sections=(CATEGORIES.some(c=>c.key===catKey)?{pin:['pin'],input:['flag'],other:['city','river','lake']}[catKey]:null)||['pin'];
+  if(catKey==='click'){renderClickPage();return;}
+  const sections={pin:['pin'],input:['flag'],other:['city','river','lake']}[catKey]||['pin'];
   openSections(sections,'openCategoryPicker()',focusSection);
 }
-// Opens the section-swipe view (mode-screen) for an explicit list of sections. Still used as-is
-// by pin/input/other; also used for the region list, which needs the same "swipe/single-section
-// with its own gs-bg/icon" treatment but now lives one level under "click" instead of alongside map.
+// Opens the section-swipe view (mode-screen) for an explicit list of sections — still used as-is
+// by pin/input/other.
 function openSections(sections,backOnclick,focusKey){
   _activeSections=sections;
   _modeScreenBackOnclick=backOnclick;
@@ -236,78 +231,63 @@ function openSections(sections,backOnclick,focusKey){
   requestAnimationFrame(apply);setTimeout(apply,60);
 }
 // Used by call sites that only know a section key (a quiz's own back button) — reopens whichever
-// category that section lives in, scrolled straight to it. Region no longer goes through here
-// (it's reached via "click" → Regionen instead), so this only ever sees pin/flag/city/river/lake.
+// category that section lives in, scrolled straight to it. Only ever sees pin/flag/city/river/lake
+// now; map/region/pop quizzes return via _quizBackAction (CLICK PAGE below) instead.
 function goToGames(sectionKey){
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
   openCategory(SECTION_TO_CATEGORY[sectionKey]||'pin',sectionKey);
 }
 
-// Shared shell for a plain choice page (a grid of .cat-card buttons, no scores/badges) — used for
-// the category picker itself and every "click" drill-down level above the final quiz list.
-function _renderChooserPage(backOnclick,heading,sub,cards){
-  const cardsHtml=cards.map(c=>{
-    const cls='cat-card'+(c.cls?' '+c.cls:'')+(c.disabled?' cat-card-disabled':'');
-    const inner=`<span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span>`+(c.sub?`<span class="cat-card-sub">${c.sub}</span>`:'');
-    return c.disabled?`<div class="${cls}">${inner}</div>`:`<button class="${cls}" onclick="${c.onclick}">${inner}</button>`;
-  }).join('');
+// ── CLICK PAGE ("Auf der Karte anklicken") ──
+// One page, two areas (Länder / Regionen), each already offering real choices instead of forcing
+// a tap to a separate page first. Kontinente/Trivia expand inline, accordion-style — clicking the
+// row toggles a panel open right below it instead of navigating away. _clickOpenPanel remembers
+// which one (if any) so it stays open across a played round: every quiz launched from this page
+// (world, a continent, custom, population, and region) returns straight back to renderClickPage().
+let _clickOpenPanel=null; // 'continents' | 'trivia' | null
+function _quizBackAction(){renderClickPage();}
+function toggleClickPanel(key){_clickOpenPanel=_clickOpenPanel===key?null:key;renderClickPage();}
+
+function _clickItem(it){
+  if(it.disabled)return `<div class="click-item click-item-disabled"><span class="click-item-icon">${it.icon}</span><span class="click-item-text"><span class="click-item-title">${it.title}</span><span class="click-item-sub">${it.sub}</span></span></div>`;
+  if(!it.panel)return `<button class="click-item" onclick="${it.onclick}"><span class="click-item-icon">${it.icon}</span><span class="click-item-text"><span class="click-item-title">${it.title}</span><span class="click-item-sub">${it.sub}</span></span></button>`;
+  const isOpen=_clickOpenPanel===it.panel;
+  return `<div class="click-item-wrap">
+    <button class="click-item" onclick="toggleClickPanel('${it.panel}')"><span class="click-item-icon">${it.icon}</span><span class="click-item-text"><span class="click-item-title">${it.title}</span><span class="click-item-sub">${it.sub}</span></span><span class="click-item-arrow">${isOpen?'▲':'▼'}</span></button>
+    ${isOpen?`<div class="click-panel">${it.renderPanel()}</div>`:''}
+  </div>`;
+}
+function _continentsPanel(){
+  const conts=['EU','AF','AS','NA','SA','OC'];
+  return `<div class="gs-grid gs-grid-map">${conts.map(m=>gsCard("startGame('"+m+"')",MODES[m][lang],MODES[m].cnt+' '+t('countries'),'map:'+m)).join('')}</div>`;
+}
+function _triviaPanel(){
+  return `<div class="gs-grid gs-grid-map">${gsCard('startPopGame()',t('popQuiz'),'👥','pop:world')}</div>`;
+}
+function renderClickPage(){
   showScreen('category-screen');
+  const landerItems=[
+    {icon:'🌐',title:t('optWorld'),sub:t('optWorldSub'),onclick:"startGame('world')"},
+    {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'continents',renderPanel:_continentsPanel},
+    {icon:'📊',title:t('optDifficulty'),sub:t('comingSoon'),disabled:true},
+    {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),panel:'trivia',renderPanel:_triviaPanel},
+    {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
+  ];
+  const regionCards=REGION_QUIZ_LIST.map(r=>gsCard("startRegionQuiz('"+r.key+"')",r.name[lang],r.count+' '+t('regions'),'region:'+r.key)).join('');
   $('category-screen').innerHTML=`
     <div class="cat-bg"></div>
-    <div class="cat-topbar"><button class="gs-home-btn" onclick="${backOnclick}">${t('back')}</button></div>
-    <div class="cat-inner">
-      <h1 class="cat-heading">${heading}</h1>
-      <p class="cat-sub">${sub}</p>
-      <div class="cat-grid">${cardsHtml}</div>
+    <div class="cat-topbar"><button class="gs-home-btn" onclick="openCategoryPicker()">${t('back')}</button></div>
+    <div class="cat-inner click-inner">
+      <h1 class="cat-heading">${t('catClickTitle')}</h1>
+      <div class="click-group gs-map">
+        <h2 class="click-group-head">${t('landerTitle')}</h2>
+        ${landerItems.map(_clickItem).join('')}
+      </div>
+      <div class="click-group gs-region">
+        <h2 class="click-group-head">${t('regionQuiz')}</h2>
+        <div class="gs-grid gs-grid-region">${regionCards}</div>
+      </div>
     </div>`;
-}
-// Shared shell for a final quiz list (real gsCard()s with best-score badges) shown as a single
-// static page — the same visual language as a mode-screen section, without the swipe/dot-nav
-// since there's only ever one of these per drill-down level.
-function _renderCardListPage(icon,heading,sub,gsKey,cardsHtml,backOnclick){
-  showScreen('category-screen');
-  $('category-screen').innerHTML=`
-    <div class="gs-bg gs-bg-${gsKey}" style="position:fixed;inset:0;"></div>
-    <div class="cat-topbar" style="position:relative;z-index:1;"><button class="gs-home-btn" onclick="${backOnclick}">${t('back')}</button></div>
-    <div class="gs-content gs-${gsKey}" style="position:relative;z-index:1;margin:1.5rem auto 0;">
-      <div class="gs-icon">${icon}</div>
-      <h2 class="gs-head">${heading}</h2>
-      <p class="gs-sub">${sub}</p>
-      <div class="gs-grid gs-grid-map">${cardsHtml}</div>
-    </div>`;
-}
-
-function renderClickRoot(){
-  _quizBackAction=openRegionList; // only "Regionen" launches a quiz-list directly from this page
-  _renderChooserPage('openCategoryPicker()',t('clickRootHeading'),t('clickRootSub'),[
-    {icon:'🌍',cls:'gs-map',title:t('landerTitle'),sub:t('landerCardSub'),onclick:'renderLanderRoot()'},
-    {icon:'🏛️',cls:'gs-region',title:t('regionQuiz'),sub:t('regionCardSub'),onclick:'openRegionList()'}
-  ]);
-}
-function openRegionList(){
-  _quizBackAction=openRegionList;
-  openSections(['region'],'renderClickRoot()','region');
-}
-function renderLanderRoot(){
-  _quizBackAction=renderLanderRoot; // Weltkarte and Eigener Modus launch straight from here
-  _renderChooserPage('renderClickRoot()',t('landerTitle'),t('landerRootSub'),[
-    {icon:'🌐',title:t('optWorld'),sub:t('optWorldSub'),onclick:"startGame('world')"},
-    {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),onclick:'renderContinentsPage()'},
-    {icon:'📊',title:t('optDifficulty'),sub:t('comingSoon'),disabled:true},
-    {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),onclick:'renderTriviaPage()'},
-    {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
-  ]);
-}
-function renderContinentsPage(){
-  _quizBackAction=renderContinentsPage;
-  const conts=['EU','AF','AS','NA','SA','OC'];
-  const cards=conts.map(m=>gsCard("startGame('"+m+"')",MODES[m][lang],MODES[m].cnt+' '+t('countries'),'map:'+m)).join('');
-  _renderCardListPage('🗺️',t('optContinents'),t('continentsSub'),'map',cards,'renderLanderRoot()');
-}
-function renderTriviaPage(){
-  _quizBackAction=renderTriviaPage;
-  const cards=gsCard('startPopGame()',t('popQuiz'),'👥','pop:world');
-  _renderCardListPage('💡',t('optTrivia'),t('triviaSub'),'map',cards,'renderLanderRoot()');
 }
 
 function og(label,inner){return `<div class="opt-group"><div class="opt-label">${label}</div><div class="opt-row">${inner}</div></div>`;}
