@@ -358,3 +358,21 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .gs-bg-flag{background:radial-gradient(ellipse 90% 70% at 50% 45%,#33204a,#231634 55%,#160d22);}
 .gs-flag .gs-content{color:#e6d2ea;}
 .gs-flag{--cardBg:rgba(217,138,208,.08);--cardBorder:rgba(217,138,208,.18);--cardHov:rgba(217,138,208,.16);}
+
+/* Category picker — the hub shown after "Spielen", one level above the section swipe view.
+   Cards borrow each category's accent/card colours from the gs-* section classes above (e.g. a
+   card also carrying class "gs-map" picks up --accent/--cardBg/etc. from that rule) instead of
+   duplicating a second colour system. */
+.cat-screen{position:relative;min-height:100vh;overflow-y:auto;box-sizing:border-box;}
+.cat-bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 30%,#16314f 0%,#0d1b2e 45%,#070d18 100%);}
+.cat-topbar{position:relative;z-index:1;padding:.85rem 1rem;}
+.cat-inner{position:relative;z-index:1;max-width:720px;margin:0 auto;text-align:center;padding:1rem 1.25rem 3rem;}
+.cat-heading{font-size:clamp(24px,5vw,32px);font-weight:600;letter-spacing:-.01em;margin:0 0 .3rem;color:#fff;}
+.cat-sub{font-size:14px;opacity:.75;margin:0 0 2rem;}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+@media (max-width:560px){.cat-grid{grid-template-columns:1fr;}}
+.cat-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:1.7rem 1rem;border-radius:16px;cursor:pointer;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;transition:transform .15s,background .15s,border-color .15s;text-align:center;}
+.cat-card:hover{transform:translateY(-4px);background:var(--cardHov);border-color:var(--accent);}
+.cat-card-icon{font-size:38px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
+.cat-card-title{font-weight:600;font-size:16px;}
+.cat-card-sub{font-size:12px;opacity:.7;line-height:1.4;}
