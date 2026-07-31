@@ -485,7 +485,12 @@ const ACH_DEFS = [
 
   // ── Geheim (secret) ──
   {id:'night_owl',cat:'secret',icon:'🦉',de:'Nachteule',en:'Night Owl',desc_de:'Spiele zwischen 0:00 und 5:00 Uhr.',desc_en:'Play between midnight and 5 AM.',check:s=>{const h=new Date().getHours();return h>=0&&h<5&&Object.keys(s.scores).length>0;},rare:true},
+  // Tiered — each keeps its own id so an already-unlocked lower tier is never renamed/lost.
   {id:'no_mistakes',cat:'secret',icon:'🧠',de:'Fehlerfrei',en:'Flawless',desc_de:'Schließe ein Quiz mit 15+ Fragen fehlerfrei ab.',desc_en:'Complete a quiz with 15+ questions and no mistakes.',check:s=>Object.values(s.scores).some(v=>v.pct===100&&v.total>=15),rare:true},
+  {id:'no_mistakes_25',cat:'secret',icon:'🔹',de:'Makellos',en:'Immaculate',desc_de:'Schließe ein Quiz mit 25+ Fragen fehlerfrei ab.',desc_en:'Complete a quiz with 25+ questions and no mistakes.',check:s=>Object.values(s.scores).some(v=>v.pct===100&&v.total>=25),rare:true},
+  {id:'no_mistakes_50',cat:'secret',icon:'💠',de:'Kristallklar',en:'Crystal Clear',desc_de:'Schließe ein Quiz mit 50+ Fragen fehlerfrei ab.',desc_en:'Complete a quiz with 50+ questions and no mistakes.',check:s=>Object.values(s.scores).some(v=>v.pct===100&&v.total>=50),rare:true},
+  {id:'no_mistakes_100',cat:'secret',icon:'👑',de:'Perfektionsmeister',en:'Perfection Master',desc_de:'Schließe ein Quiz mit 100+ Fragen fehlerfrei ab.',desc_en:'Complete a quiz with 100+ questions and no mistakes.',check:s=>Object.values(s.scores).some(v=>v.pct===100&&v.total>=100),rare:true},
+  {id:'no_mistakes_175',cat:'secret',icon:'🏆',de:'Unfehlbar',en:'Infallible',desc_de:'Schließe ein Quiz mit 175+ Fragen fehlerfrei ab.',desc_en:'Complete a quiz with 175+ questions and no mistakes.',check:s=>Object.values(s.scores).some(v=>v.pct===100&&v.total>=175),rare:true},
   {id:'comeback',cat:'secret',icon:'🔥',de:'Comeback',en:'Comeback',desc_de:'Verbessere einen bestehenden Score.',desc_en:'Improve an existing score.',check:s=>s._justImproved===true,rare:true},
 ];
 
@@ -1011,7 +1016,7 @@ async function renderFriends(){
       html+=`<div class="fr-item" onclick="openFriendProfile('${escapeHtml(f.uid)}')">
         ${_renderAvatar(f.avatar,(f.username||'?')[0].toUpperCase(),38)}
         <div class="fr-info"><div class="fr-name">${escapeHtml(f.username||'?')}</div>
-        <div class="fr-sub">${f.games||0} ${isDE?'Spiele':'Games'} · ${f.achCount||0}/${typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:34} 🏆</div></div>
+        <div class="fr-sub">${f.games||0} ${isDE?'Spiele':'Games'} · ${f.achCount||0}/${typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:38} 🏆</div></div>
         <button class="fr-remove" onclick="event.stopPropagation();removeFriend('${escapeHtml(f.uid)}')" title="${isDE?'Entfernen':'Remove'}">✕</button>
       </div>`;
     }
@@ -1205,7 +1210,7 @@ async function openFriendProfile(uid){
     const bestPct=Object.values(scores).reduce((m,v)=>Math.max(m,v.pct||0),0);
     const streak=d.streak||0;
     const achCount=Object.keys(achs).length;
-    const achTotal=typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:34;
+    const achTotal=typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:38;
     const achPct=achTotal?Math.round((achCount/achTotal)*100):0;
 
     let achHtml='';
