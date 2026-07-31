@@ -78,6 +78,24 @@ test('flag quiz difficulty buckets are disjoint and reference real countries', (
   }
 });
 
+test('the population-based difficulty tiers partition all 197 countries exactly once', () => {
+  const m = appJs.match(/const DIFFICULTY_TIERS=\[([\s\S]*?)\n\];/);
+  assert.ok(m, 'DIFFICULTY_TIERS not found in app.js');
+  const tiers = [...m[1].matchAll(/\[([^\]]+)\]/g)].map(t => t[1].split(',').map(Number));
+  assert.strictEqual(tiers.length, 5, `expected 5 difficulty tiers, found ${tiers.length}`);
+
+  const all = tiers.flat();
+  const unknown = all.filter(id => !C[id]);
+  assert.deepStrictEqual(unknown, [], `DIFFICULTY_TIERS references unknown country ids: ${unknown.join(', ')}`);
+
+  const countryIds = Object.keys(C).map(Number);
+  const missing = countryIds.filter(id => !all.includes(id));
+  assert.deepStrictEqual(missing, [],
+    `these countries appear in no difficulty tier: ${missing.map(id => C[id].de).join(', ')}`);
+
+  assert.strictEqual(new Set(all).size, all.length, 'a country appears in more than one difficulty tier');
+});
+
 test('the ISO2 flag codes cover the countries the flag quiz can ask for', () => {
   const m = appJs.match(/const ISO2=\{([^}]+)\}/);
   assert.ok(m, 'ISO2 map not found in app.js');
@@ -106,6 +124,21 @@ test('the bundled map data still contains what the quizzes expect', () => {
   const rivers = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/ne_50m_rivers_lake_centerlines.geojson'), 'utf8'));
   const namedRivers = rivers.features.filter(f => f.properties && f.properties.name).length;
   assert.ok(namedRivers >= 214, `only ${namedRivers} named rivers, but the quiz offers up to 214`);
+});
+
+test('the curated river fame list has no duplicates and full German names', () => {
+  const fameM = appJs.match(/const RIVER_FAME_ORDER=\[([\s\S]*?)\];/);
+  assert.ok(fameM, 'RIVER_FAME_ORDER not found in app.js');
+  const fame = [...fameM[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+  assert.ok(fame.length >= 30, `expected a substantial curated list, found ${fame.length}`);
+  assert.strictEqual(new Set(fame).size, fame.length, 'RIVER_FAME_ORDER has a duplicate entry');
+
+  const deM = appJs.match(/const RIVER_NAME_DE=\{([\s\S]*?)\n\};/);
+  assert.ok(deM, 'RIVER_NAME_DE not found in app.js');
+  // Keys are bare identifiers ("Nile:") or quoted ("'Rio Grande':") — both forms appear.
+  const deKeys = [...deM[1].matchAll(/(?:^|,)\s*(?:'([^']+)'|(\w[\w ]*)):/g)].map(m => m[1] ?? m[2]);
+  const missingDe = fame.filter(name => !deKeys.includes(name));
+  assert.deepStrictEqual(missingDe, [], `RIVER_FAME_ORDER entries with no RIVER_NAME_DE translation: ${missingDe.join(', ')}`);
 });
 
 test('every country has a population figure for the population quiz', () => {

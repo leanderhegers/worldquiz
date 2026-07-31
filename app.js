@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 G';
+const BUILD_ID='2026-07-31 H';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -54,7 +54,10 @@ function zoomForMode(mode){
   // clipped content on one side of the equator than the viewport's own half-height). Re-derive the
   // latitude that actually IS the clip range's vertical midpoint instead of hardcoding one, so this
   // keeps working if the clip bounds in buildProjection() are ever retuned.
-  if(mode==='world'&&projection==='mercator'&&currentProj&&currentProj.invert)lat=currentProj.invert([MAP_W/2,MAP_H/2])[1];
+  // Difficulty tiers (see DIFFICULTY_TIERS) scatter countries across the whole globe just like
+  // 'world' does — same "world" ZOOMS fallback above, so they need the same re-centering fix.
+  const isWorldFramed=mode==='world'||(typeof mode==='string'&&mode.startsWith('diff'));
+  if(isWorldFramed&&projection==='mercator'&&currentProj&&currentProj.invert)lat=currentProj.invert([MAP_W/2,MAP_H/2])[1];
   return {lon:ll[0],lat,k:z[2]};
 }
 function zoomToGeo(lon,lat,k){if(!currentProj)return;const p=currentProj([lon,lat]);if(p)zoomTo(p[0],p[1],k);}
@@ -156,8 +159,8 @@ function flagIdsForDifficulty(diff){
 const _cc=k=>Object.values(C).filter(v=>k==='world'||v.c===k).length;
 const MODES={world:{de:'Alle Länder',en:'All Countries',cnt:_cc('world')},EU:{de:'Europa',en:'Europe',cnt:_cc('EU')},AF:{de:'Afrika',en:'Africa',cnt:_cc('AF')},AS:{de:'Asien',en:'Asia',cnt:_cc('AS')},NA:{de:'Nordamerika',en:'N. America',cnt:_cc('NA')},SA:{de:'Südamerika',en:'S. America',cnt:_cc('SA')},OC:{de:'Ozeanien',en:'Oceania',cnt:_cc('OC')},custom:{de:'Eigener Modus',en:'Custom Mode',cnt:'⚙'}};
 const TX={
-  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',findLake:'Finde diesen See',findRiver:'Finde diesen Fluss',findCity:'Finde diese Stadt',cityQuiz:'Städte-Quiz',citySub:'Ein Stadtname erscheint — finde und klicke sie auf der Karte.',cities:'Städte',cityDiffs:[{key:'easy',label:'Einfach'},{key:'medium',label:'Mittel'},{key:'hard',label:'Schwer'}],cityCountries:[{key:'DE',label:'Deutschland'},{key:'US',label:'USA'},{key:'FR',label:'Frankreich'},{key:'CN',label:'China'},{key:'JP',label:'Japan'},{key:'IN',label:'Indien'},{key:'BR',label:'Brasilien'},{key:'AU',label:'Australien'},{key:'MX',label:'Mexiko'}],pinQuiz:'Drop a Pin',pinSub:'Eine Stadt erscheint — setze die Stecknadel möglichst nah an ihren Standort.',findPin:'Wo liegt diese Stadt?',pinEuLabel:'Europa',pointsLbl:'Punkte',roundsLbl:'Runden',avgLbl:'Ø Distanz',pinFb:(km,pts)=>'📍 '+km+' km · +'+pts+' P',lakeQuiz:'Seen-Quiz',lakeSub:'Ein See erscheint — finde und klicke ihn auf der Karte.',lakeDiffs:[{key:'beginner',label:'Anfänger',count:13},{key:'easy',label:'Einfach',count:44},{key:'medium',label:'Mittel',count:76},{key:'hard',label:'Schwer',count:144},{key:'extreme',label:'Extrem',count:321}],lakes:'Seen',riverQuiz:'Fluss-Quiz',riverSub:'Ein Flussname erscheint — finde und klicke ihn auf der Karte.',riverDiffs:[{key:'beginner',label:'Anfänger',count:13},{key:'easy',label:'Einfach',count:44},{key:'medium',label:'Mittel',count:76},{key:'hard',label:'Schwer',count:144},{key:'extreme',label:'Extrem',count:214}],rivers:'Flüsse',flagQuiz:'Flaggen Quiz',flagSub:'Eine Flagge erscheint — tippe den Ländernamen ein.',flagPlaceholder:'Land eingeben …',flagWorld:'Weltweit',flagDiffs:[{key:'beginner',label:'Anfänger'},{key:'easy',label:'Einfach'},{key:'medium',label:'Mittel'},{key:'hard',label:'Schwer'}],homeTitle:'Geografie-Spiele',homeSub:'Teste dein Wissen über die Welt — Länder, Seen, Flüsse und Flaggen.',playBtn:'Spielen',optionsLbl:'Optionen',homeBtn:'← Start',scrollHint:'Scrollen für mehr',mapQuiz:'Weltkarte',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Zurück zur Auswahl',langLbl:'Sprache',themeLbl:'Design',projLbl:'Kartenansicht',projStd:'Natural Earth',projMerc:'Mercator',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',wrongHintLabel:'Hinweise bei Fehlern',wrongHintTip:'Nach einer falschen Antwort wird das richtige Ziel kurz angezeigt.',wrongHintOn:'Anzeigen',wrongHintOff:'Ausblenden',skipHintLabel:'Hinweise beim Überspringen',skipHintTip:'Zeigt nach dem Überspringen das übersprungene Ziel kurz an.',skipHintOn:'Anzeigen',skipHintOff:'Ausblenden',countries:'Länder',zoomTip:'Zoom & Pan möglich',skipLbl:'Überspringen',skippedLbl:'übersprungen',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{atlas:'Atlas',neon:'Cyberpunk',terrain:'Terrain'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten',signIn:'Anmelden',signUp:'Registrieren',signOut:'Abmelden',loginTitle:'Anmelden',registerTitle:'Konto erstellen',authEmail:'E-Mail',authPw:'Passwort',authName:'Anzeigename (optional)',loggedIn:'Angemeldet als',toRegister:'Noch kein Konto? Registrieren',toLogin:'Bereits ein Konto? Anmelden',authFillAll:'Bitte E-Mail und Passwort eingeben.',authNotConfigured:'Firebase ist noch nicht konfiguriert.',authErrEmail:'Ungültige E-Mail-Adresse.',authErrInUse:'Diese E-Mail wird bereits verwendet.',authErrWeak:'Passwort zu schwach (min. 6 Zeichen).',authErrCred:'E-Mail oder Passwort falsch.',authErrGeneric:'Etwas ist schiefgelaufen. Bitte erneut versuchen.',authUsername:'Benutzername',showPw:'Passwort anzeigen',forgotPw:'Passwort vergessen?',resetSent:'E-Mail zum Zurücksetzen wurde gesendet.',enterEmailFirst:'Bitte zuerst deine E-Mail eingeben.',authUserRequired:'Bitte einen Benutzernamen wählen.',authUserInvalid:'3–20 Zeichen: Buchstaben, Zahlen, _',authUserTaken:'Benutzername bereits vergeben.',googleBtn:'Mit Google anmelden',orSep:'oder',newRecord:'Neuer Rekord!',bestLabel:'Bestwert',roundLimitLbl:'Anzahl Ziele',allTargetsLbl:'Alle Ziele',normalMode:'Normaler Modus',learnModeLbl:'Lernmodus',learnModeLogin:'Anmelden für Lernmodus',learnModeDesc:'Häufig falsch gemachte Fragen kommen zuerst. Themen, die du bereits 3× gemeistert hast, werden ausgeblendet.',learnModeCta:'→ Klicken zum Anmelden',inputQuiz:'Errate das Land',inputSub:'Flagge, Hauptstadt oder Umriss — tippe den richtigen Namen ein.',flagCardSub:'Welche Flagge ist das?',capitalQuiz:'Hauptstadt-Quiz',capitalCardSub:'Land ↔ Hauptstadt',outlineQuiz:'Umriss-Quiz',outlineCardSub:'Erkenne die Landesform',languageQuiz:'Sprachen-Quiz',languageCardSub:'Welche Sprache ist das?',currencyQuiz:'Währungs-Quiz',currencyCardSub:'Welche Währung ist das?',iqAskLanguage:'Welche Sprache ist das?',iqAskCurrency:'Welche Währung ist das?',langPlaceholder:'Sprache eingeben …',curPlaceholder:'Währung eingeben …',languages:'Sprachen',currencies:'Währungen',cfgRegion:'Region',cfgDiff:'Schwierigkeit',cfgDir:'Richtung',cfgStart:'Quiz starten',dirC2Cap:'Land → Hauptstadt',dirCap2C:'Hauptstadt → Land',diffAll:'Alle',regWorld:'Welt',iqAskCapital:'Wie heißt die Hauptstadt?',iqAskCountry:'Welches Land?',capPlaceholder:'Hauptstadt eingeben …',cfgDropdownLabel:'Vorschläge',cfgDropdownOn:'Anzeigen',cfgDropdownOff:'Ausblenden',cfgSkipHintLabel:'Hinweis beim Überspringen',cfgSkipHintOn:'Anzeigen',cfgSkipHintOff:'Ausblenden',regionQuiz:'Regionen',regionSub:'Ein Regionsname erscheint — finde und klicke sie auf der Karte.',findRegion:'Finde diese Region',regions:'Regionen',popQuiz:'Bevölkerung',popSub:'Die meist- oder wenigst-bevölkerten Länder — finde und klicke sie auf der Karte.',findPop:'Welches Land?',popMostQ:'Das bevölkerungsreichste Land der Welt',popLeastQ:'Das bevölkerungsärmste Land der Welt',popMostRankQ:n=>'Platz '+n+' der bevölkerungsreichsten Länder der Welt',popLeastRankQ:n=>'Platz '+n+' der bevölkerungsärmsten Länder der Welt',catHeading:'Was möchtest du spielen?',catSub:'Wähle eine Spielart aus',catClickTitle:'Auf der Karte anklicken',catClickSub:'Länder, Regionen und Trivia auf der Weltkarte finden',catPinTitle:'Drop-a-Pin',catPinSub:'Stecknadel möglichst nah an den Standort setzen',catInputTitle:'Texteingabe & Multiple Choice',catInputSub:'Flaggen, Hauptstädte und Umrisse',catOtherTitle:'Weitere Weltkarten-Quizzes',catOtherSub:'Städte, Flüsse und Seen anklicken',clickRootHeading:'Auf der Karte anklicken',clickRootSub:'Länder oder Regionen?',landerTitle:'Länder',landerCardSub:'Weltkarte, Kontinente, Trivia & mehr',regionCardSub:'Bundesländer, Staaten & mehr',landerRootSub:'Wähle eine Spielart',optWorld:'Weltkarte',optWorldSub:'Alle 197 Länder',optContinents:'Kontinente',continentsSub:'Wähle einen Kontinent',optDifficulty:'Schwierigkeit',comingSoon:'Bald verfügbar',optTrivia:'Trivia',triviaSub:'Besondere Fragen zu Ländern',optCustom:'Eigener Modus',optCustomSub:'Kontinente & Anzahl frei wählen'},
-  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',findLake:'Find this lake',findRiver:'Find this river',findCity:'Find this city',cityQuiz:'City Quiz',citySub:'A city name appears — find and click it on the map.',cities:'Cities',cityDiffs:[{key:'easy',label:'Easy'},{key:'medium',label:'Medium'},{key:'hard',label:'Hard'}],cityCountries:[{key:'DE',label:'Germany'},{key:'US',label:'USA'},{key:'FR',label:'France'},{key:'CN',label:'China'},{key:'JP',label:'Japan'},{key:'IN',label:'India'},{key:'BR',label:'Brazil'},{key:'AU',label:'Australia'},{key:'MX',label:'Mexico'}],pinQuiz:'Drop a Pin',pinSub:'A city appears — drop the pin as close to its location as you can.',findPin:'Where is this city?',pinEuLabel:'Europe',pointsLbl:'Points',roundsLbl:'Rounds',avgLbl:'Avg distance',pinFb:(km,pts)=>'📍 '+km+' km · +'+pts+' P',lakeQuiz:'Lake Quiz',lakeSub:'A lake name appears — find and click it on the map.',lakeDiffs:[{key:'beginner',label:'Beginner',count:13},{key:'easy',label:'Easy',count:44},{key:'medium',label:'Medium',count:76},{key:'hard',label:'Hard',count:144},{key:'extreme',label:'Extreme',count:321}],lakes:'Lakes',riverQuiz:'River Quiz',riverSub:'A river name appears — find and click it on the map.',riverDiffs:[{key:'beginner',label:'Beginner',count:13},{key:'easy',label:'Easy',count:44},{key:'medium',label:'Medium',count:76},{key:'hard',label:'Hard',count:144},{key:'extreme',label:'Extreme',count:214}],rivers:'Rivers',flagQuiz:'Flag Quiz',flagSub:'A flag appears — type the country name.',flagPlaceholder:'Enter country …',flagWorld:'Worldwide',flagDiffs:[{key:'beginner',label:'Beginner'},{key:'easy',label:'Easy'},{key:'medium',label:'Medium'},{key:'hard',label:'Hard'}],homeTitle:'World Geography Games',homeSub:'Test your knowledge of the world — countries, lakes, rivers and flags.',playBtn:'Play',optionsLbl:'Options',homeBtn:'← Home',scrollHint:'Scroll for more',mapQuiz:'World Map',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'Back to selection',langLbl:'Language',themeLbl:'Theme',projLbl:'Map view',projStd:'Natural Earth',projMerc:'Mercator',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',wrongHintLabel:'Hints on errors',wrongHintTip:'After a wrong answer, the correct country is briefly revealed.',wrongHintOn:'Show',wrongHintOff:'Hide',skipHintLabel:'Skip hints',skipHintTip:'Shows the skipped target briefly after skipping.',skipHintOn:'Show',skipHintOff:'Hide',countries:'countries',zoomTip:'Zoom & pan supported',skipLbl:'Skip',skippedLbl:'skipped',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{atlas:'Atlas',neon:'Cyberpunk',terrain:'Terrain'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start',signIn:'Sign in',signUp:'Sign up',signOut:'Sign out',loginTitle:'Sign in',registerTitle:'Create account',authEmail:'Email',authPw:'Password',authName:'Display name (optional)',loggedIn:'Signed in as',toRegister:"No account? Sign up",toLogin:'Already have an account? Sign in',authFillAll:'Please enter email and password.',authNotConfigured:'Firebase is not configured yet.',authErrEmail:'Invalid email address.',authErrInUse:'This email is already in use.',authErrWeak:'Password too weak (min. 6 characters).',authErrCred:'Wrong email or password.',authErrGeneric:'Something went wrong. Please try again.',authUsername:'Username',showPw:'Show password',forgotPw:'Forgot password?',resetSent:'Password reset email sent.',enterEmailFirst:'Please enter your email first.',authUserRequired:'Please choose a username.',authUserInvalid:'3–20 chars: letters, numbers, _',authUserTaken:'Username already taken.',googleBtn:'Sign in with Google',orSep:'or',newRecord:'New record!',bestLabel:'Best',roundLimitLbl:'Round limit',allTargetsLbl:'All targets',normalMode:'Normal Mode',learnModeLbl:'Learn Mode',learnModeLogin:'Sign in for Learn Mode',learnModeDesc:'Frequent mistakes appear first. Topics you\'ve mastered 3× are hidden.',learnModeCta:'→ Click to sign in',inputQuiz:'Name the country',inputSub:'Flag, capital or outline — type the right name.',flagCardSub:'Which flag is this?',capitalQuiz:'Capital Quiz',capitalCardSub:'Country ↔ capital',outlineQuiz:'Outline Quiz',outlineCardSub:'Recognise the shape',languageQuiz:'Language Quiz',languageCardSub:'Which language is this?',currencyQuiz:'Currency Quiz',currencyCardSub:'Which currency is this?',iqAskLanguage:'Which language is this?',iqAskCurrency:'Which currency is this?',langPlaceholder:'Enter language …',curPlaceholder:'Enter currency …',languages:'languages',currencies:'currencies',cfgRegion:'Region',cfgDiff:'Difficulty',cfgDir:'Direction',cfgStart:'Start quiz',dirC2Cap:'Country → capital',dirCap2C:'Capital → country',diffAll:'All',regWorld:'World',iqAskCapital:'What is the capital?',iqAskCountry:'Which country?',capPlaceholder:'Enter capital …',cfgDropdownLabel:'Suggestions',cfgDropdownOn:'Show',cfgDropdownOff:'Hide',cfgSkipHintLabel:'Hint on skip',cfgSkipHintOn:'Show',cfgSkipHintOff:'Hide',regionQuiz:'Regions',regionSub:'A region name appears — find and click it on the map.',findRegion:'Find this region',regions:'Regions',popQuiz:'Population',popSub:'The most or least populous countries — find and click them on the map.',findPop:'Which country?',popMostQ:'The most populous country in the world',popLeastQ:'The least populous country in the world',popMostRankQ:n=>'#'+n+' most populous country in the world',popLeastRankQ:n=>'#'+n+' least populous country in the world',catHeading:'What do you want to play?',catSub:'Choose a game type',catClickTitle:'Click on the map',catClickSub:'Find countries, regions and trivia on the world map',catPinTitle:'Drop a Pin',catPinSub:'Drop the pin as close to the location as you can',catInputTitle:'Text Input & Multiple Choice',catInputSub:'Flags, capitals and outlines',catOtherTitle:'More World Map Quizzes',catOtherSub:'Click cities, rivers and lakes',clickRootHeading:'Click on the map',clickRootSub:'Countries or regions?',landerTitle:'Countries',landerCardSub:'World map, continents, trivia & more',regionCardSub:'States, provinces & more',landerRootSub:'Choose a game type',optWorld:'World Map',optWorldSub:'All 197 countries',optContinents:'Continents',continentsSub:'Choose a continent',optDifficulty:'Difficulty',comingSoon:'Coming soon',optTrivia:'Trivia',triviaSub:'Special questions about countries',optCustom:'Custom Mode',optCustomSub:'Pick continents & country count'}
+  de:{title:'Weltkarte Quiz',sub:'Ein Ländername erscheint — finde und klicke es auf der Karte.',find:'Finde dieses Land',findLake:'Finde diesen See',findRiver:'Finde diesen Fluss',findCity:'Finde diese Stadt',cityQuiz:'Städte-Quiz',citySub:'Ein Stadtname erscheint — finde und klicke sie auf der Karte.',cities:'Städte',cityDiffs:[{key:'easy',label:'Einfach'},{key:'medium',label:'Mittel'},{key:'hard',label:'Schwer'}],cityCountries:[{key:'DE',label:'Deutschland'},{key:'US',label:'USA'},{key:'FR',label:'Frankreich'},{key:'CN',label:'China'},{key:'JP',label:'Japan'},{key:'IN',label:'Indien'},{key:'BR',label:'Brasilien'},{key:'AU',label:'Australien'},{key:'MX',label:'Mexiko'}],pinQuiz:'Drop a Pin',pinSub:'Eine Stadt erscheint — setze die Stecknadel möglichst nah an ihren Standort.',findPin:'Wo liegt diese Stadt?',pinEuLabel:'Europa',pointsLbl:'Punkte',roundsLbl:'Runden',avgLbl:'Ø Distanz',pinFb:(km,pts)=>'📍 '+km+' km · +'+pts+' P',lakeQuiz:'Seen-Quiz',lakeSub:'Ein See erscheint — finde und klicke ihn auf der Karte.',lakeDiffs:[{key:'beginner',label:'Anfänger',count:13},{key:'easy',label:'Einfach',count:44},{key:'medium',label:'Mittel',count:76},{key:'hard',label:'Schwer',count:144}],lakes:'Seen',riverQuiz:'Fluss-Quiz',riverSub:'Ein Flussname erscheint — finde und klicke ihn auf der Karte.',riverDiffs:[{key:'beginner',label:'Anfänger',count:14},{key:'easy',label:'Einfach',count:41},{key:'medium',label:'Mittel',count:80},{key:'hard',label:'Schwer',count:130}],rivers:'Flüsse',flagQuiz:'Flaggen Quiz',flagSub:'Eine Flagge erscheint — tippe den Ländernamen ein.',flagPlaceholder:'Land eingeben …',flagWorld:'Weltweit',flagDiffs:[{key:'beginner',label:'Anfänger'},{key:'easy',label:'Einfach'},{key:'medium',label:'Mittel'},{key:'hard',label:'Schwer'}],homeTitle:'Geografie-Spiele',homeSub:'Teste dein Wissen über die Welt — Länder, Seen, Flüsse und Flaggen.',playBtn:'Spielen',optionsLbl:'Optionen',homeBtn:'← Start',scrollHint:'Scrollen für mehr',mapQuiz:'Weltkarte',load:'Karte wird geladen …',back:'← Menü',foundLbl:'gefunden',correctLbl:'richtig',wrongLbl:'falsch',remLbl:'verbleibend',resTitle:'Quiz abgeschlossen!',again:'Nochmal spielen',newgame:'Zurück zur Auswahl',langLbl:'Sprache',themeLbl:'Design',projLbl:'Kartenansicht',projStd:'Natural Earth',projMerc:'Mercator',foundModeLabel:'Richtig geraten',keepOn:'Grün markiert',keepOff:'Ausgeblendet',wrongHintLabel:'Hinweise bei Fehlern',wrongHintTip:'Nach einer falschen Antwort wird das richtige Ziel kurz angezeigt.',wrongHintOn:'Anzeigen',wrongHintOff:'Ausblenden',skipHintLabel:'Hinweise beim Überspringen',skipHintTip:'Zeigt nach dem Überspringen das übersprungene Ziel kurz an.',skipHintOn:'Anzeigen',skipHintOff:'Ausblenden',countries:'Länder',zoomTip:'Zoom & Pan möglich',skipLbl:'Überspringen',skippedLbl:'übersprungen',correctFb:n=>'✓ Richtig! '+n,wrongFb:n=>'✗ Das war '+n,res1:(a,b,c)=>`${a} von ${b} beim 1. Versuch (${c} %)`,res2:(a,b)=>`${a} richtig, ${b} daneben`,themes:{atlas:'Atlas',neon:'Cyberpunk',terrain:'Terrain'},cback:'← Zurück',ctitle:'Eigener Modus',clblCont:'Kontinente',clblCount:'Anzahl Länder',clblOf:'verfügbar',clblAll:'Alle Länder',clblCountries:'Länder wählen',cbtnAll:'Alle',cbtnNone:'Keine',cbtnStart:'Starten',signIn:'Anmelden',signUp:'Registrieren',signOut:'Abmelden',loginTitle:'Anmelden',registerTitle:'Konto erstellen',authEmail:'E-Mail',authPw:'Passwort',authName:'Anzeigename (optional)',loggedIn:'Angemeldet als',toRegister:'Noch kein Konto? Registrieren',toLogin:'Bereits ein Konto? Anmelden',authFillAll:'Bitte E-Mail und Passwort eingeben.',authNotConfigured:'Firebase ist noch nicht konfiguriert.',authErrEmail:'Ungültige E-Mail-Adresse.',authErrInUse:'Diese E-Mail wird bereits verwendet.',authErrWeak:'Passwort zu schwach (min. 6 Zeichen).',authErrCred:'E-Mail oder Passwort falsch.',authErrGeneric:'Etwas ist schiefgelaufen. Bitte erneut versuchen.',authUsername:'Benutzername',showPw:'Passwort anzeigen',forgotPw:'Passwort vergessen?',resetSent:'E-Mail zum Zurücksetzen wurde gesendet.',enterEmailFirst:'Bitte zuerst deine E-Mail eingeben.',authUserRequired:'Bitte einen Benutzernamen wählen.',authUserInvalid:'3–20 Zeichen: Buchstaben, Zahlen, _',authUserTaken:'Benutzername bereits vergeben.',googleBtn:'Mit Google anmelden',orSep:'oder',newRecord:'Neuer Rekord!',bestLabel:'Bestwert',roundLimitLbl:'Anzahl Ziele',allTargetsLbl:'Alle Ziele',normalMode:'Normaler Modus',learnModeLbl:'Lernmodus',learnModeLogin:'Anmelden für Lernmodus',learnModeDesc:'Häufig falsch gemachte Fragen kommen zuerst. Themen, die du bereits 3× gemeistert hast, werden ausgeblendet.',learnModeCta:'→ Klicken zum Anmelden',inputQuiz:'Errate das Land',inputSub:'Flagge, Hauptstadt oder Umriss — tippe den richtigen Namen ein.',flagCardSub:'Welche Flagge ist das?',capitalQuiz:'Hauptstadt-Quiz',capitalCardSub:'Land ↔ Hauptstadt',outlineQuiz:'Umriss-Quiz',outlineCardSub:'Erkenne die Landesform',languageQuiz:'Sprachen-Quiz',languageCardSub:'Welche Sprache ist das?',currencyQuiz:'Währungs-Quiz',currencyCardSub:'Welche Währung ist das?',iqAskLanguage:'Welche Sprache ist das?',iqAskCurrency:'Welche Währung ist das?',langPlaceholder:'Sprache eingeben …',curPlaceholder:'Währung eingeben …',languages:'Sprachen',currencies:'Währungen',cfgRegion:'Region',cfgDiff:'Schwierigkeit',cfgDir:'Richtung',cfgStart:'Quiz starten',dirC2Cap:'Land → Hauptstadt',dirCap2C:'Hauptstadt → Land',diffAll:'Alle',regWorld:'Welt',iqAskCapital:'Wie heißt die Hauptstadt?',iqAskCountry:'Welches Land?',capPlaceholder:'Hauptstadt eingeben …',cfgDropdownLabel:'Vorschläge',cfgDropdownOn:'Anzeigen',cfgDropdownOff:'Ausblenden',cfgSkipHintLabel:'Hinweis beim Überspringen',cfgSkipHintOn:'Anzeigen',cfgSkipHintOff:'Ausblenden',regionQuiz:'Regionen',regionSub:'Ein Regionsname erscheint — finde und klicke sie auf der Karte.',findRegion:'Finde diese Region',regions:'Regionen',popQuiz:'Bevölkerung',popSub:'Die meist- oder wenigst-bevölkerten Länder — finde und klicke sie auf der Karte.',findPop:'Welches Land?',popMostQ:'Das bevölkerungsreichste Land der Welt',popLeastQ:'Das bevölkerungsärmste Land der Welt',popMostRankQ:n=>'Platz '+n+' der bevölkerungsreichsten Länder der Welt',popLeastRankQ:n=>'Platz '+n+' der bevölkerungsärmsten Länder der Welt',catHeading:'Was möchtest du spielen?',catSub:'Wähle eine Spielart aus',catClickTitle:'Auf der Karte anklicken',catClickSub:'Länder, Regionen und Trivia auf der Weltkarte finden',catPinTitle:'Drop-a-Pin',catPinSub:'Stecknadel möglichst nah an den Standort setzen',catInputTitle:'Texteingabe & Multiple Choice',catInputSub:'Flaggen, Hauptstädte und Umrisse',catOtherTitle:'Weitere Weltkarten-Quizzes',catOtherSub:'Städte, Flüsse und Seen anklicken',clickRootHeading:'Auf der Karte anklicken',clickRootSub:'Länder oder Regionen?',landerTitle:'Länder',landerCardSub:'Weltkarte, Kontinente, Trivia & mehr',regionCardSub:'Bundesländer, Staaten & mehr',landerRootSub:'Wähle eine Spielart',optWorld:'Weltkarte',optWorldSub:'Alle 197 Länder',optContinents:'Kontinente',continentsSub:'Wähle einen Kontinent',optDifficulty:'Schwierigkeit',difficultySub:'Länder nach Bevölkerung sortiert',diffTierLabels:['Sehr leicht','Leicht','Mittel','Schwer','Sehr schwer'],comingSoon:'Bald verfügbar',optTrivia:'Trivia',triviaSub:'Besondere Fragen zu Ländern',optCustom:'Eigener Modus',optCustomSub:'Kontinente & Anzahl frei wählen'},
+  en:{title:'World Map Quiz',sub:'A country name appears — find and click it on the map.',find:'Find this country',findLake:'Find this lake',findRiver:'Find this river',findCity:'Find this city',cityQuiz:'City Quiz',citySub:'A city name appears — find and click it on the map.',cities:'Cities',cityDiffs:[{key:'easy',label:'Easy'},{key:'medium',label:'Medium'},{key:'hard',label:'Hard'}],cityCountries:[{key:'DE',label:'Germany'},{key:'US',label:'USA'},{key:'FR',label:'France'},{key:'CN',label:'China'},{key:'JP',label:'Japan'},{key:'IN',label:'India'},{key:'BR',label:'Brazil'},{key:'AU',label:'Australia'},{key:'MX',label:'Mexico'}],pinQuiz:'Drop a Pin',pinSub:'A city appears — drop the pin as close to its location as you can.',findPin:'Where is this city?',pinEuLabel:'Europe',pointsLbl:'Points',roundsLbl:'Rounds',avgLbl:'Avg distance',pinFb:(km,pts)=>'📍 '+km+' km · +'+pts+' P',lakeQuiz:'Lake Quiz',lakeSub:'A lake name appears — find and click it on the map.',lakeDiffs:[{key:'beginner',label:'Beginner',count:13},{key:'easy',label:'Easy',count:44},{key:'medium',label:'Medium',count:76},{key:'hard',label:'Hard',count:144}],lakes:'Lakes',riverQuiz:'River Quiz',riverSub:'A river name appears — find and click it on the map.',riverDiffs:[{key:'beginner',label:'Beginner',count:14},{key:'easy',label:'Easy',count:41},{key:'medium',label:'Medium',count:80},{key:'hard',label:'Hard',count:130}],rivers:'Rivers',flagQuiz:'Flag Quiz',flagSub:'A flag appears — type the country name.',flagPlaceholder:'Enter country …',flagWorld:'Worldwide',flagDiffs:[{key:'beginner',label:'Beginner'},{key:'easy',label:'Easy'},{key:'medium',label:'Medium'},{key:'hard',label:'Hard'}],homeTitle:'World Geography Games',homeSub:'Test your knowledge of the world — countries, lakes, rivers and flags.',playBtn:'Play',optionsLbl:'Options',homeBtn:'← Home',scrollHint:'Scroll for more',mapQuiz:'World Map',load:'Loading map …',back:'← Menu',foundLbl:'found',correctLbl:'correct',wrongLbl:'wrong',remLbl:'remaining',resTitle:'Quiz complete!',again:'Play again',newgame:'Back to selection',langLbl:'Language',themeLbl:'Theme',projLbl:'Map view',projStd:'Natural Earth',projMerc:'Mercator',foundModeLabel:'Correct answers',keepOn:'Stay green',keepOff:'Fade out',wrongHintLabel:'Hints on errors',wrongHintTip:'After a wrong answer, the correct country is briefly revealed.',wrongHintOn:'Show',wrongHintOff:'Hide',skipHintLabel:'Skip hints',skipHintTip:'Shows the skipped target briefly after skipping.',skipHintOn:'Show',skipHintOff:'Hide',countries:'countries',zoomTip:'Zoom & pan supported',skipLbl:'Skip',skippedLbl:'skipped',correctFb:n=>'✓ Correct! '+n,wrongFb:n=>'That was '+n,res1:(a,b,c)=>`${a} of ${b} on first try (${c}%)`,res2:(a,b)=>`${a} correct, ${b} missed`,themes:{atlas:'Atlas',neon:'Cyberpunk',terrain:'Terrain'},cback:'← Back',ctitle:'Custom Mode',clblCont:'Continents',clblCount:'Number of countries',clblOf:'available',clblAll:'All countries',clblCountries:'Select countries',cbtnAll:'All',cbtnNone:'None',cbtnStart:'Start',signIn:'Sign in',signUp:'Sign up',signOut:'Sign out',loginTitle:'Sign in',registerTitle:'Create account',authEmail:'Email',authPw:'Password',authName:'Display name (optional)',loggedIn:'Signed in as',toRegister:"No account? Sign up",toLogin:'Already have an account? Sign in',authFillAll:'Please enter email and password.',authNotConfigured:'Firebase is not configured yet.',authErrEmail:'Invalid email address.',authErrInUse:'This email is already in use.',authErrWeak:'Password too weak (min. 6 characters).',authErrCred:'Wrong email or password.',authErrGeneric:'Something went wrong. Please try again.',authUsername:'Username',showPw:'Show password',forgotPw:'Forgot password?',resetSent:'Password reset email sent.',enterEmailFirst:'Please enter your email first.',authUserRequired:'Please choose a username.',authUserInvalid:'3–20 chars: letters, numbers, _',authUserTaken:'Username already taken.',googleBtn:'Sign in with Google',orSep:'or',newRecord:'New record!',bestLabel:'Best',roundLimitLbl:'Round limit',allTargetsLbl:'All targets',normalMode:'Normal Mode',learnModeLbl:'Learn Mode',learnModeLogin:'Sign in for Learn Mode',learnModeDesc:'Frequent mistakes appear first. Topics you\'ve mastered 3× are hidden.',learnModeCta:'→ Click to sign in',inputQuiz:'Name the country',inputSub:'Flag, capital or outline — type the right name.',flagCardSub:'Which flag is this?',capitalQuiz:'Capital Quiz',capitalCardSub:'Country ↔ capital',outlineQuiz:'Outline Quiz',outlineCardSub:'Recognise the shape',languageQuiz:'Language Quiz',languageCardSub:'Which language is this?',currencyQuiz:'Currency Quiz',currencyCardSub:'Which currency is this?',iqAskLanguage:'Which language is this?',iqAskCurrency:'Which currency is this?',langPlaceholder:'Enter language …',curPlaceholder:'Enter currency …',languages:'languages',currencies:'currencies',cfgRegion:'Region',cfgDiff:'Difficulty',cfgDir:'Direction',cfgStart:'Start quiz',dirC2Cap:'Country → capital',dirCap2C:'Capital → country',diffAll:'All',regWorld:'World',iqAskCapital:'What is the capital?',iqAskCountry:'Which country?',capPlaceholder:'Enter capital …',cfgDropdownLabel:'Suggestions',cfgDropdownOn:'Show',cfgDropdownOff:'Hide',cfgSkipHintLabel:'Hint on skip',cfgSkipHintOn:'Show',cfgSkipHintOff:'Hide',regionQuiz:'Regions',regionSub:'A region name appears — find and click it on the map.',findRegion:'Find this region',regions:'Regions',popQuiz:'Population',popSub:'The most or least populous countries — find and click them on the map.',findPop:'Which country?',popMostQ:'The most populous country in the world',popLeastQ:'The least populous country in the world',popMostRankQ:n=>'#'+n+' most populous country in the world',popLeastRankQ:n=>'#'+n+' least populous country in the world',catHeading:'What do you want to play?',catSub:'Choose a game type',catClickTitle:'Click on the map',catClickSub:'Find countries, regions and trivia on the world map',catPinTitle:'Drop a Pin',catPinSub:'Drop the pin as close to the location as you can',catInputTitle:'Text Input & Multiple Choice',catInputSub:'Flags, capitals and outlines',catOtherTitle:'More World Map Quizzes',catOtherSub:'Click cities, rivers and lakes',clickRootHeading:'Click on the map',clickRootSub:'Countries or regions?',landerTitle:'Countries',landerCardSub:'World map, continents, trivia & more',regionCardSub:'States, provinces & more',landerRootSub:'Choose a game type',optWorld:'World Map',optWorldSub:'All 197 countries',optContinents:'Continents',continentsSub:'Choose a continent',optDifficulty:'Difficulty',difficultySub:'Countries sorted by population',diffTierLabels:['Very Easy','Easy','Medium','Hard','Very Hard'],comingSoon:'Coming soon',optTrivia:'Trivia',triviaSub:'Special questions about countries',optCustom:'Custom Mode',optCustomSub:'Pick continents & country count'}
 };
 
 let lang='de',theme='atlas',keepFound=true,showWrongHint=true,showSkipHint=true,showDropdown=true,projection='mercator',game={},quizRoundLimit=10,learnMode=false,allTargets=false;
@@ -312,12 +315,15 @@ function _continentsPanel(){
 function _triviaPanel(){
   return `<div class="gs-grid gs-grid-map">${gsCard('startPopGame()',t('popQuiz'),'👥','pop:world')}</div>`;
 }
+function _difficultyPanel(){
+  return `<div class="gs-grid gs-grid-map">${DIFFICULTY_TIERS.map((ids,i)=>gsCard('startDifficultyGame('+(i+1)+')',t('diffTierLabels')[i],ids.length+' '+t('countries'),'map:diff'+(i+1))).join('')}</div>`;
+}
 function renderClickPage(){
   showScreen('category-screen');
   const landerItems=[
     {icon:'🌐',title:t('optWorld'),sub:t('optWorldSub'),onclick:"startGame('world')"},
     {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'continents',renderPanel:_continentsPanel},
-    {icon:'📊',title:t('optDifficulty'),sub:t('comingSoon'),disabled:true},
+    {icon:'📊',title:t('optDifficulty'),sub:t('difficultySub'),panel:'difficulty',renderPanel:_difficultyPanel},
     {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),panel:'trivia',renderPanel:_triviaPanel},
     {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
   ];
@@ -673,7 +679,7 @@ async function startGame(mode){
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.popMode)startPopGame();else if(lastMode==='custom')startCustom();else startGame(lastMode);}
+function restart(){if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.popMode)startPopGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
@@ -785,7 +791,7 @@ function getLakeFeatures(diff){
   if(!lakesData)return[];
   const named=lakesData.features.filter(f=>f.properties.name);
   if(diff==='beginner')return named.filter(f=>BEGINNER_LAKES.has(f.properties.name));
-  const maxZoom={easy:2,medium:3,hard:4,extreme:99};
+  const maxZoom={easy:2,medium:3,hard:4};
   return named.filter(f=>f.properties.min_zoom<=(maxZoom[diff]??99));
 }
 function getLakeColor(idx){
@@ -802,13 +808,47 @@ function updateLakeColors(){
   if(lakeDots)lakeDots.attr('fill',d=>getLakeColor(d._i)).attr('stroke',th.border);
 }
 
-function riverDisplayName(feat){const p=feat.properties;return(lang==='de'?p.name_de:p.name_en)||p.name||'?';}
+// Natural Earth's own "scalerank" is a cartographic-prominence metric (how boldly to draw a
+// river on a printed map), not a fame ranking — sorted by it alone, the Rhine lands around rank
+// 80, behind rivers almost nobody would recognise (Ideriyn, Peace, Za). RIVER_FAME_ORDER is a
+// hand-picked "most recognisable first" priority list used for the beginner/easy tiers instead;
+// medium/hard fall back to scalerank for everything not already picked, same as before.
+const RIVER_FAME_ORDER=[
+  'Nile','Amazon','Mississippi','Yangtze','Rhine','Danube','Volga','Ganges','Congo','Niger','Mekong','Euphrates','Tigris','Indus',
+  'Missouri','Ohio','Colorado','Columbia','Rio Grande','Yukon','Zambezi','Murray','Orinoco','Elbe','Seine','Loire','Po','Thames',
+  'Vistula','Oder','Don','Dnieper','Ural','Yenisey','Ob','Lena','Amur','Brahmaputra','Irrawaddy','Limpopo','Orange','Yellow River',
+];
+// The source data has no German field for rivers at all (unlike countries/capitals/lakes) — this
+// only covers RIVER_FAME_ORDER; anything sorted in beyond it falls back to the English/local name
+// for both languages, same as the un-curated behaviour this replaces.
+const RIVER_NAME_DE={
+  Nile:'Nil',Amazon:'Amazonas',Mississippi:'Mississippi',Yangtze:'Jangtsekiang',Rhine:'Rhein',Danube:'Donau',Volga:'Wolga',
+  Ganges:'Ganges',Congo:'Kongo',Niger:'Niger',Mekong:'Mekong',Euphrates:'Euphrat',Tigris:'Tigris',Indus:'Indus',
+  Missouri:'Missouri',Ohio:'Ohio',Colorado:'Colorado',Columbia:'Columbia','Rio Grande':'Rio Grande',Yukon:'Yukon',
+  Zambezi:'Sambesi',Murray:'Murray',Orinoco:'Orinoco',Elbe:'Elbe',Seine:'Seine',Loire:'Loire',Po:'Po',Thames:'Themse',
+  Vistula:'Weichsel',Oder:'Oder',Don:'Don',Dnieper:'Dnjepr',Ural:'Ural',Yenisey:'Jenissei',Ob:'Ob',Lena:'Lena',Amur:'Amur',
+  Brahmaputra:'Brahmaputra',Irrawaddy:'Irrawaddy',Limpopo:'Limpopo',Orange:'Oranje','Yellow River':'Gelber Fluss',
+};
+function riverDisplayName(feat){
+  const p=feat.properties;
+  if(lang==='de'&&RIVER_NAME_DE[p.name])return RIVER_NAME_DE[p.name];
+  return(lang==='de'?p.name_de:p.name_en)||p.name||'?';
+}
+// Segment/tributary/canal names that happen to carry their own name in the source data but
+// aren't a river a player could reasonably be expected to know as its own thing.
+const RIVER_JUNK=/\b(Fork|Branch|Canal|Channel|Reach)\b/i;
 function getRiverFeatures(diff){
   if(!riversData)return[];
-  const named=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
-  const counts={beginner:13,easy:44,medium:76,hard:144,extreme:214};
+  let named=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
+  named=named.filter(f=>!RIVER_JUNK.test(f.properties.name));
+  const counts={beginner:14,easy:41,medium:80,hard:130};
   const n=counts[diff]??named.length;
-  const sorted=named.slice().sort((a,b)=>(a.properties.scalerank||99)-(b.properties.scalerank||99));
+  const fameIdx=name=>{const i=RIVER_FAME_ORDER.indexOf(name);return i<0?RIVER_FAME_ORDER.length:i;};
+  const sorted=named.slice().sort((a,b)=>{
+    const fa=fameIdx(a.properties.name),fb=fameIdx(b.properties.name);
+    if(fa!==fb)return fa-fb;
+    return(a.properties.scalerank||99)-(b.properties.scalerank||99);
+  });
   return sorted.slice(0,n);
 }
 function getRiverColor(idx){const th=THEMES[theme];if(wrongFlashIds.has(idx))return th.wrong;if(game.found&&game.found.has(idx))return th.found;return th.sph;}
@@ -996,6 +1036,37 @@ async function startPopGame(){
   nextCountry();
 }
 
+// ── DIFFICULTY TIERS (all 197 countries, split into 5 by population) ──
+// Precomputed once from data/population.json (sorted descending, cut into 5 equal-ish slices —
+// 40/40/39/39/39) and hardcoded here, same as FLAG_BEGINNER/EASY/MEDIUM: it's a fixed real-world
+// ranking, not something that needs recomputing at runtime, and hardcoding means the difficulty
+// menu can render its country counts without an async fetch first. Population is a rough but
+// workable proxy for "how likely a player is to have heard of this country" — tier 1 is every
+// country from China down to Morocco, tier 5 is Djibouti down to Vatican City.
+const DIFFICULTY_TIERS=[
+  [156,356,840,360,586,76,566,50,643,484,392,231,608,818,704,180,792,276,364,764,250,826,380,710,834,104,404,410,170,724,32,804,800,12,729,368,4,616,124,504],
+  [682,860,604,458,24,288,508,887,524,862,450,120,384,408,36,158,562,144,854,466,642,152,454,398,894,218,528,760,320,116,686,148,716,324,646,204,788,108,68,56],
+  [192,332,728,214,300,203,752,620,706,400,31,784,348,340,112,762,376,40,598,756,768,694,418,600,100,688,422,434,558,417,222,232,795,208,702,246,703,178,578],
+  [188,512,372,430,554,140,275,478,591,414,191,268,858,70,496,51,388,8,634,440,498,516,270,72,266,426,705,807,624,428,383,48,780,226,233,626,480,196,748],
+  [262,242,174,328,64,90,499,442,740,132,462,470,96,84,44,352,548,52,678,882,662,296,583,308,670,776,690,28,20,212,584,659,492,438,674,585,520,798,336],
+];
+async function startDifficultyGame(tier){
+  const ids=DIFFICULTY_TIERS[tier-1]||[];
+  const mode='diff'+tier;
+  lastMode=mode;canClick=true;optsOpen=false;
+  game={mode,customIds:new Set(ids),queue:shuffle(ids),current:null,found:new Set(),correct:0,wrong:0,firstTry:0,total:0,wrongOnCurrent:false,skipped:0};
+  showScreen('game-screen');$('opts-panel').style.display='none';
+  $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
+  updateAllText();await loadMap();
+  game.queue=learnSortIds(game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]),'country:','diff:'+tier).slice(0,allTargets?Infinity:quizRoundLimit);
+  game.total=game.queue.length;
+  // Population tiers scatter countries across the whole globe rather than one region, so the
+  // world framing (not a continent zoom) is the only one that makes sense here.
+  const g=zoomForMode('world');
+  zoomToGeo(g.lon,g.lat,g.k);
+  nextCountry();
+}
+
 async function startRiverGame(diff){
   if(!riversData){showFeedback(t('load'),'#888');await loadMap();}
   const feats=getRiverFeatures(diff);
@@ -1095,29 +1166,53 @@ async function loadMap(){
       'Lualaba':'Congo',
       'Donau':'Danube','Borcea':'Danube','Bratul Chillia':'Danube','Bratul Sfintu Gheorghe':'Danube','Bratul Sulina':'Danube',
       'Bykovskaya Protoka':'Lena','Olenekskaya Protoka':'Lena',
-      'Amazonas':'Amazon',
+      'Amazonas':'Amazon','Ucayali':'Amazon',
       'Ayeyarwady':'Irrawaddy','Nmai':'Irrawaddy','Irrawaddy Delta':'Irrawaddy',
       'Heilong Jiang':'Amur',"Argun'":'Amur','Hailar':'Amur',
+      // Nile: the White Nile branch (El Bahr el Abyad/Bahr el Jebel + its Ugandan sections) and
+      // the Blue Nile (El Bahr el Azraq) both merge in, same as the delta distributaries below —
+      // a player isn't expected to know these are technically separate named reaches.
       'El Bahr el Abyad':'Nile','Bahr el Jebel':'Nile','Kagera':'Nile','Damietta Branch':'Nile','Rosetta Branch':'Nile',
-      'Ertix':'Irtysh',
+      'Albert Nile':'Nile','Victoria Nile':'Nile','El Bahr el Azraq':'Nile',
+      'Ertix':'Irtysh','Ertis':'Irtysh',
       'Selenge (Selenga)':'Selenga',
       'Shiquan':'Indus',
-      'Ucayali':'Amazon',
+      // Rhine: Natural Earth carries the French (Rhin), German (Rhein) and three Dutch delta
+      // distributary names (Waal, Nederrijn, Lek) as separate features from the plain "Rhine".
+      'Rhin':'Rhine','Rhein':'Rhine','Waal':'Rhine','Nederrijn':'Rhine','Lek':'Rhine',
+      // Euphrates/Tigris: Arabic and Turkish names for the same rivers, not different rivers.
+      'Al Furat':'Euphrates','Firat':'Euphrates','Dicle':'Tigris',
+      'Huang':'Yellow River',
+      'Grande':'Rio Grande',
+      'Dnepre':'Dnieper','Dnipro':'Dnieper',
+      'Tisa':'Tisza',
     };
     if(riversData){
+      // Lake Centerline features mark the stretch of a river that happens to flow through a lake
+      // — dropping them before merging (rather than after) loses a little visual continuity where
+      // a river crosses a lake, but keeps them from poisoning the merge: a river and its own
+      // Lake Centerline share the same raw name, so without this they'd get merged into one
+      // feature whose copied-over properties could come from either — and when they came from the
+      // Lake Centerline half, the later featurecla!=='Lake Centerline' filter deleted the *entire*
+      // merged river. That silently dropped the Mississippi, Volga, Niger, Zambezi, Murray,
+      // Colorado, Columbia, Rio Grande and Missouri from the quiz entirely.
       const byName={};
-      riversData.features.forEach(f=>{
+      riversData.features.filter(f=>f.properties.featurecla!=='Lake Centerline').forEach(f=>{
         const raw=f.properties.name;if(!raw)return;
         const n=RIVER_ALIASES[raw]||raw;
         (byName[n]=byName[n]||[]).push({...f,properties:{...f.properties,name:n}});
       });
       const merged=[];
-      Object.values(byName).forEach(feats=>{
+      Object.entries(byName).forEach(([n,feats])=>{
         if(feats.length===1){merged.push(feats[0]);return;}
         const lines=[];
         feats.forEach(f=>{if(f.geometry.type==='LineString')lines.push(f.geometry.coordinates);else if(f.geometry.type==='MultiLineString')lines.push(...f.geometry.coordinates);});
         const minSr=Math.min(...feats.map(f=>f.properties.scalerank||99));
-        merged.push({type:'Feature',properties:{...feats[0].properties,scalerank:minSr},geometry:{type:'MultiLineString',coordinates:lines}});
+        // name_en explicitly set to the canonical name n, not spread from an arbitrary segment —
+        // feats[0] could be any of the merged raw names (e.g. "Bahr el Jebel" for the Nile), and
+        // riverDisplayName() reads name_en/name_de, not name, so leaving it unset showed whichever
+        // segment happened to merge first instead of the river's real name.
+        merged.push({type:'Feature',properties:{...feats[0].properties,scalerank:minSr,name_en:n},geometry:{type:'MultiLineString',coordinates:lines}});
       });
       riversData={...riversData,features:merged.concat(riversData.features.filter(f=>!f.properties.name))};
     }
@@ -1134,7 +1229,7 @@ function isActive(id){
     if(CONTS.has(r))return !!(C[id]&&C[id].c===r);
     return !!(C[id]&&ISO2[id]===r.toLowerCase());
   }
-  if(game.mode==='custom')return game.customIds&&game.customIds.has(id);
+  if(game.customIds)return game.customIds.has(id);
   const ac=activeConts();
   if(!ac)return !!C[id];
   return C[id]&&ac.has(C[id].c);
