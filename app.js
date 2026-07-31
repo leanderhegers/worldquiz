@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 F';
+const BUILD_ID='2026-07-31 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1286,6 +1286,26 @@ function renderMap(world){
   const gpath=d3.geoPath().projection(proj);
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   const isMerc=projection==='mercator';
+  // The viewBox height always stays fixed at H (matching the Mercator clip bounds in
+  // buildProjection), but for Mercator its WIDTH is recomputed to match the container's own
+  // aspect ratio, centered on the same x=W/2 that zoomTo()/zoomForMode() already treat as "the"
+  // horizontal centre. A static 960-wide box under preserveAspectRatio="slice" forced height to
+  // overflow (and get cropped) on any window proportionally wider than the content's own ~1.92:1
+  // aspect — the wider the window, the more got cut off top and bottom. Matching the box to the
+  // real aspect ratio instead removes that cropping in both directions; the infinite horizontal
+  // wrap (<use> clones a few lines down) already exists specifically to fill in extra width with
+  // repeated world copies, so an ultrawide monitor showing more than 960 units of longitude is
+  // the wrap doing exactly the job it was built for, not a new capability. Natural Earth has no
+  // such wrap (there's nothing to tile with in a non-repeating projection), so it keeps the
+  // original static box and "meet" — letterboxing a mismatched aspect rather than cropping it.
+  function syncViewBox(){
+    if(!isMerc){svg.attr('viewBox',`0 0 ${W} ${H}`).attr('preserveAspectRatio','xMidYMid meet');return W;}
+    const r=svg.node().getBoundingClientRect();
+    const vbW=H*((r.width/r.height)||(W/H));
+    svg.attr('viewBox',`${W/2-vbW/2} 0 ${vbW} ${H}`).attr('preserveAspectRatio','xMidYMid slice');
+    return vbW;
+  }
+  syncViewBox();
   svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',th.bg);
   const wrapG=svg.append('g');
   // Two sibling layers, deliberately separated for the infinite-wrap tiling's sake:
@@ -1574,7 +1594,11 @@ function renderMap(world){
   // picks whichever of width/960 or height/500 is larger, cropping the other axis, so _sc has to
   // use that same larger ratio or it under-estimates the true on-screen scale (and dots/hitboxes
   // sized by dividing by it come out too big).
-  function computeSc(){const r=svg.node().getBoundingClientRect();return Math.max(r.width/MAP_W,r.height/MAP_H)||1;}
+  // Mercator's viewBox width is kept in sync with the container's aspect ratio (syncViewBox
+  // above), so r.width/vbW and r.height/MAP_H are always equal by construction — height alone is
+  // the reliable reference. Natural Earth keeps the static box under "meet", which is bound by
+  // whichever axis needs the *smaller* scale to fit entirely inside the container.
+  function computeSc(){const r=svg.node().getBoundingClientRect();return(isMerc?r.height/MAP_H:Math.min(r.width/MAP_W,r.height/MAP_H))||1;}
   let _sc=computeSc();
   function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(COARSE?50:20));}
   function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
@@ -1623,6 +1647,7 @@ function renderMap(world){
 
   // Update dots on window resize (SVG scale changes) — the only place _sc is recomputed.
   const _ro=new ResizeObserver(()=>{
+    syncViewBox();
     _sc=computeSc();
     applyDotR(_lastT?_lastT.k:1);
   });
