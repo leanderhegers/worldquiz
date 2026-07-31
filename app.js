@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 B';
+const BUILD_ID='2026-07-31 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1510,7 +1510,15 @@ function renderMap(world){
     // Lives in dynG, not g: its opacity is rewritten every scale-changed zoom frame, and any DOM
     // mutation inside g's <use>-cloned subtree forces a shadow-tree rebuild in WebKit (rule 3).
     if(admin1Data&&admin1Data.objects&&admin1Data.objects.admin1){
-      const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>a!==b);
+      // Natural Earth's admin-1 layer is wildly inconsistent in granularity — e.g. France split
+      // into 101 départements, Slovenia into 193 municipalities, vs. Germany's 16 correct
+      // Bundesländer — because this file deliberately keeps every raw polygon (see
+      // admin1-borders.README.md) rather than pre-dissolving them, the `grp` property is what
+      // decides which polygons count as "the same region" for drawing purposes: the mesh filter
+      // below only draws a line where the two neighbouring polygons have a *different* grp, which
+      // suppresses internal borders (e.g. between two French départements in the same région)
+      // without needing an actual geometry union.
+      const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>a.properties.grp!==b.properties.grp);
       admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
         .attr('stroke',th.border).attr('stroke-width',0.6).attr('stroke-dasharray','2,2')
         .style('vector-effect','non-scaling-stroke').attr('pointer-events','none').style('opacity',0);
@@ -1550,8 +1558,12 @@ function renderMap(world){
     if(cityHit)cityHit.attr('r',hitR(zoomK));
     if(admin1Path){
       // Fades in over a range rather than snapping on at one zoom level — a hard cutoff was
-      // distracting mid-gesture. Below zoomK 4 the lines would mostly be too dense/tiny to read.
-      const ADMIN1_FADE_START=4,ADMIN1_FADE_END=7;
+      // distracting mid-gesture. Thresholds are a fraction of the actual max zoom (not a fixed
+      // k) because COARSE devices allow much deeper zoom (50 vs 20) — the lines should only
+      // appear near the *top* of whatever range this device has, not at some fixed absolute k
+      // that's barely zoomed in at all on touch.
+      const maxK=COARSE?50:20;
+      const ADMIN1_FADE_START=maxK*0.75,ADMIN1_FADE_END=maxK*0.95;
       admin1Path.style('opacity',Math.max(0,Math.min(1,(zoomK-ADMIN1_FADE_START)/(ADMIN1_FADE_END-ADMIN1_FADE_START))));
     }
   }
