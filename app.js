@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-28 Q';
+const BUILD_ID='2026-07-29 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1777,8 +1777,15 @@ async function startInputQuiz(cfg){
   const ids=iqPoolIds(cfg);
   if(!ids.length)return;
   const queue=learnSortIds(ids,IQ_PREFIX[cfg.type]).slice(0,allTargets?Infinity:quizRoundLimit);
+  // The two hardest difficulty tiers show every possible country in the dropdown, not just this
+  // round's pool — a short list would let you find the answer by elimination instead of actually
+  // recognising the flag/capital/outline. Easier tiers (and region-scoped rounds) keep the short,
+  // relevant list. diff and region are mutually exclusive (setIqCfg resets region to 'world' when
+  // a difficulty is picked), so the unfiltered pool here is always "every country of this type".
+  const HARDEST_DIFFS=new Set(['medium','hard']);
+  const ddPool=HARDEST_DIFFS.has(cfg.diff)?iqPoolIds({...cfg,diff:'all'}):ids;
   game={flagMode:true,inputMode:cfg.type,capitalDir:cfg.dir,iqCfg:{...cfg},
-    flagQueue:queue,flagPool:new Set(ids),flagCorrect:0,flagWrong:0,flagSkipped:0,flagTotal:queue.length,flagFound:new Set(),
+    flagQueue:queue,flagPool:new Set(ddPool),flagCorrect:0,flagWrong:0,flagSkipped:0,flagTotal:queue.length,flagFound:new Set(),
     difficulty:cfg.diff,flagArg:{...cfg},continent:cfg.region};
   showScreen('flag-screen');
   $('flag-btn-back').textContent=t('back');
