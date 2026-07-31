@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 C';
+const BUILD_ID='2026-07-31 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1504,6 +1504,7 @@ function renderMap(world){
 
   // Drop-A-Pin: full-area overlay captures clicks anywhere; pinLayer holds the dropped markers
   pinLayer=null;
+  let admin1Visible=false; // read by applyDotR below to avoid redundant display/opacity writes
   if(game.pinMode){
     // State/province borders — orientation help for placing a pin precisely, but only once
     // zoomed in enough that they'd actually be legible (see the fade in applyDotR below).
@@ -1518,10 +1519,16 @@ function renderMap(world){
       // below only draws a line where the two neighbouring polygons have a *different* grp, which
       // suppresses internal borders (e.g. between two French départements in the same région)
       // without needing an actual geometry union.
+      // Solid stroke, not dashed: dashing forces the renderer to walk this path's ~3300 separate
+      // subpaths and chop each into dash segments on every repaint — measured at ~43,000 vertices
+      // total, that's expensive CPU-side work (stroke tessellation, not GPU fill) redone on every
+      // opacity change below. borderPath/coastline are comparably large but solid and never
+      // touched after creation, and don't cost anything per frame — this is the same fix.
       const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>a.properties.grp!==b.properties.grp);
       admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
-        .attr('stroke',th.border).attr('stroke-width',0.6).attr('stroke-dasharray','2,2')
-        .style('vector-effect','non-scaling-stroke').attr('pointer-events','none').style('opacity',0);
+        .attr('stroke',th.border).attr('stroke-width',0.45)
+        .style('vector-effect','non-scaling-stroke').attr('pointer-events','none')
+        .style('display','none').style('opacity',0);
     }
     dynG.append('rect').attr('class','pin-overlay pin-cursor').attr('x',-5000).attr('y',-5000).attr('width',10000).attr('height',10000)
       .attr('fill','transparent').style('pointer-events','all').on('click',function(ev){handlePinClick(ev);});
@@ -1564,7 +1571,16 @@ function renderMap(world){
       // that's barely zoomed in at all on touch.
       const maxK=COARSE?50:20;
       const ADMIN1_FADE_START=maxK*0.75,ADMIN1_FADE_END=maxK*0.95;
-      admin1Path.style('opacity',Math.max(0,Math.min(1,(zoomK-ADMIN1_FADE_START)/(ADMIN1_FADE_END-ADMIN1_FADE_START))));
+      // display:none takes this path out of the paint pipeline entirely — below the fade
+      // threshold (the vast majority of any zoom gesture) applyDotR does nothing to it at all,
+      // instead of recomputing its stroke geometry on every single frame regardless of whether
+      // it's even visible. admin1Visible only gets touched on the one frame it actually flips.
+      if(zoomK<=ADMIN1_FADE_START){
+        if(admin1Visible){admin1Path.style('display','none');admin1Visible=false;}
+      }else{
+        if(!admin1Visible){admin1Path.style('display','');admin1Visible=true;}
+        admin1Path.style('opacity',Math.max(0,Math.min(1,(zoomK-ADMIN1_FADE_START)/(ADMIN1_FADE_END-ADMIN1_FADE_START))));
+      }
     }
   }
   applyDotR();
