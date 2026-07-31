@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 D';
+const BUILD_ID='2026-07-31 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -24,8 +24,14 @@ function buildProjection(){
     // No rotate() here: the infinite wrap tiling below assumes the map edges line up
     // exactly with lon ±180, which a rotation offset would break.
     const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]);
-    const topY=proj([0,83.5])[1];
-    return proj.clipExtent([[-80,topY],[MAP_W+80,MAP_H+260]]);
+    // Both bounds are deliberately tight, not just "past the last country": Antarctica and the
+    // High Arctic (northern Greenland, Svalbard, the Canadian Arctic islands) have no quiz
+    // targets, so there's nothing lost by clipping the geometry itself rather than merely
+    // panning/zooming past it — the ocean-colored area under a clipped-off pole would otherwise
+    // still have to be scrolled through.
+    const topY=proj([0,75])[1];
+    const botY=proj([0,-58])[1];
+    return proj.clipExtent([[-80,topY],[MAP_W+80,botY]]);
   }
   return d3.geoNaturalEarth1().scale(153).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
 }
