@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 E';
+const BUILD_ID='2026-07-31 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -23,15 +23,20 @@ function buildProjection(){
   if(projection==='mercator'){
     // No rotate() here: the infinite wrap tiling below assumes the map edges line up
     // exactly with lon ±180, which a rotation offset would break.
-    const proj=d3.geoMercator().scale(152.8).translate([MAP_W/2,MAP_H/2]);
-    // Both bounds are deliberately tight, not just "past the last country": Antarctica and the
-    // High Arctic (northern Greenland, Svalbard, the Canadian Arctic islands) have no quiz
-    // targets, so there's nothing lost by clipping the geometry itself rather than merely
-    // panning/zooming past it — the ocean-colored area under a clipped-off pole would otherwise
-    // still have to be scrolled through.
-    const topY=proj([0,75])[1];
-    const botY=proj([0,-58])[1];
-    return proj.clipExtent([[-80,topY],[MAP_W+80,botY]]);
+    // translateY is chosen (not just MAP_H/2) so that 75°N lands exactly on y=0 — the canvas's
+    // own top edge — rather than clipping at some arbitrary lat-derived Y that doesn't line up
+    // with the fixed 0..MAP_H viewBox. At this scale that puts -58°S almost exactly on y=MAP_H
+    // too (off by under a pixel), so clipping to the viewBox's own bounds below cuts Antarctica
+    // and the High Arctic — neither has any quiz target — with no gap between the last real
+    // geometry and the canvas edge. A gap there would matter now that preserveAspectRatio is
+    // "slice": it stretches the *viewBox*, not the geometry, to cover the container, so any
+    // mismatch between the two used to show up as a flat, content-less band past the real edge.
+    const scale=152.8;
+    const proj=d3.geoMercator().scale(scale).translate([MAP_W/2,0]);
+    proj.translate([MAP_W/2,-proj([0,75])[1]]);
+    // No rotate() here: the infinite wrap tiling below assumes the map edges line up
+    // exactly with lon ±180, which a rotation offset would break.
+    return proj.clipExtent([[-80,0],[MAP_W+80,MAP_H]]);
   }
   return d3.geoNaturalEarth1().scale(153).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
 }
@@ -40,7 +45,17 @@ function zoomForMode(mode){
   const z=ZOOMS[mode]||ZOOMS.world;
   const ne=d3.geoNaturalEarth1().scale(153).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
   const ll=ne.invert([z[0],z[1]]);
-  return {lon:ll[0],lat:ll[1],k:z[2]};
+  let lat=ll[1];
+  // The 'world' preset centers on the equator, which made sense for the old unclipped Mercator
+  // (translateY=MAP_H/2 put the equator exactly at the canvas's own vertical middle). Now that
+  // buildProjection() shifts translateY so the clip range lands exactly on [0,MAP_H] — asymmetric
+  // in latitude, since Mercator stretches high latitudes more than low ones — the equator is no
+  // longer that range's midpoint, so centering on it at k=1 leaves a gap at one edge (there's less
+  // clipped content on one side of the equator than the viewport's own half-height). Re-derive the
+  // latitude that actually IS the clip range's vertical midpoint instead of hardcoding one, so this
+  // keeps working if the clip bounds in buildProjection() are ever retuned.
+  if(mode==='world'&&projection==='mercator'&&currentProj&&currentProj.invert)lat=currentProj.invert([MAP_W/2,MAP_H/2])[1];
+  return {lon:ll[0],lat,k:z[2]};
 }
 function zoomToGeo(lon,lat,k){if(!currentProj)return;const p=currentProj([lon,lat]);if(p)zoomTo(p[0],p[1],k);}
 
@@ -1530,7 +1545,16 @@ function renderMap(world){
       // total, that's expensive CPU-side work (stroke tessellation, not GPU fill) redone on every
       // opacity change below. borderPath/coastline are comparably large but solid and never
       // touched after creation, and don't cost anything per frame — this is the same fix.
-      const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>a.properties.grp!==b.properties.grp);
+      // grp is "<country>||<label>" (see admin1-borders.README.md) — a segment between two
+      // polygons of *different* countries is an international border, which borderPath already
+      // draws; only draw a segment here when it's an internal border (same country, different
+      // grp), or a country's Bundesländer would get a second, slightly misaligned line right on
+      // top of the real border wherever two neighbouring countries happen to touch.
+      const admin1Country=g=>g.slice(0,g.indexOf('||'));
+      const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>{
+        const ga=a.properties.grp,gb=b.properties.grp;
+        return ga!==gb&&admin1Country(ga)===admin1Country(gb);
+      });
       admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
         .attr('stroke',th.border).attr('stroke-width',0.45)
         .style('vector-effect','non-scaling-stroke').attr('pointer-events','none')
@@ -1545,7 +1569,13 @@ function renderMap(world){
   // zoom, hence /_sc/zoomK. _sc is cached and only refreshed by the ResizeObserver below:
   // it used to be read via getBoundingClientRect() from inside a per-element d3 accessor,
   // forcing dozens of synchronous layouts on every animation frame of a pinch gesture.
-  let _sc=(svg.node().getBoundingClientRect().width/960)||1;
+  // preserveAspectRatio is "slice" (cover), so the SVG's own CSS box (what getBoundingClientRect
+  // reports) is *not* what 960 logical units are stretched across — under slice the renderer
+  // picks whichever of width/960 or height/500 is larger, cropping the other axis, so _sc has to
+  // use that same larger ratio or it under-estimates the true on-screen scale (and dots/hitboxes
+  // sized by dividing by it come out too big).
+  function computeSc(){const r=svg.node().getBoundingClientRect();return Math.max(r.width/MAP_W,r.height/MAP_H)||1;}
+  let _sc=computeSc();
   function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(COARSE?50:20));}
   function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
   function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/_sc/zoomK;}
@@ -1593,7 +1623,7 @@ function renderMap(world){
 
   // Update dots on window resize (SVG scale changes) — the only place _sc is recomputed.
   const _ro=new ResizeObserver(()=>{
-    _sc=(svg.node().getBoundingClientRect().width/960)||1;
+    _sc=computeSc();
     applyDotR(_lastT?_lastT.k:1);
   });
   _ro.observe(svg.node());
