@@ -120,6 +120,23 @@ test('every country in the flag quiz has a bundled flag image', () => {
     `data/flags/index.json.`);
 });
 
+test('every country in the Wappen quiz has a bundled coat-of-arms image', () => {
+  // Same failure mode as the flag check above: a missing file is a blank card mid-quiz.
+  const countriesJs = read('countries.js');
+  const idsM = countriesJs.match(/const C=\{([\s\S]*?)\};/);
+  assert.ok(idsM, 'C not found in countries.js');
+  const ids = [...idsM[1].matchAll(/(?:^|,)(\d+):\{/g)].map(m => m[1]);
+  assert.ok(ids.length > 190, `expected ~197 country ids, found ${ids.length}`);
+
+  const excludeM = appJs.match(/const WAPPEN_EXCLUDE=new Set\(\[([^\]]*)\]\)/);
+  assert.ok(excludeM, 'WAPPEN_EXCLUDE not found in app.js');
+  const excluded = new Set(excludeM[1].split(',').map(s => s.trim()).filter(Boolean));
+
+  const missing = ids.filter(id => !excluded.has(id) && !fs.existsSync(path.join(ROOT, `data/wappen/${id}.png`)));
+  assert.deepStrictEqual(missing, [],
+    `No coat-of-arms image for id(s): ${missing.join(', ')}. See data/wappen.README.md to regenerate.`);
+});
+
 test('the flag index the service worker precaches from is in sync with the files', () => {
   const idx = JSON.parse(read('data/flags/index.json'));
   for (const [size, codes] of [['w320', idx.w320], ['h20', idx.h20]]) {
