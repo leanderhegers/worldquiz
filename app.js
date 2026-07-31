@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 J';
+const BUILD_ID='2026-07-31 K';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -62,7 +62,10 @@ function zoomForMode(mode){
 }
 function zoomToGeo(lon,lat,k){if(!currentProj)return;const p=currentProj([lon,lat]);if(p)zoomTo(p[0],p[1],k);}
 
-const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#205090'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#1a5a30'}};
+// mtn: mountain-range fill — deliberately not sph (that's water) or avail (that's plain land).
+// Brown reads as "elevation" the same way it does on real hypsometric-tinted maps, and stays
+// unambiguous against every theme's own water/land/found colors.
+const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#205090',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#1a5a30',mtn:'#7a5230'}};
 const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
 const THEME_DOT={atlas:'#b0a080',neon:'#ff2a6d',terrain:'#6a9a58'};
 const TERRAIN_BIOME=(()=>{const m=new Map();
@@ -1002,7 +1005,7 @@ function getRangeFeatures(diff){
   const sorted=named.slice().sort((a,b)=>fameIdx(a.properties.name_en)-fameIdx(b.properties.name_en));
   return sorted.slice(0,n);
 }
-function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.found.has(rep))return th.found;}return th.sph;}
+function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.found.has(rep))return th.found;}return th.mtn;}
 function updateRangeColors(){if(!rangePaths)return;const th=THEMES[theme];rangePaths.attr('fill',d=>getRangeColor(d._i)).attr('stroke',th.border);}
 async function startRangeGame(diff){
   await ensureRangesData();
