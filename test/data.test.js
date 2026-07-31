@@ -141,6 +141,55 @@ test('the curated river fame list has no duplicates and full German names', () =
   assert.deepStrictEqual(missingDe, [], `RIVER_FAME_ORDER entries with no RIVER_NAME_DE translation: ${missingDe.join(', ')}`);
 });
 
+test('mountain range outlines are wound the way d3-geo expects', () => {
+  // Same requirement as data/regions/ (see the test below) — d3-geo needs clockwise exterior
+  // rings, the opposite of mapshaper/RFC 7946 output. This file lives outside data/regions/
+  // (it's not a per-country region quiz dataset), so it needs its own check.
+  const d = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/ne_10m_mountain_ranges.geojson'), 'utf8'));
+  let counterclockwise = 0;
+  for (const feat of d.features) {
+    if (!feat.geometry) continue;
+    const polys = feat.geometry.type === 'Polygon' ? [feat.geometry.coordinates] : feat.geometry.coordinates;
+    for (const rings of polys) {
+      const r = rings[0];
+      let a = 0;
+      for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+      if (a > 0) counterclockwise++;
+    }
+  }
+  assert.strictEqual(counterclockwise, 0,
+    `${counterclockwise} exterior ring(s) in ne_10m_mountain_ranges.geojson run counterclockwise`);
+});
+
+test('the curated mountain range fame list has no duplicates and matches real ranges', () => {
+  const fameM = appJs.match(/const RANGE_FAME_ORDER=\[([\s\S]*?)\];/);
+  assert.ok(fameM, 'RANGE_FAME_ORDER not found in app.js');
+  const fame = [...fameM[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+  assert.ok(fame.length >= 15, `expected a substantial curated list, found ${fame.length}`);
+  assert.strictEqual(new Set(fame).size, fame.length, 'RANGE_FAME_ORDER has a duplicate entry');
+
+  const ranges = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/ne_10m_mountain_ranges.geojson'), 'utf8'));
+  const realNames = new Set(ranges.features.map(f => f.properties.name_en));
+  const missing = fame.filter(name => !realNames.has(name));
+  assert.deepStrictEqual(missing, [], `RANGE_FAME_ORDER entries not found in the range data: ${missing.join(', ')}`);
+});
+
+test('the curated mountain peak fame list has no duplicates and matches real peaks', () => {
+  const fameM = appJs.match(/const MOUNTAIN_FAME_ORDER=\[([\s\S]*?)\];/);
+  assert.ok(fameM, 'MOUNTAIN_FAME_ORDER not found in app.js');
+  const fame = [...fameM[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+  assert.ok(fame.length >= 10, `expected a substantial curated list, found ${fame.length}`);
+  assert.strictEqual(new Set(fame).size, fame.length, 'MOUNTAIN_FAME_ORDER has a duplicate entry');
+
+  const mountains = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/mountains.json'), 'utf8'));
+  const realNames = new Set(mountains.map(m => m.name_en));
+  const missing = fame.filter(name => !realNames.has(name));
+  assert.deepStrictEqual(missing, [], `MOUNTAIN_FAME_ORDER entries not found in the mountain data: ${missing.join(', ')}`);
+
+  const missingDe = mountains.filter(m => !m.name_de);
+  assert.deepStrictEqual(missingDe.map(m => m.name_en), [], 'mountains.json entries with no German name');
+});
+
 test('every country has a population figure for the population quiz', () => {
   const pop = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/population.json'), 'utf8'));
   const missing = Object.keys(C).filter(id => pop[id] == null);
