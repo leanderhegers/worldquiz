@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-29 B';
+const BUILD_ID='2026-07-31';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -170,6 +170,33 @@ function t(k){return TX[lang][k]||TX.de[k]||k;}
 function cn(id){return C[id]?(C[id][lang]||C[id].de):'?';}
 function $(id){return document.getElementById(id);}
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+// First-lap ordering: the very first time a specific quiz (by key, e.g. 'map:EU') is played, its
+// targets are dealt from one shuffled pass through the whole pool, continued round after round —
+// so the first few rounds can't, by pure bad luck, repeat a target before every other one has
+// shown up. Once that pass is exhausted, every later round goes back to a plain independent
+// shuffle. Kept local-only (not synced across devices via the auth.js data layer): losing it just
+// means one extra ordinarily-shuffled round on a new device, which isn't worth reusing the
+// cross-device sync machinery built for actual progress data (scores/achievements).
+const FIRST_LAP_KEY='geoquiz_firstlap';
+function _loadFirstLap(){try{return JSON.parse(localStorage.getItem(FIRST_LAP_KEY))||{};}catch(e){return{};}}
+function _saveFirstLap(fl){try{localStorage.setItem(FIRST_LAP_KEY,JSON.stringify(fl));}catch(e){}}
+function firstLapOrder(key,ids){
+  if(!key||!ids.length)return shuffle(ids);
+  const fl=_loadFirstLap();
+  let entry=fl[key];
+  if(entry&&entry.done)return shuffle(ids);
+  // Pool composition can drift (data updates, a changed setting) — if the saved order doesn't
+  // match this pool 1:1 anymore, start the lap over rather than risk stale or missing ids.
+  if(!entry||entry.order.filter(id=>ids.includes(id)).length!==ids.length)entry={order:shuffle(ids),pos:0};
+  const roundSize=allTargets?ids.length:quizRoundLimit;
+  const thisRound=entry.order.slice(entry.pos,entry.pos+roundSize);
+  const pos=entry.pos+thisRound.length;
+  fl[key]=pos>=entry.order.length?{done:true}:{order:entry.order,pos};
+  _saveFirstLap(fl);
+  const rest=ids.filter(id=>!thisRound.includes(id));
+  return thisRound.concat(shuffle(rest));
+}
 function eff(id){return REDIRECTS.get(id)??id;}
 function activeConts(){return game.activeContinents||null;}
 
@@ -617,7 +644,7 @@ async function startGame(mode){
   showScreen('game-screen');$('opts-panel').style.display='none';
   $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
-  game.queue=learnSortIds(game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]),'country:').slice(0,allTargets?Infinity:quizRoundLimit);
+  game.queue=learnSortIds(game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]),'country:','map:'+mode).slice(0,allTargets?Infinity:quizRoundLimit);
   game.total=game.queue.length;
   const g=zoomForMode(mode);
   zoomToGeo(g.lon,g.lat,g.k);
@@ -633,9 +660,12 @@ function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
 function toggleLearnTooltip(e){e.stopPropagation();if(!('ontouchstart' in window))return;const wrap=e.currentTarget.closest('.gs-mode-tooltip-wrap');if(!wrap)return;wrap.classList.toggle('show');}
 
-// Lernmodus-Sortierung: häufig falsch vorne, 1-3× richtig hinten, >3× richtig ausgeblendet
-function learnSortIds(ids,prefix){
-  if(!learnMode||typeof getMisses!=='function')return shuffle([...ids]);
+// Lernmodus-Sortierung: häufig falsch vorne, 1-3× richtig hinten, >3× richtig ausgeblendet.
+// quizKey (optional) scopes first-lap ordering (see firstLapOrder above) to this exact quiz —
+// only used when learn mode is off, since learn mode's own front/mid/end priority already solves
+// a version of the same "don't feel repetitive" problem.
+function learnSortIds(ids,prefix,quizKey){
+  if(!learnMode||typeof getMisses!=='function')return firstLapOrder(quizKey,[...ids]);
   const misses=getMisses(),corrects=typeof getCorrects==='function'?getCorrects():{};
   const filtered=ids.filter(id=>(corrects[prefix+id]||0)<=3);
   const front=filtered.filter(id=>!(corrects[prefix+id])&&misses[prefix+id])
@@ -644,8 +674,8 @@ function learnSortIds(ids,prefix){
   const end=filtered.filter(id=>(corrects[prefix+id]||0)>=1);
   return[...front,...mid,...end];
 }
-function learnSortIdx(indices,features,displayFn,prefix){
-  if(!learnMode||typeof getMisses!=='function')return shuffle([...indices]);
+function learnSortIdx(indices,features,displayFn,prefix,quizKey){
+  if(!learnMode||typeof getMisses!=='function')return firstLapOrder(quizKey,[...indices]);
   const misses=getMisses(),corrects=typeof getCorrects==='function'?getCorrects():{};
   const getKey=idx=>prefix+displayFn(features[idx]);
   const filtered=indices.filter(idx=>(corrects[getKey(idx)]||0)<=3);
@@ -784,7 +814,7 @@ async function startCityGame(diffOrCountry){
   let cities;
   if(CITY_COUNTRIES[diffOrCountry])cities=CITY_COUNTRIES[diffOrCountry].cities.slice();
   else cities=getAllCitiesByDifficulty(diffOrCountry);
-  const cityQueue=learnSortIdx(cities.map((_,i)=>i),cities,cityDisplayName,'city:').slice(0,allTargets?Infinity:quizRoundLimit);
+  const cityQueue=learnSortIdx(cities.map((_,i)=>i),cities,cityDisplayName,'city:','city:'+diffOrCountry).slice(0,allTargets?Infinity:quizRoundLimit);
   game={mode:'city',cityMode:true,difficulty:diffOrCountry,
     cityFeatures:cities,
     queue:cityQueue,
@@ -946,7 +976,7 @@ async function startRiverGame(diff){
   if(!riversData){showFeedback(t('load'),'#888');await loadMap();}
   const feats=getRiverFeatures(diff);
   const indexed=feats.map((f,i)=>({...f,_i:i}));
-  const riverQueue=learnSortIdx(feats.map((_,i)=>i),feats,riverDisplayName,'river:').slice(0,allTargets?Infinity:quizRoundLimit);
+  const riverQueue=learnSortIdx(feats.map((_,i)=>i),feats,riverDisplayName,'river:','river:'+diff).slice(0,allTargets?Infinity:quizRoundLimit);
   game={mode:'river',riverMode:true,difficulty:diff,
     riverFeatures:feats,
     queue:riverQueue,
@@ -977,7 +1007,7 @@ async function startLakeGame(diff){
   const indexed=feats.map((f,i)=>({...f,_i:i}));
   const lakeRep={};const order=[];
   feats.forEach((f,i)=>{const n=lakeDisplayName(f);if(!(n in lakeRep)){lakeRep[n]=i;order.push(i);}});
-  const lakeQueue=learnSortIdx(order,feats,lakeDisplayName,'lake:').slice(0,allTargets?Infinity:quizRoundLimit);
+  const lakeQueue=learnSortIdx(order,feats,lakeDisplayName,'lake:','lake:'+diff).slice(0,allTargets?Infinity:quizRoundLimit);
   game={mode:'lake',lakeMode:true,difficulty:diff,
     lakeFeatures:feats,lakeRep,
     queue:lakeQueue,
@@ -1776,7 +1806,7 @@ async function startInputQuiz(cfg){
   if(cfg.type==='outline')await iqEnsureOutlineGeo();
   const ids=iqPoolIds(cfg);
   if(!ids.length)return;
-  const queue=learnSortIds(ids,IQ_PREFIX[cfg.type]).slice(0,allTargets?Infinity:quizRoundLimit);
+  const queue=learnSortIds(ids,IQ_PREFIX[cfg.type],iqScoreKey(cfg)).slice(0,allTargets?Infinity:quizRoundLimit);
   // The two hardest difficulty tiers show every possible country in the dropdown, not just this
   // round's pool — a short list would let you find the answer by elimination instead of actually
   // recognising the flag/capital/outline. Easier tiers (and region-scoped rounds) keep the short,
