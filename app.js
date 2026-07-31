@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 H';
+const BUILD_ID='2026-07-31 I';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1229,7 +1229,16 @@ function isActive(id){
     if(CONTS.has(r))return !!(C[id]&&C[id].c===r);
     return !!(C[id]&&ISO2[id]===r.toLowerCase());
   }
-  if(game.customIds)return game.customIds.has(id);
+  if(game.customIds){
+    // The two hardest difficulty tiers (Schwer/Sehr schwer) show every country as clickable, not
+    // just the tier's own ~39 — otherwise which countries are highlighted *is* the answer list,
+    // letting a player find the target by elimination instead of actually recognising it. Same
+    // reasoning as the flag/capital input quiz's dropdown scoping for its two hardest tiers. The
+    // target pool itself (game.queue) is untouched, so only countries from tiers 4/5 are ever
+    // asked about — the rest are clickable but would just register as a wrong guess.
+    if(game.mode==='diff4'||game.mode==='diff5')return !!C[id];
+    return game.customIds.has(id);
+  }
   const ac=activeConts();
   if(!ac)return !!C[id];
   return C[id]&&ac.has(C[id].c);
