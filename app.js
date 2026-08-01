@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-01 D';
+const BUILD_ID='2026-08-01 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2712,24 +2712,38 @@ function _renderRegionMap(cfg,features){
     .on('click',click);
 
   // A thin dashed frame marks an inset as a separate little map, the same way printed atlases
-  // box off Alaska/Hawaii so they aren't mistaken for their real location.
-  const drawInsetFrame=(x0,y0,x1,y1)=>{
+  // box off Alaska/Hawaii so they aren't mistaken for their real location. An inset's real
+  // content is often a small archipelago with gaps of open water between islands — hovering
+  // that gap inside the frame used to do nothing, even though the frame visually promises the
+  // whole box belongs to one region. `hitFeature` (when there's exactly one feature in the box)
+  // adds an invisible rect covering the entire frame so the whole box is hoverable/clickable,
+  // not just the pixels the actual polygon happens to cover.
+  const drawInsetFrame=(x0,y0,x1,y1,hitFeature)=>{
     const pad=6;
     g.append('rect').attr('class','rg-inset-frame')
       .attr('x',x0-pad).attr('y',y0-pad).attr('width',x1-x0+pad*2).attr('height',y1-y0+pad*2)
       .attr('fill','none').attr('stroke',th.border).attr('stroke-width',1).attr('stroke-dasharray','3,3')
       .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
+    if(hitFeature){
+      g.append('rect').attr('class','rg-inset-hit')
+        .attr('x',x0-pad).attr('y',y0-pad).attr('width',x1-x0+pad*2).attr('height',y1-y0+pad*2)
+        .attr('fill','transparent').style('cursor','pointer')
+        .on('mouseover',()=>hoverIn(hitFeature))
+        .on('mouseout',hoverOut)
+        .on('click',ev=>click(ev,hitFeature));
+    }
   };
   for(const layer of insetLayers){
     const [[bx0,by0],[bx1,by1]]=layer.box;
-    drawInsetFrame(bx0,by0,bx1,by1);
+    const only=layer.set.size===1?[...layer.set][0]:null;
+    drawInsetFrame(bx0,by0,bx1,by1,only);
   }
   if(cfg.insetFrameNames){
     // geoAlbersUsa positions Alaska/Hawaii itself; there's no separate projection to fit a box
     // to, so just frame wherever it actually drew them.
     for(const f of features.filter(f=>cfg.insetFrameNames.includes(f.properties[cfg.nameKey]))){
       const b=mainPath.bounds(f);
-      drawInsetFrame(b[0][0],b[0][1],b[1][0],b[1][1]);
+      drawInsetFrame(b[0][0],b[0][1],b[1][0],b[1][1],f);
     }
   }
 
