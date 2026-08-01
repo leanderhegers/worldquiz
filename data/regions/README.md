@@ -9,7 +9,7 @@ All of these are bundled rather than fetched at runtime — see rule 1 in `CLAUD
 | `france-regions.geojson` | 13 régions | [gregoiredavid/france-geojson](https://github.com/gregoiredavid/france-geojson) |
 | `italy.geojson` | 20 regioni | Natural Earth admin-1, dissolved |
 | `spain.geojson` | 19 comunidades | Natural Earth admin-1, dissolved |
-| `austria.geojson` | 9 Bundesländer | Natural Earth admin-1 |
+| `austria.geojson` | 9 Bundesländer | Natural Earth admin-1, full 10m detail (not simplified — see below) |
 | `japan.geojson` | 47 prefectures | Natural Earth admin-1 |
 
 ## Regenerating the Natural Earth ones
@@ -25,7 +25,7 @@ unzip -oq adm1.zip -d adm1
 SHP=adm1/ne_10m_admin_1_states_provinces.shp
 
 npx mapshaper $SHP -filter "admin==='Japan'"   -filter-fields name -simplify 50% keep-shapes -o japan.geojson
-npx mapshaper $SHP -filter "admin==='Austria'" -filter-fields name -simplify 50% keep-shapes -o austria.geojson
+npx mapshaper $SHP -filter "admin==='Austria'" -filter-fields name -o austria.geojson
 npx mapshaper $SHP -filter "admin==='Spain' && region!=='Ceuta' && region!=='Melilla'" -dissolve region -each 'name=region' -filter-fields name -simplify 50% keep-shapes -o spain.geojson
 npx mapshaper $SHP -filter "admin==='Italy'" -dissolve region -each 'name=region' -filter-fields name -simplify 50% keep-shapes -o italy.geojson
 ```
@@ -34,6 +34,18 @@ npx mapshaper $SHP -filter "admin==='Italy'" -dissolve region -each 'name=region
 than the hand-authored Germany/France datasets. 50% keeps enough of Natural Earth's original 10m
 detail to look sharp at the quiz's render size while still keeping file sizes reasonable;
 `keep-shapes` stops small regions from being simplified into a null geometry.
+
+Austria is the one exception: no `-simplify` at all, i.e. full 10m detail. Its raw admin-1 data
+is small to begin with (9 simple, landlocked Bundesländer — no coastline, no islands), so even at
+50% it looked noticeably softer than it needed to; skipping simplification entirely only costs
+~50 KB more (98 KB vs. 50 KB) and there was no size problem to solve for this one. This 50%
+default is not meant to be re-derived per country by a formula — see the discussion in the git
+history around this commit for why a "bigger input → simplify harder" rule was considered and
+rejected: raw vertex count doesn't distinguish redundant points from ones that carry real shape
+information (many small islands, fjords), so a country added later with genuinely complex
+geometry could end up silently blockier under an automatic rule. Eyeball each new country's
+render at 50% first, and only back off the percentage (per-country, not via a formula) if it
+still looks soft, the same way this file was.
 
 Spain additionally excludes Ceuta and Melilla via the filter above: they are autonomous
 *cities*, and at ~12–19 km² they would be simplified away to a null geometry, which would leave
