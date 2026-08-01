@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-07-31 L';
+const BUILD_ID='2026-08-01 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2338,8 +2338,8 @@ function nextFlag(){
   const id=game.flagCurrent,mode=game.inputMode||'flag';
   const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline');
   img.style.display='none';txt.style.display='none';out.style.display='none';
-  if(mode==='flag'){img.src='data/flags/w320/'+ISO2[id]+'.png';img.style.display='';}
-  else if(mode==='wappen'){img.src='data/wappen/'+id+'.png';img.style.display='';}
+  if(mode==='flag'){img.src='data/flags/w320/'+ISO2[id]+'.png';img.classList.remove('flag-img-wappen');img.style.display='';}
+  else if(mode==='wappen'){img.src='data/wappen/'+id+'.png';img.classList.add('flag-img-wappen');img.style.display='';}
   else if(mode==='outline'){if(!renderOutline(id)){nextFlag();return;}out.style.display='';}
   else if(mode==='language'){txt.textContent=LANGUAGES[id].ex;txt.classList.add('iq-text-sentence');txt.style.display='';}
   else if(mode==='currency'){txt.textContent=id;txt.classList.remove('iq-text-sentence');txt.style.display='';}

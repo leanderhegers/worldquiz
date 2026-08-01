@@ -35,6 +35,12 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 /* Language-quiz example sentences run longer than a country/capital name — shrink and allow
    wrapping so Cyrillic/CJK/Arabic-script sentences don't overflow the fixed 34px default. */
 #iq-text.iq-text-sentence{font-size:24px;line-height:1.4;max-width:min(480px,90vw);}
+#flag-img{max-height:170px;max-width:min(340px,85vw);width:auto;}
+/* Coats of arms are roughly square (240x240 source), unlike flags' wide-short aspect — the
+   shared #flag-img's 170px max-height is what binds for a square image, so it renders much
+   smaller than it could. Bumping both dimensions here only affects Wappen mode. The extra
+   class in the selector outweighs the plain #flag-img rule above under normal cascade rules. */
+#flag-img.flag-img-wappen{max-height:320px;max-width:min(320px,85vw);}
 .iq-chips{display:flex;flex-wrap:wrap;gap:8px;}
 .iq-chip{border:1px solid rgba(255,255,255,.16);background:transparent;color:#dbe6f2;border-radius:10px;padding:8px 15px;font-size:14px;cursor:pointer;transition:background .12s,border-color .12s;}
 .iq-chip.on{background:#2f8fd0;border-color:#2f8fd0;color:#fff;}
