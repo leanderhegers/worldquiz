@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-01 E';
+const BUILD_ID='2026-08-01 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -65,7 +65,11 @@ function zoomToGeo(lon,lat,k){if(!currentProj)return;const p=currentProj([lon,la
 // mtn: mountain-range fill — deliberately not sph (that's water) or avail (that's plain land).
 // Brown reads as "elevation" the same way it does on real hypsometric-tinted maps, and stays
 // unambiguous against every theme's own water/land/found colors.
-const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#205090',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#1a5a30',mtn:'#7a5230'}};
+// border: chosen per-theme after live A/B testing across every quiz (see git history) — atlas
+// and terrain both moved off their original hue (a lighter blue, and a dark green too close to
+// terrain's own land fill), while neon's magenta border already fit that theme's glow aesthetic
+// and stayed.
+const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#0a2a52',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#000',mtn:'#7a5230'}};
 const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
 const THEME_DOT={atlas:'#b0a080',neon:'#ff2a6d',terrain:'#6a9a58'};
 const TERRAIN_BIOME=(()=>{const m=new Map();
@@ -385,7 +389,15 @@ function openHomeOpts(){setTxt('home-opts-title',t('optionsLbl'));renderOptions(
 function closeHomeOpts(){const m=$('home-opts-modal');if(m)m.style.display='none';}
 
 function setLang(l){lang=l;updateAllText();renderOptions();if($('custom-screen').style.display!=='none')renderCustom();persistSettings();}
-function setTheme(v){theme=v;applyTheme();renderOptions();persistSettings();}
+function setTheme(v){
+  theme=v;applyTheme();renderOptions();renderRegionOpts();
+  // applyTheme() only touches the main world-map DOM; the region quiz builds its own SVG fresh
+  // each render and doesn't listen for theme changes, so it needs an explicit re-render here.
+  if(_regGame&&$('region-screen')&&$('region-screen').style.display!=='none')_renderRegionMap(_regGame.cfg,_regGame.features);
+  persistSettings();
+}
+function toggleRegionOpts(){const p=$('reg-opts-panel');if(!p)return;if(p.style.display==='none'){renderRegionOpts();p.style.display='';}else{p.style.display='none';}}
+function renderRegionOpts(){const p=$('reg-opts-panel');if(p)p.innerHTML=themeGroup();}
 function setKeepFound(v){keepFound=v;updateColors();renderOptions();persistSettings();}
 function setWrongHint(v){showWrongHint=v;renderOptions();persistSettings();}
 function setSkipHint(v){showSkipHint=v;renderOptions();persistSettings();}
@@ -426,6 +438,9 @@ function applyRemoteSettings(s){
 }
 function refreshScoresUI(){if($('mode-screen')&&$('mode-screen').style.display!=='none')renderModeScreen();}
 function gameScoreKey(){
+  // Region quizzes track best score too, but keep their own separate state (_regGame) rather
+  // than the shared game object — same reasoning as elsewhere in the region-quiz code.
+  if(_regGame)return 'region:'+_regGame.key;
   if(!game)return null;
   if(game.flagMode)return game.iqCfg?iqScoreKey(game.iqCfg):null;
   if(game.pinMode)return 'pin:'+(game.difficulty||'EU');
@@ -439,6 +454,7 @@ function gameScoreKey(){
   return null;
 }
 function gameScoreValue(){
+  if(_regGame)return {score:_regGame.firstTry||0,total:_regGame.total||0};
   if(game.flagMode)return {score:game.flagCorrect||0,total:game.flagTotal||0};
   if(game.pinMode){const isCont=['EU','AF','AS','NA','SA','OC','world'].includes(game.pinRegion);return {score:game.pinScore||0,total:(game.total||0)*(isCont?1050:1000)};}
   return {score:game.firstTry||0,total:game.total||0};
@@ -696,11 +712,11 @@ async function startGame(mode){
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.popMode)startPopGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
+function restart(){if(_regGame)return void startRegionQuiz(_regGame.key);if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.popMode)startPopGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(_regGame)return void regionBack();const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -2868,13 +2884,25 @@ function _regFeedback(text,color){
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},1500);
 }
 
+// Mirrors showResult() (the plain country/lake/river/city/mountain quizzes' result screen)
+// instead of the old in-place header-text swap, which left the frozen map showing underneath
+// with no emoji, no best-score note and no again/menu buttons — region quizzes are the only
+// mode that skipped the shared result screen every other quiz gets.
 function _showRegionResult(){
   if(!_regGame)return;
   const g=_regGame;
   const pct=g.total?Math.round(g.firstTry/g.total*100):0;
-  $('reg-target-name').textContent=t('resTitle');
-  $('reg-find-label').textContent=t('res1')(g.firstTry,g.total,pct);
-  $('reg-btn-skip').style.display='none';
+  const note=resultBestNote();
+  showScreen('result-screen');
+  $('res-btn-back').textContent=t('back');
+  $('res-emoji').textContent=pct>=90?'🏆':pct>=70?'🎉':pct>=50?'👍':'📚';
+  $('res-title').textContent=t('resTitle');
+  $('res-l1').textContent=t('res1')(g.firstTry,g.total,pct);
+  const sk=g.skipped||0;
+  $('res-l2').textContent=t('res2')(g.correct,g.wrong)+(sk>0?', '+sk+' '+t('skippedLbl'):'')+note;
+  $('btn-again').textContent=t('again');
+  $('btn-new').textContent=t('newgame');
+  if(typeof checkAchievements==='function')checkAchievements();
 }
 
 function regionBack(){
