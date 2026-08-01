@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-01 B';
+const BUILD_ID='2026-08-01 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2556,8 +2556,13 @@ const REGION_QUIZZES={
     objectKey:null,nameKey:'name',count:47,
     proj:'fit',filter:null,isGeoJSON:true,
     // Okinawa's island chain stretches far south of the main archipelago; excluding it from the
-    // fit-extent box (same reasoning as Spain/Canarias above) keeps the mainland readable.
-    fitFilter:f=>f.properties.name!=='Okinawa',
+    // fit-extent box (same reasoning as Spain/Canarias above) keeps the mainland readable. Tokyo
+    // needs the same treatment for a less obvious reason: the Tokyo prefecture polygon itself
+    // also covers the Izu/Ogasawara islands, reaching almost as far south (~24.7°N) as Okinawa —
+    // so even with Okinawa excluded, fitting on Tokyo's full extent still squeezed the mainland
+    // into the top third of the map. Tokyo's mainland portion still renders in its correct spot
+    // afterwards (fitFilter only affects the fit-box calculation, not what gets drawn).
+    fitFilter:f=>!['Okinawa','Tokyo'].includes(f.properties.name),
     // Japan's 47 prefectures are uniformly small — unlike Germany's three city-states among
     // 13 much larger Länder, most of them fall under the tiny-region area threshold. Giving
     // nearly every prefecture an overlapping r=16 hit circle made clicks resolve to whichever
