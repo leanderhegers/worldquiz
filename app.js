@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-01 A';
+const BUILD_ID='2026-08-01 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1325,16 +1325,19 @@ async function loadMap(){
       'Tisa':'Tisza',
     };
     if(riversData){
-      // Lake Centerline features mark the stretch of a river that happens to flow through a lake
-      // — dropping them before merging (rather than after) loses a little visual continuity where
-      // a river crosses a lake, but keeps them from poisoning the merge: a river and its own
-      // Lake Centerline share the same raw name, so without this they'd get merged into one
-      // feature whose copied-over properties could come from either — and when they came from the
-      // Lake Centerline half, the later featurecla!=='Lake Centerline' filter deleted the *entire*
+      // Lake Centerline features mark the stretch of a river that happens to flow through a lake,
+      // sharing the same raw name as the river's own 'River'-tagged segments — e.g. the
+      // Mississippi is one 'River' segment plus one 'Lake Centerline' segment (through Lake
+      // Itasca). They still need to be merged together with the river's other segments, or the
+      // rendered path has a visible gap wherever the river crosses a lake. But the merged
+      // feature's *properties* must come from a 'River' segment, never a 'Lake Centerline' one:
+      // downstream code filters out anything whose featurecla is still 'Lake Centerline', and the
+      // Lake Centerline segment sometimes sorts first in the source data — if its properties won
+      // the merge, the featurecla they carried over caused that filter to delete the *entire*
       // merged river. That silently dropped the Mississippi, Volga, Niger, Zambezi, Murray,
       // Colorado, Columbia, Rio Grande and Missouri from the quiz entirely.
       const byName={};
-      riversData.features.filter(f=>f.properties.featurecla!=='Lake Centerline').forEach(f=>{
+      riversData.features.forEach(f=>{
         const raw=f.properties.name;if(!raw)return;
         const n=RIVER_ALIASES[raw]||raw;
         (byName[n]=byName[n]||[]).push({...f,properties:{...f.properties,name:n}});
@@ -1349,7 +1352,8 @@ async function loadMap(){
         // feats[0] could be any of the merged raw names (e.g. "Bahr el Jebel" for the Nile), and
         // riverDisplayName() reads name_en/name_de, not name, so leaving it unset showed whichever
         // segment happened to merge first instead of the river's real name.
-        merged.push({type:'Feature',properties:{...feats[0].properties,scalerank:minSr,name_en:n},geometry:{type:'MultiLineString',coordinates:lines}});
+        const rep=feats.find(f=>f.properties.featurecla!=='Lake Centerline')||feats[0];
+        merged.push({type:'Feature',properties:{...rep.properties,scalerank:minSr,name_en:n},geometry:{type:'MultiLineString',coordinates:lines}});
       });
       riversData={...riversData,features:merged.concat(riversData.features.filter(f=>!f.properties.name))};
     }
