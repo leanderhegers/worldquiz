@@ -402,11 +402,39 @@ const PIN_COUNTRY_KEYS=['DE','FR','US','CN','JP','IN','BR','AU','MX'];
 const PIN_DECAY={
   DE:120,FR:200,JP:200,
   IN:500,CN:600,BR:700,US:700,AU:700,MX:400,
-  EU:500,AF:800,AS:1000,NA:800,SA:800,OC:800,world:1200
+  EU:500,AF:800,AS:1000,NA:800,SA:800,OC:800,world:1200,trivia:900
 };
+
+// Drop-A-Pin-Trivia: welt­weit verstreute geografische Wahrzeichen/Besonderheiten ohne
+// festen Regionsbezug (keine Stadt-Population, sondern "wo liegt X?").
+const PIN_TRIVIA = [
+  {name_de:'Stonehenge', name_en:'Stonehenge', lon:-1.8262, lat:51.1789},
+  {name_de:'Beringstraße', name_en:'Bering Strait', lon:-169.0, lat:65.75},
+  {name_de:'Machu Picchu', name_en:'Machu Picchu', lon:-72.5450, lat:-13.1631},
+  {name_de:'Mount Everest', name_en:'Mount Everest', lon:86.9250, lat:27.9881},
+  {name_de:'Grand Canyon', name_en:'Grand Canyon', lon:-112.1129, lat:36.1069},
+  {name_de:'Victoriafälle', name_en:'Victoria Falls', lon:25.8572, lat:-17.9243},
+  {name_de:'Totes Meer', name_en:'Dead Sea', lon:35.47, lat:31.5},
+  {name_de:'Angkor Wat', name_en:'Angkor Wat', lon:103.8670, lat:13.4125},
+  {name_de:'Petra', name_en:'Petra', lon:35.4444, lat:30.3285},
+  {name_de:'Kap der Guten Hoffnung', name_en:'Cape of Good Hope', lon:18.4740, lat:-34.3568},
+  {name_de:'Straße von Gibraltar', name_en:'Strait of Gibraltar', lon:-5.60, lat:35.95},
+  {name_de:'Panamakanal', name_en:'Panama Canal', lon:-79.68, lat:9.08},
+  {name_de:'Sueskanal', name_en:'Suez Canal', lon:32.35, lat:30.5},
+  {name_de:'Mont Blanc', name_en:'Mont Blanc', lon:6.8652, lat:45.8326},
+  {name_de:'Timbuktu', name_en:'Timbuktu', lon:-3.0026, lat:16.7666},
+  {name_de:'Death Valley', name_en:'Death Valley', lon:-117.0794, lat:36.5054},
+  {name_de:'Nordkap', name_en:'North Cape', lon:25.7844, lat:71.1706},
+  {name_de:'Osterinsel', name_en:'Easter Island', lon:-109.3497, lat:-27.1127},
+  {name_de:'Galápagos-Inseln', name_en:'Galápagos Islands', lon:-90.9656, lat:-0.9538},
+  {name_de:'Great Barrier Reef', name_en:'Great Barrier Reef', lon:147.6992, lat:-18.2871},
+  {name_de:'Tschernobyl', name_en:'Chernobyl', lon:30.0995, lat:51.3890},
+  {name_de:'Amazonas-Mündung', name_en:'Amazon River Mouth', lon:-50.05, lat:-0.05}
+];
 
 function getPinCities(region){
   if(!region||region==='world')return PIN_CITIES;
+  if(region==='trivia')return PIN_TRIVIA;
   if(PIN_COUNTRY_KEYS.includes(region))return PIN_CITIES.filter(c=>c.country===region);
   return PIN_CITIES.filter(c=>c.cont===region);
 }
