@@ -107,6 +107,38 @@ function _updatePublicProfile(uid){
   }).catch(()=>{});
 }
 
+// ── DAILY CHALLENGE: global leaderboard ──
+// One document per user per day, id `${date}_${uid}`. The security rule only allows `create` on
+// that path (never update/delete), so a resubmission for a date that already has a doc is rejected
+// by Firestore itself — the once-per-day rule holds even if a device's local state was cleared or
+// the same account plays from a second device.
+async function getDailyChallengeResult(dateStr){
+  if(!_db||!_auth||!_auth.currentUser)return null;
+  try{
+    const snap=await _db.collection('dailyScores').doc(dateStr+'_'+_auth.currentUser.uid).get();
+    return snap.exists?snap.data():null;
+  }catch(e){return null;}
+}
+async function submitDailyChallengeScore(dateStr,firstTry,total,timeMs){
+  if(!_db||!_auth||!_auth.currentUser)return false;
+  const uid=_auth.currentUser.uid;
+  try{
+    await _db.collection('dailyScores').doc(dateStr+'_'+uid).set({
+      date:dateStr,uid,username:_auth.currentUser.displayName||'?',
+      firstTry,total,timeMs,ts:Date.now()
+    });
+    return true;
+  }catch(e){console.warn('Daily-Challenge-Ergebnis konnte nicht gespeichert werden',e);return false;}
+}
+async function getDailyLeaderboard(dateStr,limitN){
+  if(!_db)return [];
+  try{
+    const snap=await _db.collection('dailyScores').where('date','==',dateStr)
+      .orderBy('firstTry','desc').orderBy('timeMs','asc').limit(limitN||20).get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){console.warn('Bestenliste konnte nicht geladen werden',e);return [];}
+}
+
 // One-time repair for documents written by the brief period where _persistFields used set()
 // instead of update() (see the note there): those writes landed as literal top-level fields named
 // e.g. "achievements.sa_master" or "scores.map:SA", siblings of the real achievements/scores maps

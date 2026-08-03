@@ -26,5 +26,16 @@ service cloud.firestore {
       allow delete: if request.auth != null &&
         (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
+
+    // One doc per user per day, id `{date}_{uid}`. Only `create` is allowed (no update/delete), so
+    // Firestore itself rejects a second submission for a date that already has a doc — that's what
+    // makes the Daily Challenge's "once per day" rule hold even across devices/cleared local state.
+    match /dailyScores/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        docId == request.resource.data.date + '_' + request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

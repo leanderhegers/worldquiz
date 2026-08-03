@@ -49,6 +49,7 @@
     <p id="home-sub" class="home-sub"></p>
     <button id="home-play" class="home-play" onclick="openCategoryPicker()"></button>
     <button id="home-random-btn" class="home-options-btn" onclick="startRandomChallenge()"></button>
+    <button id="home-daily-btn" class="home-options-btn" onclick="openDailyChallenge()"></button>
     <button id="home-options-btn" class="home-options-btn" onclick="openHomeOpts()"></button>
   </div>
   <div class="home-footer">
@@ -274,6 +275,10 @@
     <button id="btn-again" onclick="restart()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button>
     <button id="btn-new" onclick="back()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button>
     <button id="btn-share" onclick="shareResult()" style="padding:10px 20px;background:#222;border:1px solid #444;color:#ccc;border-radius:8px;cursor:pointer;"></button></div>
+  <div id="daily-leaderboard-wrap" style="display:none;width:100%;max-width:420px;margin-top:2rem;text-align:left;">
+    <div id="daily-leaderboard-title" style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;text-align:center;"></div>
+    <div id="daily-leaderboard-list"></div>
+  </div>
   </div>
 </div>
 </div>
