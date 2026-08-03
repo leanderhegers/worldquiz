@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-02 E';
+const BUILD_ID='2026-08-02 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2086,6 +2086,10 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
 const CHALLENGE_TYPES=['country','flag','capital','outline','language','currency','wappen'];
 async function startRandomChallenge(){
   if(!outlineGeo)await iqEnsureOutlineGeo();
+  // A country-type question needs worldData (renderMap's input) — normally loaded by loadMap()
+  // the first time a map-click quiz starts, but a challenge launched straight from the home
+  // screen may be the very first thing the player does this session, so it isn't loaded yet.
+  if(!worldData)await loadMap();
   const countryIds=Object.keys(C).map(Number);
   const pools={
     country:countryIds,
