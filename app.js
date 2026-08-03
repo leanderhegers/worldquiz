@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-01 G';
+const BUILD_ID='2026-08-02 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2340,7 +2340,14 @@ function renderOutline(id){
   if(!f||!f.geometry)return svg.innerHTML='',false;
   const d=OUTLINE_MULTI.has(id)?outlineMultiPath(f):OUTLINE_FITALL.has(id)?outlineFitAllPath(f):outlineSinglePath(f);
   if(!d)return svg.innerHTML='',false;
-  svg.innerHTML='<path d="'+d+'" fill="#6a9a58" stroke="#eaf0f8" stroke-width="1.1" stroke-linejoin="round"/>';
+  svg.innerHTML='<g class="iq-outline-g"><path d="'+d+'" fill="#6a9a58" stroke="#eaf0f8" stroke-width="1.1" stroke-linejoin="round"/></g>';
+  // Each new outline reuses the same static path coordinates (baked to fit the 320x190
+  // viewBox at 1x, see outlineSinglePath/outlineMultiPath/outlineFitAllPath above), so
+  // a fresh zoom behavior + an explicit identity reset is needed every question — otherwise
+  // the previous question's zoom/pan would carry over onto the new shape.
+  const s=d3.select(svg),g=s.select('g.iq-outline-g');
+  const zoom=d3.zoom().scaleExtent([1,6]).translateExtent([[0,0],[320,190]]).on('zoom',ev=>g.attr('transform',ev.transform));
+  s.call(zoom).call(zoom.transform,d3.zoomIdentity);
   return true;
 }
 
@@ -2356,11 +2363,11 @@ function nextFlag(){
   if(!game.flagQueue||game.flagQueue.length===0){showFlagResult();return;}
   game.flagCurrent=game.flagQueue.shift();
   const id=game.flagCurrent,mode=game.inputMode||'flag';
-  const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline');
+  const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline-wrap');
   img.style.display='none';txt.style.display='none';out.style.display='none';
   if(mode==='flag'){img.src='data/flags/w320/'+ISO2[id]+'.png';img.classList.remove('flag-img-wappen');img.style.display='';}
   else if(mode==='wappen'){img.src='data/wappen/'+id+'.png';img.classList.add('flag-img-wappen');img.style.display='';}
-  else if(mode==='outline'){if(!renderOutline(id)){nextFlag();return;}out.style.display='';}
+  else if(mode==='outline'){if(!renderOutline(id)){nextFlag();return;}$('iq-outline-tip').textContent=t('zoomTip');out.style.display='flex';}
   else if(mode==='language'){txt.textContent=LANGUAGES[id].ex;txt.classList.add('iq-text-sentence');txt.style.display='';}
   else if(mode==='currency'){txt.textContent=id;txt.classList.remove('iq-text-sentence');txt.style.display='';}
   else{txt.textContent=game.capitalDir==='c2cap'?(lang==='de'?C[id].de:C[id].en):(lang==='de'?CAPITALS[id].de:CAPITALS[id].en);txt.classList.remove('iq-text-sentence');txt.style.display='';}
