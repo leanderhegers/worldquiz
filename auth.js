@@ -119,13 +119,13 @@ async function getDailyChallengeResult(dateStr){
     return snap.exists?snap.data():null;
   }catch(e){return null;}
 }
-async function submitDailyChallengeScore(dateStr,firstTry,total,timeMs){
+async function submitDailyChallengeScore(dateStr,firstTry,total,timeMs,score){
   if(!_db||!_auth||!_auth.currentUser)return false;
   const uid=_auth.currentUser.uid;
   try{
     await _db.collection('dailyScores').doc(dateStr+'_'+uid).set({
       date:dateStr,uid,username:_auth.currentUser.displayName||'?',
-      firstTry,total,timeMs,ts:Date.now()
+      firstTry,total,timeMs,score,ts:Date.now()
     });
     return true;
   }catch(e){console.warn('Daily-Challenge-Ergebnis konnte nicht gespeichert werden',e);return false;}
@@ -252,7 +252,13 @@ function renderAuthUI(u) {
   const loginLabel=t('signIn');
   const logoutLabel=t('signOut');
   if (u) {
-    el.innerHTML = '<button class="home-icon-btn" onclick="openProfile()" data-label="'+profLabel+'"><span>👤</span></button>' +
+    // Firebase Auth persists one session per browser, shared across every tab of this origin —
+    // signing in on a second tab (e.g. a friend trying the app on the same device) silently swaps
+    // the account everywhere, with no error. This label is the only place that would ever surface
+    // that swap, since nothing else on the home screen names the active account.
+    const acctLabel=isEN?'Signed in as':'Eingeloggt als';
+    el.innerHTML = '<span class="home-acct-name">'+acctLabel+' <strong>'+escapeHtml(u.displayName||'?')+'</strong></span>' +
+      '<button class="home-icon-btn" onclick="openProfile()" data-label="'+profLabel+'"><span>👤</span></button>' +
       '<button class="home-icon-btn" onclick="openFriends()" data-label="'+frLabel+'"><span>👥</span></button>' +
       '<button class="home-icon-btn" onclick="authLogout()" data-label="'+logoutLabel+'"><span>🚪</span></button>';
   } else {

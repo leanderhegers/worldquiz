@@ -39,6 +39,14 @@
     <button id="auth-switch" class="auth-switch" onclick="switchAuthMode()"></button>
   </div>
 </div>
+<div id="daily-hint-modal" class="auth-modal" style="display:none;">
+  <div class="auth-box">
+    <h2 class="auth-title" id="daily-hint-title"></h2>
+    <p id="daily-hint-text" style="color:#c8d4e0;font-size:14px;line-height:1.5;margin:0 0 1rem;"></p>
+    <label class="auth-show"><input type="checkbox" id="daily-hint-dontshow"><span id="daily-hint-dontshow-lbl"></span></label>
+    <button id="daily-hint-btn" class="auth-submit" onclick="_confirmDailyHint()"></button>
+  </div>
+</div>
 <div id="root">
 <div id="home-screen" style="display:none;">
   <div class="home-bg"></div>
