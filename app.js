@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-04 A';
+const BUILD_ID='2026-08-04 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1362,36 +1362,29 @@ function _exportMultiQuestionText(n,dir){return dir==='most'?t('exportMostNQ')(n
 function _heritageQuestionText(rank){return rank===1?t('heritageMostQ'):t('heritageMostRankQ')(rank);}
 function _heritageMultiQuestionText(n){return t('heritageMostNQ')(n);}
 // Picks up to n single-country rank questions, then one multi-country "top groupN" question, from
-// one end of a fully-sorted id list — skipping any id already claimed by another metric/direction
-// in this same round. Rankings overlap heavily at the extremes across metrics (Russia/China/USA/
-// Brazil/India show up near the top of population AND area; big exporters often show up in
-// heritage-site counts too) — without this, a round could end up asking two different questions
-// about the same country, which breaks nextCountry()'s "skip this queue entry, it's already found"
-// check (that check keys on bare country id, with no concept of "found for which question"). Rank
-// numbers stay true to the full sorted list (i+1), not to the count of successful picks, so a
-// skipped country doesn't shift every later label's claimed rank.
-function _triviaBuildSpecs(sorted,dir,claimed,singleQ,multiQ,singleCount,groupN,maxRank){
+// one end of a fully-sorted id list. Each metric+direction uses its own true ranking regardless of
+// what any other metric picked — countries legitimately top multiple rankings at once (China is
+// #1 by population AND a top exporter; that's real, not a bug), and a "5 highest export volume"
+// question that quietly swapped China out for a truer-sounding-but-wrong substitute just because
+// population asked about it first would be factually misleading. Reuse across questions in the
+// same round is deliberately supported by the surrounding game state (game.currentGroup takes
+// rendering/click priority over game.found — see getColor()/handleClick()), not prevented here.
+function _triviaBuildSpecs(sorted,dir,singleQ,multiQ,singleCount,groupN,maxRank){
   const specs=[];
-  let picked=0;
   // Capped at maxRank: "Platz 17 der bevölkerungsärmsten Länder" is unanswerable without
   // memorizing the full ranking, so a single-country rank question never reaches further than
-  // maxRank into the list — even if collisions with other metrics (see comment above) eat into
-  // the earlier ranks and leave fewer than singleCount candidates within that range.
-  for(let i=0;i<sorted.length&&i<maxRank&&picked<singleCount;i++){
+  // maxRank into the list.
+  for(let i=0;i<Math.min(singleCount,maxRank,sorted.length);i++){
     const id=dir==='most'?sorted[i]:sorted[sorted.length-1-i];
-    if(claimed.has(id))continue;
-    claimed.add(id);
     specs.push({ids:[id],q:singleQ(i+1,dir)});
-    picked++;
   }
   // The multi-target "5 smallest" style question names no specific rank, so it stays answerable
-  // by elimination regardless of how deep into the list it reaches — no cap needed here.
+  // by elimination regardless of how deep into the list it reaches — no cap needed here. Starts
+  // right after the single-question ranks so a round's single and group questions for the same
+  // metric+direction don't ask about the exact same country twice.
   const group=[];
-  for(let i=0;i<sorted.length&&group.length<groupN;i++){
-    const id=dir==='most'?sorted[i]:sorted[sorted.length-1-i];
-    if(claimed.has(id))continue;
-    claimed.add(id);
-    group.push(id);
+  for(let i=singleCount;i<sorted.length&&group.length<groupN;i++){
+    group.push(dir==='most'?sorted[i]:sorted[sorted.length-1-i]);
   }
   if(group.length)specs.push({ids:group,q:multiQ(group.length,dir)});
   return specs;
@@ -1411,11 +1404,10 @@ async function startTriviaGame(){
     {sorted:sortFor(exportsD),dirs:['most','least'],singleQ:_exportQuestionText,multiQ:_exportMultiQuestionText},
     {sorted:sortFor(heritageD),dirs:['most'],singleQ:_heritageQuestionText,multiQ:_heritageMultiQuestionText}
   ];
-  const claimed=new Set();
   let specs=[];
   metrics.forEach(m=>m.dirs.forEach(dir=>{
     const groupN=TRIVIA_GROUP_MIN+Math.floor(Math.random()*(TRIVIA_GROUP_MAX-TRIVIA_GROUP_MIN+1));
-    specs=specs.concat(_triviaBuildSpecs(m.sorted,dir,claimed,m.singleQ,m.multiQ,TRIVIA_SINGLE_PER_SIDE,groupN,TRIVIA_SINGLE_MAX_RANK));
+    specs=specs.concat(_triviaBuildSpecs(m.sorted,dir,m.singleQ,m.multiQ,TRIVIA_SINGLE_PER_SIDE,groupN,TRIVIA_SINGLE_MAX_RANK));
   }));
   const shuffled=shuffle(specs);
   game={mode:'trivia',triviaMode:true,
@@ -1903,7 +1895,7 @@ function renderMap(world){
   })();
 
   countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke','none')
-    .on('mouseover',function(ev,d){const id=eff(+d.id);if(wrongFlashIds.has(id))return;if(!game.found||game.found.has(id)||!C[id]||!isActive(id)||(game.skippedItems&&game.skippedItems.has(id)))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const id=eff(+d.id);if(wrongFlashIds.has(id))return;const neededNow=game.currentGroup&&game.currentGroup.has(id);if(!game.found||!C[id]||!isActive(id)||(!neededNow&&(game.found.has(id)||(game.skippedItems&&game.skippedItems.has(id)))))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){countryPaths.filter(f=>eff(+f.id)===eff(+d.id)).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===eff(+d.id)).attr('fill',x=>getMSColor(x.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
 
@@ -2031,7 +2023,7 @@ function renderMap(world){
   microstateHit=dynG.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
-    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;if((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id)))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(){microstateDots.attr('fill',x=>getMSColor(x.id));countryPaths&&countryPaths.attr('fill',f=>getColor(+f.id));})
     .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(t.id);});
 
@@ -2277,8 +2269,13 @@ function renderMap(world){
 
 
 function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
+// game.currentGroup is checked first, before both game.found and game.skippedItems: a country can
+// legitimately be part of more than one trivia question in the same round (see
+// _triviaBuildSpecs()'s comment), so one already found OR skipped from an earlier, different
+// question must not paint it as done/skipped — it still needs its own fresh click for the question
+// that's active right now.
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.currentGroup&&game.currentGroup.has(id))return _avail(rawId);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.currentGroup&&game.currentGroup.has(id))return _avail(id);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){
@@ -2534,11 +2531,15 @@ async function renderDailyLeaderboard(dateStr){
 }
 
 // A queue entry is either a bare country id (every mode except trivia's multi-country questions)
-// or {ids:[...],q:'...'} (trivia mode only — see startTriviaGame()/_triviaBuildSpecs()). Resolved
-// means every id in the entry is already in game.found, so the "skip already-answered entries"
-// pre-check below works for both shapes without needing to know which mode built the queue.
+// or {ids:[...],q:'...'} (trivia mode only — see startTriviaGame()/_triviaBuildSpecs()). For a bare
+// id, "resolved" means it's already in game.found, so the "skip already-answered entries" pre-check
+// below can drop it before it's ever presented. Trivia entries deliberately do NOT use game.found
+// for this: the same country can legitimately be part of more than one question in the same round
+// (see _triviaBuildSpecs()'s comment — a country can top multiple real-world rankings at once), so
+// a later question's countries being already-found from an earlier, unrelated question must not
+// make nextCountry() silently skip presenting it — the player still needs credit for THIS question.
 function _queueEntryResolved(entry){
-  if(entry&&typeof entry==='object'&&entry.ids)return entry.ids.every(id=>game.found.has(id));
+  if(entry&&typeof entry==='object'&&entry.ids)return false;
   return game.found.has(entry);
 }
 function nextCountry(){
@@ -2578,8 +2579,13 @@ function handleClick(rawId){
   // Guards of its own: the clicked shape must be a country that is part of this round, and with
   // "stay green" off an already-found country stays clickable.
   if(!C[id]||!isActive(id))return;
-  if(game.skippedItems&&game.skippedItems.has(id))return;
-  if(keepFound&&game.found.has(id))return;
+  // A country already found or skipped from an earlier, different trivia question stays clickable
+  // if the ACTIVE question also needs it — see getColor()'s comment on why the same country can
+  // legitimately belong to more than one question in a round. Without this, a country skipped once
+  // would be permanently unclickable, soft-locking any later question that also needs it.
+  const neededNow=game.currentGroup&&game.currentGroup.has(id);
+  if(game.skippedItems&&game.skippedItems.has(id)&&!neededNow)return;
+  if(keepFound&&game.found.has(id)&&!neededNow)return;
   resolveAnswer({
     key:id,correct:game.currentGroup?game.currentGroup.has(id):id===game.current,name:cn(id),
     // Flash by effective id so a click on a merged territory highlights its parent country.
