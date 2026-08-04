@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-04 B';
+const BUILD_ID='2026-08-04 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2269,13 +2269,15 @@ function renderMap(world){
 
 
 function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
-// game.currentGroup is checked first, before both game.found and game.skippedItems: a country can
-// legitimately be part of more than one trivia question in the same round (see
-// _triviaBuildSpecs()'s comment), so one already found OR skipped from an earlier, different
-// question must not paint it as done/skipped — it still needs its own fresh click for the question
-// that's active right now.
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.currentGroup&&game.currentGroup.has(id))return _avail(rawId);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.currentGroup&&game.currentGroup.has(id))return _avail(id);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
+// Trivia never paints a found/skipped fill at all — a country can legitimately be part of more
+// than one question in the same round (see _triviaBuildSpecs()'s comment), and painting it done
+// (or skipped) after an earlier, different question would revert to plain "available" the instant
+// a later question needs it again — a color CHANGE right as the new question loads, which is
+// itself a giveaway that this specific country belongs to the new answer. Never showing the
+// found/skipped fill in trivia removes that tell entirely, at the cost of the "see your progress"
+// green trail every other mode has — a deliberate tradeoff for this mode specifically.
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.triviaMode)return _avail(rawId);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.triviaMode)return _avail(id);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){
