@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-08-04 C';
+const BUILD_ID='2026-09-12 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -273,7 +273,7 @@ function eff(id){return REDIRECTS.get(id)??id;}
 function activeConts(){return game.activeContinents||null;}
 
 const SCREENS=['home-screen','category-screen','mode-screen','game-screen','result-screen','custom-screen','flag-screen','inputcfg-screen','region-screen'];
-function showScreen(id){SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'||s==='region-screen'?'flex':'block'):'none';});}
+function showScreen(id){SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'||s==='region-screen'||s==='category-screen'?'flex':'block'):'none';});}
 function goHome(){showScreen('home-screen');renderHome();}
 
 // ── CATEGORY PICKER ──

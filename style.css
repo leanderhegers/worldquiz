@@ -372,19 +372,34 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
    Cards borrow each category's accent/card colours from the gs-* section classes above (e.g. a
    card also carrying class "gs-map" picks up --accent/--cardBg/etc. from that rule) instead of
    duplicating a second colour system. */
-.cat-screen{position:relative;min-height:100vh;overflow-y:auto;box-sizing:border-box;}
+/* Full-screen layout: topbar + heading/sub stay their natural (small) height, .cat-grid takes
+   every remaining pixel via flex:1 so the cards themselves — not just their grid cell — fill the
+   whole screen below the header. min-height (not a hard height+overflow:hidden) so it still
+   normally fills exactly one viewport but safely grows scrollable if content ever forces it to
+   (e.g. a very short window plus long translated text). */
+.cat-screen{position:relative;min-height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;}
 .cat-bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 30%,#16314f 0%,#0d1b2e 45%,#070d18 100%);}
-.cat-topbar{position:relative;z-index:1;padding:.85rem 1rem;}
-.cat-inner{position:relative;z-index:1;max-width:720px;margin:0 auto;text-align:center;padding:1rem 1.25rem 3rem;}
-.cat-heading{font-size:clamp(24px,5vw,32px);font-weight:600;letter-spacing:-.01em;margin:0 0 .3rem;color:#fff;}
-.cat-sub{font-size:14px;opacity:.75;margin:0 0 2rem;}
-.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
-@media (max-width:560px){.cat-grid{grid-template-columns:1fr;}}
-.cat-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:1.7rem 1rem;border-radius:16px;cursor:pointer;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;transition:transform .15s,background .15s,border-color .15s;text-align:center;}
-.cat-card:hover{transform:translateY(-4px);background:var(--cardHov);border-color:var(--accent);}
-.cat-card-icon{font-size:38px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
-.cat-card-title{font-weight:600;font-size:16px;}
-.cat-card-sub{font-size:12px;opacity:.7;line-height:1.4;}
+.cat-topbar{position:relative;z-index:1;padding:.85rem 1rem;flex-shrink:0;}
+/* No max-width, no side/bottom padding: the grid below reaches the actual screen edges (left,
+   right, bottom) — only .cat-heading/.cat-sub keep their own inset so the text stays readable. */
+.cat-inner{position:relative;z-index:1;width:100%;margin:0;text-align:center;padding:0;box-sizing:border-box;flex:1;display:flex;flex-direction:column;min-height:0;}
+.cat-heading{font-size:clamp(24px,5vw,32px);font-weight:600;letter-spacing:-.01em;margin:0 0 .3rem;color:#fff;flex-shrink:0;padding:0 1.25rem;}
+.cat-sub{font-size:14px;opacity:.75;margin:0 0 1.25rem;flex-shrink:0;padding:0 1.25rem;}
+/* Explicit 2x2 row/column template (CATEGORIES is always exactly 4 entries) rather than
+   grid-auto-rows, so both dimensions split the available space evenly and the cards can stretch
+   to fill their cell with height:100% below. gap:0 + border-radius+overflow:hidden here (not on
+   the individual cards) makes the four tiles read as ONE seamless panel — square where they meet
+   each other, rounded only at the four true outer corners. */
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:0;flex:1;min-height:280px;border-radius:22px;overflow:hidden;}
+@media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);min-height:560px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-heading{margin-bottom:.15rem;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
+/* No border-radius/box-shadow lift of its own — the parent .cat-grid owns the rounding, and a
+   hover lift would look broken with zero gap between tiles (it'd ride up over its neighbour). The
+   1px border on all four sides still reads as a hairline divider between adjacent tiles. */
+.cat-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:1.5rem 1rem;cursor:pointer;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;transition:background .15s,border-color .15s;text-align:center;width:100%;height:100%;box-sizing:border-box;}
+.cat-card:hover{background:var(--cardHov);border-color:var(--accent);}
+.cat-card-icon{font-size:clamp(38px,6vw,64px);line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
+.cat-card-title{font-weight:600;font-size:clamp(16px,2vw,20px);}
+.cat-card-sub{font-size:13px;opacity:.7;line-height:1.4;max-width:320px;}
 .cat-card-disabled{cursor:default;opacity:.4;}
 .cat-card-disabled:hover{transform:none;background:var(--cardBg);border-color:var(--cardBorder);}
 
