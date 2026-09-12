@@ -387,14 +387,13 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .cat-sub{font-size:14px;opacity:.75;margin:0 0 1.25rem;flex-shrink:0;padding:0 1.25rem;}
 /* Explicit 2x2 row/column template (CATEGORIES is always exactly 4 entries) rather than
    grid-auto-rows, so both dimensions split the available space evenly and the cards can stretch
-   to fill their cell with height:100% below. gap:0 + border-radius+overflow:hidden here (not on
-   the individual cards) makes the four tiles read as ONE seamless panel — square where they meet
-   each other, rounded only at the four true outer corners. */
-.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:0;flex:1;min-height:280px;border-radius:22px;overflow:hidden;}
+   to fill their cell with height:100% below. gap:0 (no border-radius anywhere) makes the four
+   tiles read as one flush, fully square-cornered block of boxes. */
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:0;flex:1;min-height:280px;}
 @media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);min-height:560px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-heading{margin-bottom:.15rem;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
-/* No border-radius/box-shadow lift of its own — the parent .cat-grid owns the rounding, and a
-   hover lift would look broken with zero gap between tiles (it'd ride up over its neighbour). The
-   1px border on all four sides still reads as a hairline divider between adjacent tiles. */
+/* No border-radius anywhere and no hover lift — square-cornered boxes flush against each other
+   (a translateY lift would look broken with zero gap between tiles, riding up over its neighbour).
+   The 1px border on all four sides still reads as a hairline divider between adjacent tiles. */
 .cat-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:1.5rem 1rem;cursor:pointer;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;transition:background .15s,border-color .15s;text-align:center;width:100%;height:100%;box-sizing:border-box;}
 .cat-card:hover{background:var(--cardHov);border-color:var(--accent);}
 .cat-card-icon{font-size:clamp(38px,6vw,64px);line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
