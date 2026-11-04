@@ -80,16 +80,57 @@ function draw(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   const w=Math.max(1,Math.round(rect.width*dpr)),h=Math.max(1,Math.round(rect.height*dpr));
   if(S.canvas.width!==w||S.canvas.height!==h){S.canvas.width=w;S.canvas.height=h;}
-  const ctx=S.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);
+  const main=S.mainCtx;main.setTransform(1,0,0,1,0,0);main.clearRect(0,0,w,h);
   if(!ctm||rect.width<1||rect.height<1)return;
-  S.vp={w,h,dpr};
   const base=mul([dpr,0,0,dpr,0,0],mul([1,0,0,1,-rect.left,-rect.top],[ctm.a,ctm.b,ctm.c,ctm.d,ctm.e,ctm.f]));
-  ctx.miterLimit=4;ctx.lineJoin='miter';ctx.lineCap='butt';
-  for(const ch of svg.children)paint(ch,base,1);
+  const wrapG=svg.querySelector(':scope > g'),dyn=wrapG&&wrapG.querySelector(':scope > .dyn');
+  const wtr=wrapG&&wrapG.getAttribute('transform');
+  const T=wtr?parseTransform(wtr):[1,0,0,1,0,0];
+  // Pan cache: while only the zoom transform's translation changes (scale, size, map content all
+  // unchanged), the finished map is just shifted — so it is rendered once into an offscreen layer
+  // (with a margin around the viewport) and blitted at an integer device-pixel offset per frame,
+  // pixel-exact and without any resampling. Anything else (zoom, a colour change, resize) falls
+  // back to a full redraw. Dots/pins (the .dyn group) are always drawn live on top.
+  const key=w+'x'+h+'|'+dpr+'|'+base.map(v=>v.toFixed(3)).join()+'|'+T[0].toFixed(6);
+  const L=S.layer,lt=S.lastT;
+  const panning=lt&&T[0]===lt[0]&&(T[4]!==lt[4]||T[5]!==lt[5]);
+  S.lastT=T;
+  let sx=0,sy=0,useLayer=false;
+  if(L&&!S.layerDirty&&L.key===key){
+    sx=Math.round(base[0]*(T[4]-L.T[4])+base[2]*(T[5]-L.T[5]));
+    sy=Math.round(base[1]*(T[4]-L.T[4])+base[3]*(T[5]-L.T[5]));
+    useLayer=Math.abs(sx)<=L.M&&Math.abs(sy)<=L.M;
+  }
+  if(S.exact){useLayer=false;S.exact=false;}
+  else if(useLayer&&(sx||sy)){
+    // blitted at a rounded offset (<0.5 device px off): once the pan settles, redraw exactly
+    clearTimeout(S.idle);S.idle=setTimeout(()=>{S.exact=true;draw();},140);
+  }
+  if(!useLayer&&panning){
+    const M=Math.round(0.25*Math.max(w,h)),lw=w+2*M,lh=h+2*M;
+    if(!S.layerCanvas){S.layerCanvas=document.createElement('canvas');S.layerCtx=S.layerCanvas.getContext('2d');}
+    if(S.layerCanvas.width!==lw||S.layerCanvas.height!==lh){S.layerCanvas.width=lw;S.layerCanvas.height=lh;}
+    const lc=S.layerCtx;lc.setTransform(1,0,0,1,0,0);lc.clearRect(0,0,lw,lh);
+    lc.miterLimit=4;lc.lineJoin='miter';lc.lineCap='butt';
+    S.ctx=lc;S.vp={w:lw,h:lh,dpr};S.skip=dyn;
+    const bl=mul([1,0,0,1,M,M],base);
+    for(const ch of svg.children)paint(ch,bl,1);
+    S.skip=null;
+    S.layer={key,T:T.slice(),M};S.layerDirty=false;sx=0;sy=0;useLayer=true;
+  }
+  S.ctx=main;S.vp={w,h,dpr};
+  main.miterLimit=4;main.lineJoin='miter';main.lineCap='butt';
+  if(useLayer){
+    main.drawImage(S.layerCanvas,-S.layer.M+sx,-S.layer.M+sy);
+    if(dyn)paint(dyn,mul(base,T),1);
+  }else{
+    for(const ch of svg.children)paint(ch,base,1);
+  }
   const ms=performance.now()-t0,st=S.stats;
   st.draws++;st.lastMs=ms;st.avgMs=st.avgMs?st.avgMs*0.9+ms*0.1:ms;if(ms>st.maxMs)st.maxMs=ms;
 }
 function paint(el,m,alpha){
+  if(el===S.skip)return;
   const tag=el.localName;
   if(SKIP.has(tag))return;
   const st=el.style;
@@ -244,22 +285,29 @@ function init(svg){
   S.svg=svg;
   const css=document.createElement('style');
   css.textContent='#map-bg>canvas.cm{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;}'+
-    '#map{position:relative;z-index:1;}#map *{visibility:hidden;}'+
+    // tap-highlight off: the <svg> root is the click target now, and Chrome greys out the whole
+    // tapped element on touch (a brief full-map flash) unless told not to.
+    '#map{position:relative;z-index:1;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}#map *{visibility:hidden;}'+
     // Leaves get no layout objects at all (the <g> containers stay rendered so getScreenCTM()/
     // d3.pointer still work). Handlers are reached through dispatchEvent, which needs no box.
     '#map path,#map circle,#map rect,#map line,#map text,#map use{display:none;}';
   document.head.appendChild(css);
   S.canvas=document.createElement('canvas');S.canvas.className='cm';
   svg.parentNode.insertBefore(S.canvas,svg);
-  S.ctx=S.canvas.getContext('2d');
+  S.ctx=S.mainCtx=S.canvas.getContext('2d');
   S.hitCtx=document.createElement('canvas').getContext('2d');
   S.fontFamily=getComputedStyle(svg).fontFamily||'sans-serif';
   S.mo=new MutationObserver(recs=>{
+    const wg=svg.querySelector(':scope > g'),dy=wg&&wg.querySelector(':scope > .dyn');
     for(const r of recs){
+      const t=r.target;
       if(r.type==='attributes'){
-        if(r.target===svg&&r.attributeName==='style')continue;
-        if(r.attributeName==='d')S.cache.delete(r.target);
+        if(r.attributeName==='d')S.cache.delete(t);
+        if(t===svg)continue;
+        if(t===wg&&r.attributeName==='transform')continue; // pan/zoom: layer stays valid for pans
       }
+      if(dy&&(t===dy||dy.contains(t)))continue; // dots/pins are drawn live, not part of the layer
+      S.layerDirty=true;
     }
     draw();
   });
@@ -276,6 +324,7 @@ window.CanvasMap={
     draw();
   },
   redraw:draw,
+  invalidate(){S.layerDirty=true;draw();},
   stats:S.stats
 };
 })();
