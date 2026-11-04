@@ -287,7 +287,12 @@ function init(svg){
   css.textContent='#map-bg>canvas.cm{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;}'+
     // tap-highlight off: the <svg> root is the click target now, and Chrome greys out the whole
     // tapped element on touch (a brief full-map flash) unless told not to.
-    '#map{position:relative;z-index:1;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}#map *{visibility:hidden;}'+
+    // The highlight colour is chosen from whichever element the browser treats as the tap target
+    // (the svg, its container, or a wrapper once cursor:pointer is set on it), so switch it off on
+    // the whole game screen, not just #map. Touch-only: a mouse click never shows it.
+    '#game-screen,#game-screen *{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;}'+
+    '#map-bg,#map{outline:none;user-select:none;-webkit-user-select:none;}'+
+    '#map{position:relative;z-index:1;}#map *{visibility:hidden;}'+
     // Leaves get no layout objects at all (the <g> containers stay rendered so getScreenCTM()/
     // d3.pointer still work). Handlers are reached through dispatchEvent, which needs no box.
     '#map path,#map circle,#map rect,#map line,#map text,#map use{display:none;}';
