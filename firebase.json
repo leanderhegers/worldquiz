@@ -2,5 +2,46 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      ".firebase/**",
+      "firestore.rules",
+      "firestore.indexes.json",
+      ".claude/**",
+      ".git/**",
+      ".gitignore",
+      ".gitattributes",
+      "node_modules/**",
+      "test/**",
+      "CLAUDE.md",
+      "CNAME",
+      "package.json",
+      "*.ps1",
+      "countries-10m.json",
+      "countries-50m.json",
+      "ne_50m_*.geojson",
+      "regions/**",
+      "data/**/*.md"
+    ],
+    "headers": [
+      {
+        "comment": "Firebase' Standard ist max-age=3600: Spieler bekaemen nach einem Deploy bis zu eine Stunde lang den alten Code. no-cache verbietet das Zwischenspeichern nicht, sondern erzwingt nur eine Rueckfrage (unveraenderte Dateien: 304). Der Service Worker laedt App-Code ohnehin network-first und die Kartendaten cache-first.",
+        "source": "**/*.@(js|css|html|json)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "comment": "Die Startadresse '/' hat keine Dateiendung und wird von der Regel darueber nicht erfasst.",
+        "source": "/",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
   }
 }
