@@ -4,8 +4,15 @@ Browser geography quiz (German/English). Vanilla JS, no build step, no framework
 `index.html` loads every script globally via `<script>` tags, so all functions are globals and
 the UI is wired with inline `onclick=` handlers. Renders with D3 + TopoJSON into an SVG.
 
-Deployed as a static site to GitHub Pages (geo-quiz.de) — pushing to `main` deploys.
-Local dev server: start the `Weltkarten-Quiz` config from `.claude/launch.json` (port 3000).
+Deployed as a static site to **Firebase Hosting** (project `geo-quiz-b59a8`,
+https://geo-quiz-b59a8.web.app). GitHub only holds the code as a backup and does NOT deploy.
+Ship with `.\veroeffentlichen.ps1 "description"` (syntax check → tests → `firebase deploy` → git
+commit → push; deploy runs first so history never claims something that wasn't live).
+`-Vorschau` deploys to a throwaway test URL (preview channel) instead of live.
+Not shipped (see `firebase.json` ignore list): tests, docs, the unused root copies of map data.
+Local dev server: start the `Weltkarten-Quiz` config from `.claude/launch.json` (port 8080).
+Optional canvas renderer for the world map: open the site with `?canvas` (see `canvas-map.js`).
+geo-quiz.de still points at GitHub Pages until its DNS is moved to Firebase (see Vault notes).
 
 ## Rules that are easy to break by accident
 

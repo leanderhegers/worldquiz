@@ -5,3 +5,6 @@ package-lock.json
 
 # Local editor/agent settings, not project configuration.
 .claude/settings.local.json
+
+# Firebase CLI deploy cache
+.firebase/
