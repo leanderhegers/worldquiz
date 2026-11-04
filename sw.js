@@ -1,6 +1,6 @@
 // Bump this whenever the precached asset list or any file in it changes — activating a new
 // cache name is what evicts the old one.
-const CACHE_NAME = 'weltquiz-v14';
+const CACHE_NAME = 'weltquiz-v15';
 
 // Precached on install: the app shell plus everything the world-map quiz (the entry point for
 // most players) needs. After this the core game is fully playable with no network at all.
@@ -9,6 +9,7 @@ const ASSETS = [
   './index.html',
   './style.css',
   './app.js',
+  './canvas-map.js',
   './auth.js',
   './countries.js',
   './capitals.js',
