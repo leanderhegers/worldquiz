@@ -304,7 +304,7 @@
 <script src="cities.js"></script>
 <script src="languages.js"></script>
 <script src="currencies.js"></script>
-<script>window.CANVAS_MAP=/[?&]canvas(&|=|$)/.test(location.search);</script>
+<script>window.CANVAS_MAP=typeof Path2D==='function'&&!/[?&]svg(&|=|$)/.test(location.search);</script>
 <script src="canvas-map.js"></script>
 <script src="app.js"></script>
 <script src="auth.js"></script>

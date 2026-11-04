@@ -11,7 +11,12 @@ commit → push; deploy runs first so history never claims something that wasn't
 `-Vorschau` deploys to a throwaway test URL (preview channel) instead of live.
 Not shipped (see `firebase.json` ignore list): tests, docs, the unused root copies of map data.
 Local dev server: start the `Weltkarten-Quiz` config from `.claude/launch.json` (port 8080).
-Optional canvas renderer for the world map: open the site with `?canvas` (see `canvas-map.js`).
+The world map (`#map`) is drawn on a canvas by default (`canvas-map.js`); `?svg` switches back to
+plain SVG for comparison, and browsers without Path2D fall back automatically. The SVG tree built
+by `renderMap()` stays the source of truth (invisible scene graph) — game logic, handlers and
+colouring are unchanged, so any new layer must be plain path/circle/rect/line/text elements
+(`canvas-map.js` only paints those) and goes in the same `g`/`dynG` groups as before. Pointer
+events are hit-tested in canvas-map.js and re-dispatched to the original elements.
 geo-quiz.de points at Firebase Hosting (DNS moved 2026-11-04); GitHub Pages is off.
 
 ## Rules that are easy to break by accident
