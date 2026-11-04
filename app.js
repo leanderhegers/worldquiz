@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-04 G';
+const BUILD_ID='2026-11-04 H';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1267,9 +1267,6 @@ function handlePinClick(ev){
     }
     pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',tp[0]).attr('y2',tp[1])
       .attr('stroke',THEMES[theme].border).attr('stroke-width',1.2).attr('stroke-dasharray','4,3').style('vector-effect','non-scaling-stroke');
-    pinLayer.append('text').attr('x',tp[0]).attr('y',tp[1]+projPx(-26)).attr('text-anchor','middle')
-      .attr('fill',THEMES[theme].found).attr('font-size',projPx(13)).attr('font-weight','600')
-      .style('paint-order','stroke').style('stroke',THEMES[theme].bg).style('stroke-width',projPx(3)).text(cityDisplayName(city));
     addPin(pinLayer,gp,'#e23a2a');      // Schätzung (rot)
     addPin(pinLayer,tp,THEMES[theme].found); // tatsächlich (grün)
   }
