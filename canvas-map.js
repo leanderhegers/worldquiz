@@ -299,19 +299,24 @@ function init(svg){
   S.fontFamily=getComputedStyle(svg).fontFamily||'sans-serif';
   S.mo=new MutationObserver(recs=>{
     const wg=svg.querySelector(':scope > g'),dy=wg&&wg.querySelector(':scope > .dyn');
+    let changed=false;
     for(const r of recs){
       const t=r.target;
       if(r.type==='attributes'){
+        // The app re-sets many attributes to the value they already have (e.g. dot radii when a
+        // gesture ends) — such a write changes nothing visible, so it must not cost a redraw.
+        if(r.oldValue===t.getAttribute(r.attributeName))continue;
+        changed=true;
         if(r.attributeName==='d')S.cache.delete(t);
         if(t===svg)continue;
         if(t===wg&&r.attributeName==='transform')continue; // pan/zoom: layer stays valid for pans
-      }
+      }else changed=true;
       if(dy&&(t===dy||dy.contains(t)))continue; // dots/pins are drawn live, not part of the layer
       S.layerDirty=true;
     }
-    draw();
+    if(changed)draw();
   });
-  S.mo.observe(svg,{subtree:true,childList:true,attributes:true,characterData:true});
+  S.mo.observe(svg,{subtree:true,childList:true,attributes:true,attributeOldValue:true,characterData:true});
   S.ro=new ResizeObserver(()=>draw());S.ro.observe(svg);
   svg.addEventListener('mousemove',onMove);
   svg.addEventListener('mouseleave',onLeave);
