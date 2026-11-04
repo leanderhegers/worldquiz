@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-04 F';
+const BUILD_ID='2026-11-04 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1196,7 +1196,11 @@ function handleRangeClick(idx){
 
 // ── DROP-A-PIN ──
 function haversine(lon1,lat1,lon2,lat2){const R=6371,rad=Math.PI/180;const dLat=(lat2-lat1)*rad,dLon=(lon2-lon1)*rad;const a=Math.sin(dLat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
-function projPx(px){const svg=d3.select('#map').node();if(!svg)return px;const sc=svg.getBoundingClientRect().width/960;const k=(d3.zoomTransform(svg).k)||1;return px/sc/k;}
+// Screen px -> map units at the current zoom. Must use the same scale as renderMap()'s computeSc():
+// Mercator's viewBox keeps its height fixed (MAP_H) and stretches its width to the container, so
+// the scale is height/MAP_H — width/960 is only right at one aspect ratio and made pins, labels and
+// the 20 km circle several times too big on a portrait phone.
+function projPx(px){const svg=d3.select('#map').node();if(!svg)return px;const r=svg.getBoundingClientRect();const sc=(projection==='mercator'?r.height/MAP_H:Math.min(r.width/MAP_W,r.height/MAP_H))||1;const k=(d3.zoomTransform(svg).k)||1;return px/sc/k;}
 function addPin(layer,pt,color){
   const s=projPx(1);
   const grp=layer.append('g').attr('transform','translate('+pt[0]+','+pt[1]+') scale('+s+')');
