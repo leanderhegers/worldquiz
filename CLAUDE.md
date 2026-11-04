@@ -12,7 +12,7 @@ commit → push; deploy runs first so history never claims something that wasn't
 Not shipped (see `firebase.json` ignore list): tests, docs, the unused root copies of map data.
 Local dev server: start the `Weltkarten-Quiz` config from `.claude/launch.json` (port 8080).
 Optional canvas renderer for the world map: open the site with `?canvas` (see `canvas-map.js`).
-geo-quiz.de still points at GitHub Pages until its DNS is moved to Firebase (see Vault notes).
+geo-quiz.de points at Firebase Hosting (DNS moved 2026-11-04); GitHub Pages is off.
 
 ## Rules that are easy to break by accident
 
