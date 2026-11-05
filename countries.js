@@ -7,6 +7,24 @@ const MS_IDS=new Set(MICROSTATES.map(m=>m.id));
 // Island zones: dashed clickable outlines (convex hull of all a nation's islands) around scattered island nations.
 // The hull is computed at render time from the country's actual TopoJSON geometry.
 // fallbackLon/fallbackLat: for nations with NO geometry in the TopoJSON (draw a small circle there instead).
-const ISLAND_ZONES=[];
+const ISLAND_ZONES=[
+  // r = Rand um die Inselhülle in Karteneinheiten (die Karte ist 960 breit). near/nearKm: nur Inseln
+  // nahe diesem Punkt zählen (Kiribati: nur die Gilbert-Inseln, sonst ist die Hülle tausende km breit).
+  {id:583,r:5},                                   // Mikronesien
+  {id:584,r:5},                                   // Marshallinseln
+  {id:296,r:5,near:[173.0,1.4],nearKm:900},       // Kiribati (Gilbert-Inseln)
+  {id:798,r:5,fallbackLon:179.09,fallbackLat:-8.52,fallbackR:1.2}, // Tuvalu (keine Umriss-Daten)
+  {id:585,r:5},                                   // Palau
+  {id:242,r:5},                                   // Fidschi
+  {id:776,r:5},                                   // Tonga
+  {id:882,r:5},                                   // Samoa
+  {id:548,r:5},                                   // Vanuatu
+  {id:90,r:5},                                    // Salomonen
+  {id:462,r:5},                                   // Malediven
+  {id:690,r:5},                                   // Seychellen
+  {id:174,r:5},                                   // Komoren
+  {id:132,r:5},                                   // Kap Verde
+  {id:44,r:5}                                     // Bahamas
+];
 // Ids that get a zone outline → their microstate dot is suppressed (zone replaces the dot).
 const ISLAND_ZONE_IDS=new Set(ISLAND_ZONES.map(z=>z.id));

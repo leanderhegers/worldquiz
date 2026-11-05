@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 W';
+const BUILD_ID='2026-11-05 X';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1746,6 +1746,9 @@ function buildZoneHull(zone,features,proj){
     const f=features.find(ff=>+ff.id===id);
     if(f&&f.geometry)raw.push(...geomPoints(f.geometry));
   }
+  // Only islands near zone.near (within zone.nearKm): keeps far-flung outliers (Kiribati's Line
+  // Islands) out of the hull.
+  if(zone.near&&zone.nearKm)raw=raw.filter(p=>haversine(p[0],p[1],zone.near[0],zone.near[1])<=zone.nearKm);
   if(!raw.length){
     if(zone.fallbackLon==null)return[];
     // No geometry (e.g. Tuvalu): synthesize a small ring of points around the fallback center.
@@ -1859,6 +1862,17 @@ function polyPathD(poly){
   return'M'+poly.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')+'Z';
 }
 function zonePathD(z){return polyPathD(z.poly);}
+// Which island zone owns the map point (x,y)? With overlapping zones: the one whose centre is nearest.
+function zoneIdAtPoint(x,y){
+  let best=null,bd=Infinity;
+  for(const z of(zoneHulls||[])){
+    if(!z.poly||z.poly.length<3||!d3.polygonContains(z.poly,[x,y]))continue;
+    const n=z.hull.length,cx=z.hull.reduce((s,p)=>s+p[0],0)/n,cy=z.hull.reduce((s,p)=>s+p[1],0)/n;
+    const d=Math.hypot(x-cx,y-cy);
+    if(d<bd){bd=d;best=z.id;}
+  }
+  return best;
+}
 
 function renderMap(world){
   const svg=d3.select('#map');svg.selectAll('*').remove();borderPath=null;admin1Path=null;gGroup=null;
@@ -1912,10 +1926,11 @@ function renderMap(world){
     const hull=buildZoneHull(z,countries.features,proj);
     const poly=z.shape==='ellipse'
       ? enclosingEllipse(hull,z.r||8)
-      : chaikin(bufferHullPolygon(hull,z.r||8),2);
+      : chaikin(bufferHullPolygon(hull,z.r||8),z.smooth==null?1:z.smooth);
     return{...z,hull,poly};
   }).filter(z=>z.hull&&z.hull.length>=3&&z.poly.length>=3);
-  separateZones(activeZones); // split overlapping zones with straight shared borders
+  // Zones may overlap (round outlines look better than straight cuts); a click in an overlap goes to
+  // the zone whose centre is nearest — see zoneIdAtPoint().
   zoneHulls=activeZones;
 
   islandZoneHits=g.append('g').attr('class','iz-hits').selectAll('path').data(zoneHulls).enter().append('path')
@@ -1923,7 +1938,7 @@ function renderMap(world){
     .attr('fill','transparent').attr('stroke','none').style('cursor','pointer')
     .on('mouseover',function(ev,z){if(!(game.skippedItems&&game.skippedItems.has(z.id))&&!(game.found&&game.found.has(z.id)))islandZoneVisuals&&islandZoneVisuals.filter(v=>v.id===z.id).attr('stroke-opacity',0.9);})
     .on('mouseout',function(ev,z){islandZoneVisuals&&islandZoneVisuals.filter(v=>v.id===z.id).attr('stroke-opacity',0.55);})
-    .on('click',(ev,z)=>handleClick(z.id));
+    .on('click',(ev,z)=>{const[px,py]=d3.pointer(ev,gGroup.node());handleClick(zoneIdAtPoint(px,py)||z.id);});
   // Assign unique synthetic negative IDs to features whose id coerces to NaN
   // so each gets its own slot in REDIRECTS instead of all colliding at NaN
   let _sid=-1;
@@ -2269,7 +2284,7 @@ function renderMap(world){
         const r=parseFloat(microstateDots.attr('r'))||DOT_R;
         if((wx-mx)**2+(py-my)**2<r*r*4)return m.id;
       }
-      for(const z of(zoneHulls||[])){if(d3.geoContains(z.poly[0]?{type:'Polygon',coordinates:[z.poly]}:{type:'Point',coordinates:z.hull[0]},ll))return z.id;}
+      const zid=zoneIdAtPoint(wx,py);if(zid)return zid;
       const feat=renderFeatures.find(f=>d3.geoContains(f,ll));
       return feat?eff(+feat.id):null;
     }
