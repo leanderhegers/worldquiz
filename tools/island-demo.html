@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo: enge Klickbereiche für Inselstaaten</title>
+<style>
+  :root{--bg:#0e1621;--card:#152233;--line:#26384f;--ink:#e8eef6;--mut:#8da2ba;--sea:#3f86c9;--land:#e7d9b2;--bord:#9b8a62;--area:#1d9e75;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif;padding:12px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.sub{margin:0 0 10px;color:var(--mut);max-width:72ch}
+  .controls{display:grid;gap:8px;margin:0 0 12px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;max-width:520px}
+  .controls label{display:grid;grid-template-columns:150px 1fr 54px;gap:8px;align-items:center;font-size:13px}
+  .controls output{color:var(--mut);text-align:right}
+  .controls .row{display:flex;gap:8px;flex-wrap:wrap}
+  .controls button{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer;font:inherit}
+  .controls button.on{border-color:var(--area);background:rgba(29,158,117,.2)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 10px;color:var(--mut);font-size:12px;align-items:center}
+  .legend i{display:inline-block;width:20px;height:11px;vertical-align:middle;margin-right:6px;border:1.5px dashed #0f7a58;background:rgba(29,158,117,.25)}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #334;vertical-align:middle;margin-right:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .tile svg{display:block;width:100%;height:auto;background:var(--sea)}
+  .tile .cap{padding:7px 10px}
+  .tile .name{font-weight:600}
+  .tile .note{color:var(--mut);font-size:12px}
+  .zone{fill:rgba(29,158,117,.26);stroke:#0f7a58;stroke-width:1.8;stroke-dasharray:6 4;fill-rule:evenodd}
+  body.nozone .zone{display:none}
+  body.zoneonly .dotring{display:none}
+</style>
+</head>
+<body>
+<h1>Klickbereiche für Inselstaaten</h1>
+<p class="sub">Zwei Stile zum Vergleich. <b>Freihand rund</b>: eine weiche, runde Form pro Staat, nicht an einzelne Inseln gebunden, so wie die Trivia-Ziele. <b>Eng an den Inseln</b>: folgt dem Verlauf der Gruppe. In beiden Stilen überlappen sich Bereiche verschiedener Staaten nie. Die Kacheln sind unterschiedlich stark herangezoomt, Rand und Größe sind aber im richtigen Maßstab zur Weltkarte.</p>
+<div class="controls">
+  <label>Randbreite um die Inseln<input id="rho" type="range" min="1.5" max="9" step="0.25" value="4"><output id="rhoV"></output></label>
+  <label>Inseln verbinden bis<input id="gap" type="range" min="0" max="16" step="0.5" value="6"><output id="gapV"></output></label>
+  <div class="row">
+    <button id="sFree" class="on">Stil: freihand rund</button>
+    <button id="sTight">Stil: eng an den Inseln</button>
+  </div>
+  <label id="roundRow">Rundheit (je niedriger, desto runder)<input id="harm" type="range" min="1" max="6" step="1" value="2"><output id="harmV"></output></label>
+  <div class="row">
+    <button id="bBoth" class="on">Punkt + Bereich</button>
+    <button id="bDot">nur Punkt (heute)</button>
+    <button id="bZone">nur Bereich (neu)</button>
+  </div>
+</div>
+<div class="legend"><span><b></b>heutiger Klickpunkt</span><span><i></i>neuer Klickbereich</span></div>
+<div id="grid" class="grid"></div>
+<script src="../vendor/d3.v7.min.js"></script>
+<script src="../vendor/topojson.v3.min.js"></script>
+<script src="../countries.js"></script>
+<script>
+(async function(){
+  const world=await fetch('../data/countries-50m.json').then(r=>r.json());
+  const land=topojson.feature(world,world.objects.countries);
+  const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
+  const WW=960;                                 // Breite der Weltkarte in Karteneinheiten (wie im Spiel)
+  const wproj=d3.geoMercator().scale(WW/(2*Math.PI)).translate([WW/2,250]);
+  const WSCALE=WW/(2*Math.PI);                  // px pro Radiant der Weltkarte
+  // Inselstaaten mit verstreuten oder winzigen Inseln (wie ISLAND_ZONES im Spiel)
+  const NATIONS=[
+    {id:583},{id:584},{id:296,near:[173.0,1.4],nearKm:900},{id:798,fb:[179.09,-8.52]},{id:585},{id:242},{id:776},{id:882},
+    {id:548},{id:90},{id:462},{id:690},{id:174},{id:132},{id:44}
+  ].filter(n=>C[n.id]);
+  const km=(a,b)=>{const R=6371,r=Math.PI/180,dl=(b[1]-a[1])*r,dn=(b[0]-a[0])*r;const x=Math.sin(dl/2)**2+Math.cos(a[1]*r)*Math.cos(b[1]*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x));};
+  function coordsOf(f){const out=[];(function walk(c){if(typeof c[0]==='number')out.push(c);else c.forEach(walk);})(f.geometry.coordinates);return out;}
+
+  // 1) Inselpunkte je Staat in Weltkarten-Einheiten (Datumsgrenze: um den Median "entrollen")
+  NATIONS.forEach(n=>{
+    let ll=land.features.filter(f=>+f.id===n.id).flatMap(coordsOf);
+    if(n.near)ll=ll.filter(p=>km(p,n.near)<=n.nearKm);
+    if(!ll.length){const d=MICROSTATES.find(m=>m.id===n.id);const c=n.fb||(d&&[d.lon,d.lat]);ll=c?[c]:[];n.noOutline=true;}
+    {const d0=MICROSTATES.find(m=>m.id===n.id);if(d0&&!n.noOutline)ll.push([d0.lon,d0.lat]);} // der heutige Klickpunkt gehört immer in den Bereich
+    let pts=ll.map(p=>wproj(p));
+    const xs=pts.map(p=>p[0]).sort((a,b)=>a-b),med=xs[Math.floor(xs.length/2)];
+    pts=pts.map(([x,y])=>[x-med>WW/2?x-WW:med-x>WW/2?x+WW:x,y]);
+    // ausdünnen: ein Punkt je 0,5-Einheiten-Zelle
+    const seen=new Set(),thin=[];
+    pts.forEach(p=>{const k=Math.round(p[0]/0.5)+','+Math.round(p[1]/0.5);if(!seen.has(k)){seen.add(k);thin.push(p);}});
+    n.pts=thin;
+    n.name=C[n.id].de;
+  });
+
+  // 2) Zonen berechnen: Vereinigung von Scheiben (Radius rho) um alle Inselpunkte und Brückenpunkte
+  function bridges(pts,gap,rho){
+    if(gap<=0||pts.length<2)return [];
+    // Knoten: gröber ausgedünnt, dann minimaler Spannbaum; Kanten bis 'gap' werden mit Punkten gefüllt
+    const cell=Math.max(1.5,rho*0.8),seen=new Set(),nodes=[];
+    pts.forEach(p=>{const k=Math.round(p[0]/cell)+','+Math.round(p[1]/cell);if(!seen.has(k)){seen.add(k);nodes.push(p);}});
+    const n=nodes.length;if(n<2)return [];
+    const inT=new Array(n).fill(false),best=new Array(n).fill(Infinity),from=new Array(n).fill(-1);
+    best[0]=0;const out=[];
+    for(let it=0;it<n;it++){
+      let u=-1;for(let i=0;i<n;i++)if(!inT[i]&&(u<0||best[i]<best[u]))u=i;
+      inT[u]=true;
+      if(from[u]>=0&&best[u]<=gap){
+        const a=nodes[from[u]],b=nodes[u],len=best[u],steps=Math.max(1,Math.ceil(len/(rho*0.6)));
+        for(let s=1;s<steps;s++)out.push([a[0]+(b[0]-a[0])*s/steps,a[1]+(b[1]-a[1])*s/steps]);
+      }
+      for(let v=0;v<n;v++)if(!inT[v]){const d=Math.hypot(nodes[u][0]-nodes[v][0],nodes[u][1]-nodes[v][1]);if(d<best[v]){best[v]=d;from[v]=u;}}
+    }
+    return out;
+  }
+  function computeZones(rho,gap){
+    const h=0.5;
+    const all=NATIONS.map(n=>({n,pts:n.pts.concat(bridges(n.pts,gap,rho))}));
+    all.forEach(a=>{
+      let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      a.pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});
+      a.box=[x0-rho-2,y0-rho-2,x1+rho+2,y1+rho+2];
+    });
+    return all.map(a=>{
+      const [bx0,by0,bx1,by1]=a.box,nx=Math.ceil((bx1-bx0)/h),ny=Math.ceil((by1-by0)/h);
+      // Nachbarstaaten (auch um ±Weltbreite verschoben), deren Kasten in der Nähe liegt
+      const others=[];
+      all.forEach(o=>{if(o===a)return;for(const sh of [-WW,0,WW]){
+        const ob=o.box;if(ob[2]+sh<bx0||ob[0]+sh>bx1||ob[3]<by0||ob[1]>by1)continue;
+        o.pts.forEach(p=>others.push([p[0]+sh,p[1]]));
+      }});
+      const f=new Float64Array(nx*ny);
+      for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+        const x=bx0+(i+0.5)*h,y=by0+(j+0.5)*h;
+        let d=1e9;for(const p of a.pts){const dd=Math.hypot(x-p[0],y-p[1]);if(dd<d)d=dd;}
+        let val=rho-d;
+        if(val>0&&others.length){let od=1e9;for(const p of others){const dd=Math.hypot(x-p[0],y-p[1]);if(dd<od)od=dd;}if(od<d)val=-0.5;} // gehört dem Nachbarn: nie überlappen
+        f[j*nx+i]=val;
+      }
+      const geo=d3.contours().size([nx,ny]).thresholds([0]).smooth(true)(f)[0];
+      // Gitterkoordinaten -> Weltkarten-Einheiten (Zellmitte bei +0,5)
+      const polys=geo.coordinates.map(poly=>poly.map(ring=>ring.map(([gx,gy])=>[bx0+gx*h,by0+gy*h])));
+      return {n:a.n,polys};
+    });
+  }
+
+  // 2b) Freihand-Stil: eine glatte, runde Blob-Form pro Staat. Aus dem Umfang der Inselgruppe wird
+  // eine Radius-Funktion r(Winkel) gebildet, auf wenige Wellen (Rundheit) tiefpassgefiltert, um einen
+  // Rand erweitert und so skaliert, dass alle Inseln drin liegen. Dadurch folgt die Form nicht den
+  // einzelnen Punkten, sondern wirkt wie von Hand gezeichnet (wie die Trivia-Ziele).
+  // Überlappungen entfallen: jeder Punkt gehört dem Staat, in dessen Blob er relativ weiter innen liegt.
+  const NA=90;
+  function blobOf(pts,margin,H){
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});
+    const c=[(x0+x1)/2,(y0+y1)/2];
+    const hull=pts.length>=3?d3.polygonHull(pts):null;
+    const base=new Array(NA).fill(0);
+    for(let k=0;k<NA;k++){
+      const t=k/NA*Math.PI*2,dx=Math.cos(t),dy=Math.sin(t);
+      let best=0;
+      if(hull){
+        for(let i=0;i<hull.length;i++){
+          const a=hull[i],b=hull[(i+1)%hull.length];
+          const ex=b[0]-a[0],ey=b[1]-a[1],den=dx*ey-dy*ex;if(!den)continue;
+          const u=((a[0]-c[0])*dy-(a[1]-c[1])*dx)/-den*-1; // Parameter auf der Kante
+          const tt=((a[0]-c[0])*ey-(a[1]-c[1])*ex)/den;
+          const uu=((a[0]-c[0])*dy-(a[1]-c[1])*dx)/den;
+          if(tt>0&&uu>=0&&uu<=1&&tt>best)best=tt;
+        }
+      }else{ // wenige Punkte: Entfernung des fernsten Punkts in dieser Richtung
+        pts.forEach(p=>{const d=Math.hypot(p[0]-c[0],p[1]-c[1]);if(d>best)best=d;});
+      }
+      base[k]=best;
+    }
+    // Tiefpass: Fourier bis Ordnung H
+    const sm=new Array(NA).fill(0);
+    const a0=base.reduce((s,v)=>s+v,0)/NA;
+    for(let k=0;k<NA;k++)sm[k]=a0;
+    for(let m=1;m<=H;m++){
+      let a=0,b=0;
+      for(let k=0;k<NA;k++){const t=k/NA*Math.PI*2;a+=base[k]*Math.cos(m*t);b+=base[k]*Math.sin(m*t);}
+      a*=2/NA;b*=2/NA;
+      for(let k=0;k<NA;k++){const t=k/NA*Math.PI*2;sm[k]+=a*Math.cos(m*t)+b*Math.sin(m*t);}
+    }
+    let r=sm.map(v=>Math.max(v,0)+margin);
+    // alle Inseln müssen drin liegen
+    const at=ang=>{const f=((ang%(Math.PI*2))+Math.PI*2)%(Math.PI*2)/(Math.PI*2)*NA,i=Math.floor(f)%NA,j=(i+1)%NA,w=f-Math.floor(f);return r[i]*(1-w)+r[j]*w;};
+    let sc=1;pts.forEach(p=>{const d=Math.hypot(p[0]-c[0],p[1]-c[1]);if(d>1e-6){const need=d/at(Math.atan2(p[1]-c[1],p[0]-c[0]));if(need>sc)sc=need;}});
+    r=r.map(v=>v*Math.max(sc*1.04,1));
+    return {c,r,at:ang=>{const f=((ang%(Math.PI*2))+Math.PI*2)%(Math.PI*2)/(Math.PI*2)*NA,i=Math.floor(f)%NA,j=(i+1)%NA,w=f-Math.floor(f);return r[i]*(1-w)+r[j]*w;},rmax:Math.max(...r)};
+  }
+  function computeFree(margin,H){
+    const h=0.5;
+    const all=NATIONS.map(n=>{const bl=blobOf(n.pts,Math.max(margin,1.5),H);return {n,bl};});
+    return all.map(a=>{
+      const {c,rmax}=a.bl,bx0=c[0]-rmax-1,by0=c[1]-rmax-1,nx=Math.ceil((rmax*2+2)/h),ny=nx;
+      const rivals=[];
+      all.forEach(o=>{if(o===a)return;for(const sh of [-WW,0,WW]){
+        const oc=[o.bl.c[0]+sh,o.bl.c[1]];
+        if(Math.hypot(oc[0]-c[0],oc[1]-c[1])>o.bl.rmax+rmax+2)continue;
+        rivals.push({c:oc,bl:o.bl});
+      }});
+      const f=new Float64Array(nx*ny);
+      for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+        const x=bx0+(i+0.5)*h,y=by0+(j+0.5)*h;
+        const dx=x-c[0],dy=y-c[1],q=Math.hypot(dx,dy)/a.bl.at(Math.atan2(dy,dx));
+        let val=1-q;
+        if(val>0)for(const o of rivals){const ox=x-o.c[0],oy=y-o.c[1],qo=Math.hypot(ox,oy)/o.bl.at(Math.atan2(oy,ox));if(qo<q){val=-0.05;break;}}
+        f[j*nx+i]=val;
+      }
+      const geo=d3.contours().size([nx,ny]).thresholds([0]).smooth(true)(f)[0];
+      const polys=geo.coordinates.map(poly=>poly.map(ring=>ring.map(([gx,gy])=>[bx0+gx*h,by0+gy*h])));
+      return {n:a.n,polys};
+    });
+  }
+
+  // 3) Kacheln zeichnen
+  const grid=document.getElementById('grid');
+  const W=360,H=250;
+  let style='free';
+  function render(){
+    const rho=+document.getElementById('rho').value,gap=+document.getElementById('gap').value;
+    document.getElementById('rhoV').textContent=rho.toFixed(1);document.getElementById('gapV').textContent=gap.toFixed(1);
+    const zones=style==='free'?computeFree(rho,+document.getElementById('harm').value):computeZones(rho,gap);
+    document.getElementById('harmV').textContent=document.getElementById('harm').value;
+    grid.innerHTML='';
+    zones.forEach(z=>{
+      const n=z.n;
+      // Kartenausschnitt um die Gruppe (Längengrad-Kreismittel wegen Datumsgrenze)
+      const ll=n.pts.map(p=>wproj.invert([((p[0]%WW)+WW)%WW,p[1]]));
+      const sx=d3.sum(ll,p=>Math.sin(p[0]*Math.PI/180)),cx=d3.sum(ll,p=>Math.cos(p[0]*Math.PI/180));
+      const lo=Math.atan2(sx,cx)*180/Math.PI;
+      let proj=d3.geoMercator().rotate([-lo,0]).translate([0,0]).scale(1);
+      const probe=ll.map(p=>proj(p)),xs=probe.map(p=>p[0]),ys=probe.map(p=>p[1]);
+      let w=Math.max(...xs)-Math.min(...xs),h=Math.max(...ys)-Math.min(...ys);
+      w=Math.max(w,0.10);h=Math.max(h,0.07);
+      const k=Math.min(W*0.62/w,H*0.62/h);
+      const cxp=(Math.max(...xs)+Math.min(...xs))/2,cyp=(Math.max(...ys)+Math.min(...ys))/2;
+      proj=d3.geoMercator().rotate([-lo,0]).scale(k).translate([W/2-cxp*k,H/2-cyp*k]);
+      const path=d3.geoPath(proj);
+      // Zonenpunkte: Weltkarte -> lon/lat -> Kachel (Längengrad normalisieren, Rotation löst die Datumsgrenze)
+      const toTile=p=>{const q=wproj.invert([p[0],p[1]]);const lon=((q[0]+540)%360)-180;return proj([lon,q[1]]);};
+      const zoneD=z.polys.map(poly=>poly.map(ring=>'M'+ring.map(p=>{const t=toTile(p);return t[0].toFixed(1)+','+t[1].toFixed(1);}).join('L')+'Z').join('')).join('');
+      const dot=MICROSTATES.find(m=>m.id===n.id);
+      const dc=dot?proj([dot.lon,dot.lat]):toTile(n.pts[0]);
+      const tile=document.createElement('div');tile.className='tile';
+      tile.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${n.name}">
+        <path d="${path(land)}" fill="var(--land)"/>
+        <path d="${path(borders)}" fill="none" stroke="var(--bord)" stroke-width=".6"/>
+        <path class="zone" d="${zoneD}"/>
+        <g class="dotring"><circle cx="${dc[0]}" cy="${dc[1]}" r="4.2" fill="#fff" stroke="#233" stroke-width="2"/></g>
+      </svg>
+      <div class="cap"><div class="name">${n.name}</div><div class="note">${n.noOutline?'Inseln zu klein für Umriss in den Daten – nur Punkt':z.polys.length+' Bereich'+(z.polys.length===1?'':'e')}</div></div>`;
+      grid.appendChild(tile);
+    });
+  }
+  let timer=null;
+  ['rho','gap','harm'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(render,120);}));
+  const set=m=>{document.body.className=m;['bBoth','bDot','bZone'].forEach(i=>document.getElementById(i).classList.remove('on'));document.getElementById(m==='nozone'?'bDot':m==='zoneonly'?'bZone':'bBoth').classList.add('on');};
+  document.getElementById('bBoth').onclick=()=>set('');
+  document.getElementById('bDot').onclick=()=>set('nozone');
+  document.getElementById('bZone').onclick=()=>set('zoneonly');
+  const setStyle=m=>{style=m;document.getElementById('sFree').classList.toggle('on',m==='free');document.getElementById('sTight').classList.toggle('on',m==='tight');
+    document.getElementById('roundRow').style.display=m==='free'?'':'none';document.getElementById('gap').closest('label').style.display=m==='free'?'none':'';render();};
+  document.getElementById('sFree').onclick=()=>setStyle('free');
+  document.getElementById('sTight').onclick=()=>setStyle('tight');
+  setStyle('free');
+})();
+</script>
+</body>
+</html>
