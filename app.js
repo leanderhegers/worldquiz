@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 B';
+const BUILD_ID='2026-11-05 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -709,6 +709,7 @@ function renderModeScreen(){
   const sc=$('mode-screen');
   sc.onscroll=updateSectionNav;
   updateSectionNav();
+  if(typeof _updateReqBadge==='function')_updateReqBadge();
 }
 function updateSectionNav(){
   const sc=$('mode-screen');if(!sc)return;

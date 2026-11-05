@@ -1292,6 +1292,9 @@ async function _checkFriendRequests(){
   await _loadFriendRequests();
   _updateReqBadge();
 }
+// Neue Anfragen live nachladen: alle 30 s und sobald der Tab wieder sichtbar wird
+setInterval(()=>{if(!document.hidden)_checkFriendRequests();},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)_checkFriendRequests();});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
