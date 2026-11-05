@@ -285,7 +285,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .games-scroll{height:100vh;overflow-y:auto;scroll-snap-type:y mandatory;scroll-behavior:smooth;position:relative;}
 .games-scroll::-webkit-scrollbar{width:0;}
 .gs-topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:10px;padding:.85rem 1rem;pointer-events:none;}
-.gs-home-btn{pointer-events:auto;font-size:13px;padding:7px 14px;background:rgba(20,28,40,.7);border:1px solid rgba(255,255,255,.15);color:#dce6f0;border-radius:9px;cursor:pointer;backdrop-filter:blur(6px);transition:background .15s;}
+.gs-home-btn{white-space:nowrap;pointer-events:auto;font-size:13px;padding:7px 14px;background:rgba(20,28,40,.7);border:1px solid rgba(255,255,255,.15);color:#dce6f0;border-radius:9px;cursor:pointer;backdrop-filter:blur(6px);transition:background .15s;}
 .gs-home-btn:hover{background:rgba(40,55,75,.85);}
 .gs-topbar-right{pointer-events:auto;display:flex;gap:6px;margin-left:auto;}
 .gs-tb-icon{font-size:16px !important;padding:7px 10px !important;min-width:0;}
@@ -294,6 +294,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .gs-mode-btn.active{background:rgba(255,255,255,.18);color:#fff;}
 .gs-mode-btn-locked{opacity:.45;cursor:pointer;}
 .gs-mode-btn-locked:hover{opacity:.65;}
+@media (max-width:480px){.gs-topbar{gap:6px;padding:.85rem .6rem;}.gs-topbar-right{gap:4px;}.gs-mode-btn{padding:5px 8px;font-size:11px;}.gs-home-btn{padding:7px 10px;}}
 .gs-mode-tooltip-wrap{position:relative;display:flex;}
 .gs-mode-tooltip{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);background:rgba(12,18,30,.96);border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:11px 14px;width:220px;font-size:12px;line-height:1.5;color:#c8d6e8;pointer-events:none;opacity:0;transition:opacity .18s;backdrop-filter:blur(10px);z-index:50;white-space:normal;text-align:left;}
 .gs-mode-tooltip-wrap:hover .gs-mode-tooltip,.gs-mode-tooltip-wrap.show .gs-mode-tooltip{opacity:1;pointer-events:auto;}
@@ -317,6 +318,13 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .gs-grid-lake,.gs-grid-river,.gs-grid-city,.gs-grid-pin{grid-template-columns:repeat(auto-fit,minmax(110px,1fr));}
 .gs-grid-flag{grid-template-columns:repeat(auto-fit,minmax(110px,1fr));}
 .gs-grid-region{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+/* On the centred game-type pages (.gs-content: heading + sub centred) a grid leaves its last,
+   partly filled row hugging the left edge — centre those rows. The left-aligned "Auf der Karte
+   anklicken" page uses .gs-grid too (inside .click-inner) and is deliberately left alone. */
+.gs-content .gs-grid{display:flex;flex-wrap:wrap;justify-content:center;}
+.gs-content .gs-grid>.gs-card{flex:1 1 110px;max-width:150px;box-sizing:border-box;}
+/* the dividers/group labels are inline-styled with grid-column:1/-1 — in flex that means "own row" */
+.gs-content .gs-grid>div{flex:0 0 100%;}
 .gs-card{display:flex;flex-direction:column;gap:3px;padding:.85rem .6rem;border-radius:12px;cursor:pointer;text-align:center;transition:transform .14s,background .14s,border-color .14s;border:1px solid var(--cardBorder);background:var(--cardBg);color:#fff;}
 .gs-card:hover{transform:translateY(-3px);background:var(--cardHov);border-color:var(--accent);}
 .gs-card-t{font-weight:600;font-size:14px;}
@@ -405,7 +413,10 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 /* Click page ("Auf der Karte anklicken") — two stacked areas, each already a real choice list
    instead of a tap-through page. Kontinente/Trivia expand inline (accordion), so picking one
    never leaves this page. */
-.click-inner{max-width:640px;text-align:left;}
+/* .cat-inner is full-bleed for the tile picker (no margin/padding, flex:1); this page is a normal
+   centred column instead, so it has to put back its own auto margins and side padding. */
+.click-inner{max-width:640px;margin:0 auto;padding:0 1.25rem 2rem;text-align:left;flex:none;display:block;}
+.click-inner .cat-heading,.click-inner .cat-sub{padding:0;}
 .click-group{margin-top:26px;}
 .click-group:first-of-type{margin-top:8px;}
 .click-group-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.55;margin:0 0 10px;}
