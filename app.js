@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 O';
+const BUILD_ID='2026-11-05 P';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1947,7 +1947,7 @@ function renderMap(world){
   if(riversData&&!game.lakeMode){
     const riverMode=game.riverMode||false;
     const allRivers=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
-    const visFeats=riverMode ? getRiverFeatures(game.difficulty) : allRivers.filter(f=>(f.properties.scalerank||9)<=3);
+    const visFeats=riverMode ? getRiverFeatures(game.difficulty) : allRivers.filter(f=>(f.properties.scalerank||9)<=3||f.properties.name==='Rhine'); // Rhine is rank 4 but wanted on the normal map
     const indexed=visFeats.map((f,i)=>({...f,_i:i}));
     riverPaths=g.append('g').attr('class','rivers').selectAll('path').data(indexed).enter().append('path')
       .attr('d',gpath).attr('fill','none').attr('stroke',th.sph).attr('stroke-width',riverMode?1.2:0.7)
@@ -2113,7 +2113,7 @@ function renderMap(world){
         return ga!==gb&&admin1Country(ga)===admin1Country(gb);
       });
       admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
-        .attr('stroke',th.border).attr('stroke-width',0.45)
+        .attr('stroke',th.border).attr('stroke-width',0.75)
         .style('vector-effect','non-scaling-stroke').attr('pointer-events','none')
         .style('display','none').style('opacity',0);
     }
@@ -2170,7 +2170,7 @@ function renderMap(world){
       // appear near the *top* of whatever range this device has, not at some fixed absolute k
       // that's barely zoomed in at all on touch.
       const maxK=COARSE?50:20;
-      const ADMIN1_FADE_START=maxK*0.75,ADMIN1_FADE_END=maxK*0.95;
+      const ADMIN1_FADE_START=maxK*0.35,ADMIN1_FADE_END=maxK*0.7;
       // display:none takes this path out of the paint pipeline entirely — below the fade
       // threshold (the vast majority of any zoom gesture) applyDotR does nothing to it at all,
       // instead of recomputing its stroke geometry on every single frame regardless of whether
