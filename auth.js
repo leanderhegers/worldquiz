@@ -1065,7 +1065,7 @@ async function renderFriends(){
     _updateReqBadge();
     if(!reqs.length){
       el.querySelector('.fr-loading').innerHTML=`<div class="fr-empty">${_friendReqError?(isDE?'Fehler beim Laden der Anfragen: ':'Error loading requests: ')+escapeHtml(String(_friendReqError)):(isDE?'Keine Anfragen':'No requests')}</div>
-        <div class="fr-empty" style="font-size:11px;opacity:.6">${isDE?'Dein Benutzername':'Your username'}: ${escapeHtml((window._authUser.displayName||'?'))}</div>`;
+        <div class="fr-empty" style="font-size:11px;opacity:.6">${isDE?'Dein Benutzername':'Your username'}: ${escapeHtml((window._authUser.displayName||'?'))} · ID …${escapeHtml(window._authUser.uid.slice(-6))}</div>`;
       return;
     }
     let html='';
@@ -1170,7 +1170,7 @@ async function searchFriend(){
     res.innerHTML=`<div class="fr-item fr-search-item">
       <div class="fr-avatar">${(userData.username||name)[0].toUpperCase()}</div>
       <div class="fr-info"><div class="fr-name">${escapeHtml(userData.username||name)}</div>
-      <div class="fr-sub">${games} ${isDE?'Spiele':'Games'} · ${achCount} 🏆</div></div>
+      <div class="fr-sub">${games} ${isDE?'Spiele':'Games'} · ${achCount} 🏆 · ID …${escapeHtml(String(targetUid).slice(-6))}</div></div>
       ${actionBtn}
     </div>`;
   }catch(e){res.innerHTML=`<div class="fr-empty">${isDE?'Fehler bei der Suche':'Search error'}</div>`;}
