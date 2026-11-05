@@ -466,3 +466,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .click-item-disabled{cursor:default;opacity:.4;}
 .click-panel{padding:2px 2px 6px;animation:secFade .25s ease;}
 .click-panel .gs-grid{gap:8px;}
+
+/* Drop-a-Pin Personen: lange Namen dürfen umbrechen statt abgeschnitten zu werden */
+#game-screen.pin-people #target-name{white-space:normal!important;font-size:17px!important;overflow:visible!important;text-overflow:clip!important;}
