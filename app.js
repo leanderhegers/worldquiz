@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 C';
+const BUILD_ID='2026-11-05 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -308,7 +308,6 @@ function openCategoryPicker(){
     <div class="cat-topbar"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button></div>
     <div class="cat-inner">
       <h1 class="cat-heading">${t('catHeading')}</h1>
-      <p class="cat-sub">${t('catSub')}</p>
       <div class="cat-grid">${cards.map(c=>`<button class="cat-card ${c.cls}" onclick="${c.onclick}"><span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span><span class="cat-card-sub">${c.sub}</span></button>`).join('')}</div>
     </div>`;
 }
