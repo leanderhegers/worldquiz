@@ -90,6 +90,14 @@ function _queuePersist(dotPath, value) {
     _persistFields(fields);
   }, 2500);
 }
+// Anzeigename: erst der Kontoname, dann der gespeicherte Benutzername, zuletzt der E-Mail-Anfang.
+// Nur wenn alles fehlt "?" — und nie "?" schreiben, wenn der Name nur noch nicht gesetzt ist.
+function _myName(u){
+  u=u||(_auth&&_auth.currentUser);
+  if(!u)return '?';
+  const st=(typeof _store!=='undefined'&&_store&&_store.settings&&_store.settings.username)||'';
+  return u.displayName||st||((u.email||'').split('@')[0])||'?';
+}
 function _updatePublicProfile(uid){
   if(!_db)return;
   const u=_auth&&_auth.currentUser;
@@ -97,7 +105,7 @@ function _updatePublicProfile(uid){
   const scores=_store.scores||{};
   const achs=_store.achievements||{};
   _db.collection('profiles').doc(uid).set({
-    username:u.displayName||'?',
+    username:_myName(u),
     games:Object.keys(scores).length,
     bestPct:Object.values(scores).reduce((m,v)=>Math.max(m,v.pct||0),0),
     scores:scores,
@@ -394,6 +402,7 @@ async function submitAuth() {
       }
       await cred.user.updateProfile({ displayName: username });
       await _db.collection('users').doc(cred.user.uid).set({ username }, { merge: true });
+      _updatePublicProfile(cred.user.uid); // Profil wurde beim Anlegen noch mit "?" geschrieben
       window._authUser = _auth.currentUser; renderAuthUI(window._authUser);
     } else {
       await _auth.signInWithEmailAndPassword(email, pw);
@@ -447,6 +456,7 @@ async function ensureUsername(user) {
     await user.updateProfile({ displayName: name }).catch(() => {});
     await _db.collection('users').doc(user.uid).set({ username: name }, { merge: true });
     window._authUser = _auth.currentUser; renderAuthUI(window._authUser);
+    _updatePublicProfile(user.uid);
   } catch (e) { console.warn('ensureUsername failed', e); }
 }
 
@@ -1183,7 +1193,7 @@ async function sendFriendRequest(toUid,toName){
   try{
     await _db.collection('friendRequests').add({
       from:window._authUser.uid,
-      fromName:window._authUser.displayName||'?',
+      fromName:_myName(window._authUser),
       to:toUid,
       ts:Date.now()
     });

@@ -87,7 +87,7 @@ async function duelSendInvite(){
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,fp.uid],from:me,fromName:window._authUser.displayName||'?',
+      players:[me,fp.uid],from:me,fromName:(typeof _myName==='function'?_myName(window._authUser):(window._authUser.displayName||'?')),
       to:fp.uid,toName:fp.name,mode:'flag',q,status:'invited',ts:Date.now(),p:{}
     });
     _duelWaitingId=ref.id;
