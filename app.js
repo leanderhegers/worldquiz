@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 A';
+const BUILD_ID='2026-11-05 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1203,7 +1203,9 @@ function haversine(lon1,lat1,lon2,lat2){const R=6371,rad=Math.PI/180;const dLat=
 function projPx(px){const svg=d3.select('#map').node();if(!svg)return px;const r=svg.getBoundingClientRect();const sc=(projection==='mercator'?r.height/MAP_H:Math.min(r.width/MAP_W,r.height/MAP_H))||1;const k=(d3.zoomTransform(svg).k)||1;return px/sc/k;}
 function addPin(layer,pt,color){
   const s=projPx(1);
-  const grp=layer.append('g').attr('transform','translate('+pt[0]+','+pt[1]+') scale('+s+')');
+  // .pin-mark + datum: applyDotR() re-scales these on every zoom step, so the pin stays the same
+  // size on screen (22 px tall) at any zoom level and on any device, not just at placement time.
+  const grp=layer.append('g').attr('class','pin-mark').datum(pt).attr('transform','translate('+pt[0]+','+pt[1]+') scale('+s+')');
   grp.append('path').attr('d','M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z').attr('fill',color).attr('stroke','#fff').attr('stroke-width',1.5);
   grp.append('circle').attr('cx',0).attr('cy',-15).attr('r',3).attr('fill','#fff');
 }
@@ -2150,6 +2152,7 @@ function renderMap(world){
     if(cityHit)cityHit.attr('r',hitR(zoomK));
     if(mountainDots)mountainDots.attr('r',dr);
     if(mountainHit)mountainHit.attr('r',hitR(zoomK));
+    if(pinLayer){const ps=1/_sc/zoomK;pinLayer.selectAll('.pin-mark').attr('transform',p=>'translate('+p[0]+','+p[1]+') scale('+ps+')');}
     if(admin1Path){
       // Fades in over a range rather than snapping on at one zoom level — a hard cutoff was
       // distracting mid-gesture. Thresholds are a fraction of the actual max zoom (not a fixed
