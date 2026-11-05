@@ -74,6 +74,30 @@ function _duelHandle(d){
   if(_duelCur&&_duelCur.id===d.id)_duelOnUpdate(d);
 }
 
+// ── Ziele ziehen, ohne dass sich Ziele schnell wiederholen ──
+// Reines Zufallsziehen aus einem kleinen Topf (Pin Europa: 85 Städte) wiederholt sich zwangsläufig
+// oft. Darum merkt sich jedes Gerät pro Modus die zuletzt gespielten Ziele (auch aus Duellen, die
+// jemand anderes gestartet hat) und zieht erst wieder daraus, wenn der Rest des Topfs nicht mehr
+// für ein Duell reicht. Nur lokal gespeichert — geht der Verlauf verloren, ist die Ziehung eben
+// wieder rein zufällig.
+function _duelRecentGet(mode){try{return JSON.parse(localStorage.getItem('geoquiz_duel_recent_'+mode))||[];}catch(e){return[];}}
+function _duelRecentAdd(mode,ids,poolSize){
+  try{
+    const keep=Math.max(0,poolSize-DUEL_ROUNDS);
+    const list=_duelRecentGet(mode).filter(x=>!ids.includes(x)).concat(ids).slice(-keep);
+    localStorage.setItem('geoquiz_duel_recent_'+mode,JSON.stringify(list));
+  }catch(e){}
+}
+function _duelDraw(mode,pool){
+  const recent=new Set(_duelRecentGet(mode));
+  let fresh=pool.filter(x=>!recent.has(x));
+  if(fresh.length<DUEL_ROUNDS)fresh=pool.slice(); // Topf (fast) durch: wieder aus allem ziehen
+  for(let i=fresh.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fresh[i],fresh[j]]=[fresh[j],fresh[i]];}
+  const pick=fresh.slice(0,DUEL_ROUNDS);
+  _duelRecentAdd(mode,pick,pool.length);
+  return pick;
+}
+
 // ── Einladung zusammenstellen (Hauptmenü oder Freundesprofil) ──
 async function duelOpenPicker(preUid){
   if(!window._authUser){if(typeof openAuth==='function')openAuth('login');return;}
@@ -123,11 +147,11 @@ async function duelSendInvite(){
   // Flaggen: Länder-IDs. Pin: Stadtnamen (name_en) aus dem europäischen Pool — alle lösen sie über
   // getPinCities('EU') wieder in dieselben Städte auf.
   const pool=mode==='pin'?getPinCities('EU').map(c=>c.name_en):mode==='map'?Object.keys(C).map(Number):Object.keys(C).map(Number).filter(id=>ISO2[id]);
-  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  const picked=_duelDraw(mode,pool);
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,...uids],host:me,names,mode,q:pool.slice(0,DUEL_ROUNDS),status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{}
+      players:[me,...uids],host:me,names,mode,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{}
     });
     _duelLobbyId=ref.id;
     clearTimeout(_duelWaitTimer);
@@ -230,6 +254,7 @@ async function _duelBegin(d){
   const me=_duelMe();
   const mode=d.mode==='pin'?'pin':d.mode==='map'?'map':'flag';
   _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},finished:false};
+  if(d.host!==me)_duelRecentAdd(mode,d.q||[],mode==='pin'?getPinCities('EU').length:mode==='map'?Object.keys(C).length:Object.keys(C).filter(id=>ISO2[id]).length);
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
   const de=_duelDE(),isPin=mode==='pin';
