@@ -1064,7 +1064,8 @@ async function renderFriends(){
     const reqs=await _loadFriendRequests();
     _updateReqBadge();
     if(!reqs.length){
-      el.querySelector('.fr-loading').innerHTML=`<div class="fr-empty">${isDE?'Keine Anfragen':'No requests'}</div>`;
+      el.querySelector('.fr-loading').innerHTML=`<div class="fr-empty">${_friendReqError?(isDE?'Fehler beim Laden der Anfragen: ':'Error loading requests: ')+escapeHtml(String(_friendReqError)):(isDE?'Keine Anfragen':'No requests')}</div>
+        <div class="fr-empty" style="font-size:11px;opacity:.6">${isDE?'Dein Benutzername':'Your username'}: ${escapeHtml((window._authUser.displayName||'?'))}</div>`;
       return;
     }
     let html='';
@@ -1132,9 +1133,11 @@ async function _loadFriendRequests(){
     const reqs=[];
     snap.forEach(doc=>{const d=doc.data();reqs.push({id:doc.id,from:d.from,fromName:d.fromName,to:d.to,ts:d.ts});});
     _friendRequestsCache=reqs;
+    _friendReqError=null;
     return reqs;
-  }catch(e){return[];}
+  }catch(e){console.warn('Friend requests load error',e);_friendReqError=(e&&(e.code||e.message))||'unknown';return[];}
 }
+let _friendReqError=null;
 
 async function searchFriend(){
   const inp=document.getElementById('fr-search-input');
