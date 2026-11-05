@@ -58,9 +58,13 @@ if ($OhneSicherung) {
     exit 0
 }
 
+# Git schreibt harmlose Hinweise (z. B. Zeilenenden-Warnung) nach stderr; PowerShell 5.1 wuerde das
+# bei ErrorActionPreference=Stop als Fehler werten und das Sichern abbrechen. Echte Fehler erkennt
+# das Skript weiter an $LASTEXITCODE.
+$ErrorActionPreference = "Continue"
 Schritt "Sichern in Git"
 $version = (Select-String -Path app.js -Pattern "BUILD_ID='(.+)'").Matches.Groups[1].Value
-git add -A
+git -c core.safecrlf=false add -A 2>$null
 if ((git status --porcelain).Length -eq 0) {
     Write-Host "   nichts zu sichern -- Stand unveraendert"
 } else {

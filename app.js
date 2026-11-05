@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 P';
+const BUILD_ID='2026-11-05 Q';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2113,7 +2113,7 @@ function renderMap(world){
         return ga!==gb&&admin1Country(ga)===admin1Country(gb);
       });
       admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
-        .attr('stroke',th.border).attr('stroke-width',0.75)
+        .attr('stroke',th.border).attr('stroke-width',0.45)
         .style('vector-effect','non-scaling-stroke').attr('pointer-events','none')
         .style('display','none').style('opacity',0);
     }
