@@ -152,6 +152,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 
 /* ── PROFILE MODAL ── */
 .profile-box{max-width:440px;width:95%;max-height:90vh;overflow:hidden;padding:0 !important;gap:0 !important;display:flex;flex-direction:column;}
+#profile-content,#friend-profile-content{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 .pf-sticky-header{flex-shrink:0;padding:1.5rem 1.25rem 0;background:#101826;z-index:5;}
 .pf-tab-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 1.25rem 1.25rem;}
 .pf-tab-body::-webkit-scrollbar{width:4px;}.pf-tab-body::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
