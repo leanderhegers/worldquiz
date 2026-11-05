@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo: Zielflächen der Trivia-Ziele</title>
+<style>
+  :root{--bg:#0e1621;--card:#152233;--line:#26384f;--ink:#e8eef6;--mut:#8da2ba;--sea:#3f86c9;--land:#e7d9b2;--bord:#9b8a62;--area:#1d9e75;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif;padding:12px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.sub{margin:0 0 14px;color:var(--mut);max-width:70ch}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 14px;color:var(--mut);font-size:12px}
+  .legend i{display:inline-block;width:18px;height:10px;vertical-align:middle;margin-right:6px;border:1.5px dashed var(--area);background:rgba(29,158,117,.25)}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--area);vertical-align:middle;margin-right:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .tile svg{display:block;width:100%;height:auto;background:var(--sea)}
+  .tile .cap{padding:7px 10px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .tile .name{font-weight:600}
+  .tile .size{color:var(--mut);font-size:12px;white-space:nowrap}
+</style>
+</head>
+<body>
+<h1>Zielflächen der Trivia-Ziele</h1>
+<p class="sub">Diese ausgedehnten Ziele haben eine Fläche statt eines 20-km-Kreises. Pin in der gestrichelten Fläche = volle Punkte, sonst zählt der Abstand zum Rand. Der Punkt ist die bisherige Mittelpunkt-Markierung.</p>
+<div class="legend"><span><i></i>Zielfläche</span><span><b></b>Mittelpunkt des Ziels</span></div>
+<div id="grid" class="grid"></div>
+<script src="../vendor/d3.v7.min.js"></script>
+<script src="../vendor/topojson.v3.min.js"></script>
+<script src="../cities.js"></script>
+<script>
+(async function(){
+  const world=await fetch('../data/countries-50m.json').then(r=>r.json());
+  const land=topojson.feature(world,world.objects.countries);
+  const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
+  const W=420,H=280;
+  const areas=PIN_TRIVIA.filter(c=>c.poly);
+  const grid=document.getElementById('grid');
+  function ringOrient(poly){ // d3: Außenring im Uhrzeigersinn
+    let a=0;for(let i=0,j=poly.length-1;i<poly.length;j=i++)a+=poly[j][0]*poly[i][1]-poly[i][0]*poly[j][1];
+    const r=a>0?poly.slice().reverse():poly.slice();return {type:'Polygon',coordinates:[r.concat([r[0]])]};
+  }
+  areas.sort((a,b)=>a.name_de.localeCompare(b.name_de,'de')).forEach(c=>{
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    c.poly.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});
+    // Ausschnitt: Fläche plus großzügiger Rand, damit man sie im Umfeld erkennt
+    const spanX=Math.max(x1-x0,0.6),spanY=Math.max(y1-y0,0.4);
+    const pad=0.9;
+    const ext={type:'MultiPoint',coordinates:[[x0-spanX*pad,y0-spanY*pad],[x1+spanX*pad,y1+spanY*pad]]};
+    const proj=d3.geoMercator().fitExtent([[6,6],[W-6,H-6]],ext);
+    const path=d3.geoPath(proj);
+    const km=(()=>{ // grobe Ausdehnung der Fläche (längste Seite des Rahmens) in km
+      const kx=111.32*Math.cos(((y0+y1)/2)*Math.PI/180);return Math.round(Math.max((x1-x0)*kx,(y1-y0)*110.57));})();
+    const tile=document.createElement('div');tile.className='tile';
+    const cp=proj([c.lon,c.lat]);
+    tile.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${c.name_de}">
+      <path d="${path(land)}" fill="var(--land)"/>
+      <path d="${path(borders)}" fill="none" stroke="var(--bord)" stroke-width=".7"/>
+      <path d="${path(ringOrient(c.poly))}" fill="rgba(29,158,117,.28)" stroke="#0f7a58" stroke-width="2.2" stroke-dasharray="7,4"/>
+      <circle cx="${cp[0]}" cy="${cp[1]}" r="5" fill="#fff" stroke="#0f7a58" stroke-width="2.5"/>
+    </svg>
+    <div class="cap"><span class="name">${c.name_de}</span><span class="size">ca. ${km} km</span></div>`;
+    grid.appendChild(tile);
+  });
+})();
+</script>
+</body>
+</html>
