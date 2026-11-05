@@ -470,7 +470,7 @@ const PIN_TRIVIA = [
   {name_de:"Beringstraße", name_en:"Bering Strait", name_es:"Estrecho de Bering", name_fr:"Détroit de Béring", lon:-169, lat:65.75, poly:[[-170.2,66.1],[-167.8,66],[-167.9,65.4],[-170,65.5]]},
   {name_de:"Machu Picchu", name_en:"Machu Picchu", name_es:"Machu Picchu", name_fr:"Machu Picchu", lon:-72.545, lat:-13.1631},
   {name_de:"Mount Everest", name_en:"Mount Everest", name_es:"Monte Everest", name_fr:"Mont Everest", lon:86.925, lat:27.9881},
-  {name_de:"Grand Canyon", name_en:"Grand Canyon", name_es:"Gran Cañón", name_fr:"Grand Canyon", lon:-112.1129, lat:36.1069, poly:[[-111.6,37],[-112.1,36.25],[-113,36.35],[-113.9,36.25],[-113.9,35.95],[-113,36.05],[-112.1,35.95],[-111.6,36.72]]},
+  {name_de:"Grand Canyon", name_en:"Grand Canyon", name_es:"Gran Cañón", name_fr:"Grand Canyon", lon:-112.1129, lat:36.1069, poly:[[-111.75,36.95],[-112.5,36.5],[-113.85,36.4],[-113.85,36],[-112.6,35.85],[-111.8,36.25]]},
   {name_de:"Victoriafälle", name_en:"Victoria Falls", name_es:"Cataratas Victoria", name_fr:"Chutes Victoria", lon:25.8572, lat:-17.9243},
   {name_de:"Totes Meer", name_en:"Dead Sea", name_es:"Mar Muerto", name_fr:"Mer Morte", lon:35.47, lat:31.5, poly:[[35.45,31.77],[35.57,31.75],[35.55,31.35],[35.48,31.2],[35.38,31.3],[35.43,31.6]]},
   {name_de:"Angkor Wat", name_en:"Angkor Wat", name_es:"Angkor Wat", name_fr:"Angkor Vat", lon:103.867, lat:13.4125},
@@ -556,6 +556,24 @@ const PIN_TRIVIA = [
   {name_de:"Meteora-Klöster", name_en:"Meteora", name_es:"Meteora", name_fr:"Météores", lon:21.6307, lat:39.7217},
   {name_de:"Santorin", name_en:"Santorini", name_es:"Santorini", name_fr:"Santorin", lon:25.4615, lat:36.3932, poly:[[25.33,36.46],[25.5,36.48],[25.5,36.33],[25.35,36.33]]}
 ];
+
+// Zielflächen (poly) der Trivia-Ziele sind grob von Hand gesetzte Eckpunkte. Damit daraus keine
+// kantigen Vielecke werden, rundet Chaikins Eckenschnitt sie ab (jede Kante wird durch zwei Punkte
+// bei 1/4 und 3/4 ersetzt, 3 Durchgänge = glatte, geschlossene Kurve). Abstände und Zeichnung
+// verwenden dieselbe gerundete Form.
+function smoothArea(poly,rounds){
+  let p=poly;
+  for(let r=0;r<(rounds||3);r++){
+    const q=[];
+    for(let k=0;k<p.length;k++){
+      const a=p[k],b=p[(k+1)%p.length];
+      q.push([0.75*a[0]+0.25*b[0],0.75*a[1]+0.25*b[1]],[0.25*a[0]+0.75*b[0],0.25*a[1]+0.75*b[1]]);
+    }
+    p=q;
+  }
+  return p;
+}
+PIN_TRIVIA.forEach(c=>{if(c.poly)c.poly=smoothArea(c.poly);});
 
 // Drop-A-Pin "Geburtsorte berühmter Personen": name = Person, lon/lat = Geburtsort, job_* = Beruf als Hinweis.
 const PIN_PEOPLE = [
