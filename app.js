@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 N';
+const BUILD_ID='2026-11-05 O';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1250,10 +1250,15 @@ function handlePinClick(ev){
   let pts=dist>=maxDist?0:Math.round(1000*Math.exp(-Math.max(0,dist-20)/decay));
   let countryBonus=false;
   const isContinent=['EU','AF','AS','NA','SA','OC','world','trivia'].includes(game.pinRegion);
-  if(isContinent&&countryPaths){
-    const feats=countryPaths.data();
-    const targetFeat=feats.find(f=>d3.geoContains(f,[city.lon,city.lat]));
-    if(targetFeat&&d3.geoContains(targetFeat,guess)){pts+=50;countryBonus=true;}
+  if(isContinent){
+    // Bonus if the pin is inside the target's country — or inside the 20 km full-points circle, so a
+    // coastal city isn't robbed of it when the (coarse) border polygon puts the pin in the sea.
+    if(dist<=20){pts+=50;countryBonus=true;}
+    else if(countryPaths){
+      const feats=countryPaths.data();
+      const targetFeat=feats.find(f=>d3.geoContains(f,[city.lon,city.lat]));
+      if(targetFeat&&d3.geoContains(targetFeat,guess)){pts+=50;countryBonus=true;}
+    }
   }
   game.pinScore=(game.pinScore||0)+pts;
   game.pinTotalDist=(game.pinTotalDist||0)+dist;
