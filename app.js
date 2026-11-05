@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 K';
+const BUILD_ID='2026-11-05 L';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2617,7 +2617,7 @@ function updateStats(){
     $('score-disp').textContent=g.pos+'/'+g.total;$('found-label').textContent=t('foundLbl');
     $('stat-c').textContent=g.firstTry;$('lbl-c').textContent=t('correctLbl');
     $('stat-w').textContent=game.wrong||0;$('lbl-w').textContent=t('wrongLbl');
-    if(g.daily){$('stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('lbl-s').textContent=t('timeLbl');}
+    if(g.daily||g.duel){$('stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('lbl-s').textContent=t('timeLbl');}
     else{$('stat-s').textContent=g.skipped||0;$('lbl-s').textContent=t('skippedLbl');}
     $('stat-r').textContent=(g.total-g.pos)+' '+t('remLbl');
     $('prog-bar').style.width=Math.round((g.pos/g.total)*100)+'%';

@@ -98,6 +98,15 @@ function _myName(u){
   const st=(typeof _store!=='undefined'&&_store&&_store.settings&&_store.settings.username)||'';
   return u.displayName||st||((u.email||'').split('@')[0])||'?';
 }
+// Präsenz: solange die App sichtbar ist, alle 45 s lastSeen im öffentlichen Profil aktualisieren.
+// Freunde gelten als online, wenn der Wert jünger als 100 s ist (siehe duel.js).
+function _presencePing(){
+  const u=_auth&&_auth.currentUser;
+  if(!_db||!u||document.hidden)return;
+  _db.collection('profiles').doc(u.uid).update({lastSeen:Date.now()}).catch(()=>{});
+}
+setInterval(_presencePing,45000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)_presencePing();});
 function _updatePublicProfile(uid){
   if(!_db)return;
   const u=_auth&&_auth.currentUser;
@@ -112,6 +121,7 @@ function _updatePublicProfile(uid){
     achievements:achs,
     streak:_store.streak||0,
     avatar:_store.avatar||null,
+    lastSeen:Date.now(),
     updatedAt:Date.now()
   }).catch(()=>{});
 }
@@ -1128,7 +1138,7 @@ async function _loadFriends(){
           const fd=fdoc.data();
           const games=fd.scores?Object.keys(fd.scores).length:0;
           const achCount=fd.achievements?Object.keys(fd.achievements).length:0;
-          friends.push({uid:fid,username:fd.username||'?',games,achCount,scores:fd.scores||{},achievements:fd.achievements||{},streak:fd.streak||0,avatar:fd.avatar||null});
+          friends.push({uid:fid,username:fd.username||'?',games,achCount,scores:fd.scores||{},achievements:fd.achievements||{},streak:fd.streak||0,avatar:fd.avatar||null,lastSeen:fd.lastSeen||0});
         }
       }catch(e){}
     }
