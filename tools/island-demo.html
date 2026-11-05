@@ -40,6 +40,7 @@
     <button id="sFree" class="on">Stil: freihand rund</button>
     <button id="sTight">Stil: eng an den Inseln</button>
   </div>
+  <label id="nearRow">Höchstens so weit von den Inseln<input id="near" type="range" min="2" max="16" step="0.5" value="8"><output id="nearV"></output></label>
   <label id="roundRow">Rundheit (je niedriger, desto runder)<input id="harm" type="range" min="1" max="6" step="1" value="2"><output id="harmV"></output></label>
   <div class="row">
     <button id="bBoth" class="on">Punkt + Bereich</button>
@@ -180,26 +181,72 @@
     r=r.map(v=>v*Math.max(sc*1.04,1));
     return {c,r,at:ang=>{const f=((ang%(Math.PI*2))+Math.PI*2)%(Math.PI*2)/(Math.PI*2)*NA,i=Math.floor(f)%NA,j=(i+1)%NA,w=f-Math.floor(f);return r[i]*(1-w)+r[j]*w;},rmax:Math.max(...r)};
   }
-  function computeFree(margin,H){
+  // Fremdes Land (alle anderen Länder) pro Gitterausschnitt in eine Maske zeichnen: dort darf der
+  // Bereich nicht hinein. Daher ragt er z. B. bei den Bahamas nicht mehr nach Florida oder Kuba.
+  const feats=land.features.map(ft=>({f:ft,id:+ft.id,b:d3.geoBounds(ft)}));
+  function foreignMask(ownId,bx0,by0,nx,ny,h){
+    const cv=document.createElement('canvas');cv.width=nx;cv.height=ny;
+    const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#000';
+    for(const sh of [-WW,0,WW]){
+      const proj=d3.geoMercator().scale(WSCALE/h).translate([(WW/2+sh-bx0)/h,(250-by0)/h]);
+      const path=d3.geoPath(proj,ctx);
+      const q0=wproj.invert([bx0-sh,by0]),q1=wproj.invert([bx0-sh+nx*h,by0+ny*h]);
+      const lo0=Math.min(q0[0],q1[0]),lo1=Math.max(q0[0],q1[0]),la0=Math.min(q0[1],q1[1]),la1=Math.max(q0[1],q1[1]);
+      feats.forEach(ft=>{
+        if(ft.id===ownId)return;
+        const bb=ft.b;
+        if(bb[0][0]<=bb[1][0]&&(bb[1][0]<lo0||bb[0][0]>lo1||bb[1][1]<la0||bb[0][1]>la1))return;
+        if(bb[0][1]<-60)return; // Antarktis
+        ctx.beginPath();path(ft.f);ctx.fill();
+      });
+    }
+    const d=ctx.getImageData(0,0,nx,ny).data;
+    return idx=>d[idx*4+3]>0;
+  }
+  function boxBlur(v,nx,ny,r,passes){
+    let a=v,b=new Float64Array(v.length);
+    for(let p=0;p<passes;p++){
+      for(let j=0;j<ny;j++){let sum=0,cnt=0;for(let i=-r;i<=r;i++){if(i>=0&&i<nx){sum+=a[j*nx+i];cnt++;}}
+        for(let i=0;i<nx;i++){b[j*nx+i]=sum/cnt;const o=i-r,n=i+r+1;if(o>=0){sum-=a[j*nx+o];cnt--;}if(n<nx){sum+=a[j*nx+n];cnt++;}}}
+      for(let i=0;i<nx;i++){let sum=0,cnt=0;for(let j=-r;j<=r;j++){if(j>=0&&j<ny){sum+=b[j*nx+i];cnt++;}}
+        for(let j=0;j<ny;j++){a[j*nx+i]=sum/cnt;const o=j-r,n=j+r+1;if(o>=0){sum-=b[o*nx+i];cnt--;}if(n<ny){sum+=b[n*nx+i];cnt++;}}}
+    }
+    return a;
+  }
+  // Gauß-Glättung (rotationssymmetrisch, anders als ein Kastenfilter, der Kreise zu Rauten macht)
+  function gaussBlur(v,nx,ny,sigma){
+    const R=Math.ceil(sigma*3),k=[];let ks=0;
+    for(let i=-R;i<=R;i++){const w=Math.exp(-(i*i)/(2*sigma*sigma));k.push(w);ks+=w;}
+    const tmp=new Float64Array(v.length),out=new Float64Array(v.length);
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let s=0,ws=0;for(let t=-R;t<=R;t++){const x=i+t;if(x<0||x>=nx)continue;s+=v[j*nx+x]*k[t+R];ws+=k[t+R];}tmp[j*nx+i]=s/ws;}
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let s=0,ws=0;for(let t=-R;t<=R;t++){const y=j+t;if(y<0||y>=ny)continue;s+=tmp[y*nx+i]*k[t+R];ws+=k[t+R];}out[j*nx+i]=s/ws;}
+    return out;
+  }
+  function computeFree(margin,H,maxNear){
     const h=0.5;
     const all=NATIONS.map(n=>{const bl=blobOf(n.pts,Math.max(margin,1.5),H);return {n,bl};});
     return all.map(a=>{
-      const {c,rmax}=a.bl,bx0=c[0]-rmax-1,by0=c[1]-rmax-1,nx=Math.ceil((rmax*2+2)/h),ny=nx;
+      const {c,rmax}=a.bl,R=Math.min(rmax,Math.max(...a.n.pts.map(p=>Math.hypot(p[0]-c[0],p[1]-c[1])))+maxNear+2);
+      const ext=Math.max(R,rmax)+1,bx0=c[0]-ext,by0=c[1]-ext,nx=Math.ceil(ext*2/h),ny=nx;
       const rivals=[];
       all.forEach(o=>{if(o===a)return;for(const sh of [-WW,0,WW]){
         const oc=[o.bl.c[0]+sh,o.bl.c[1]];
-        if(Math.hypot(oc[0]-c[0],oc[1]-c[1])>o.bl.rmax+rmax+2)continue;
+        if(Math.hypot(oc[0]-c[0],oc[1]-c[1])>o.bl.rmax+ext+2)continue;
         rivals.push({c:oc,bl:o.bl});
       }});
+      const foreign=a.n.noOutline?null:foreignMask(a.n.id,bx0,by0,nx,ny,h);
       const f=new Float64Array(nx*ny);
       for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
-        const x=bx0+(i+0.5)*h,y=by0+(j+0.5)*h;
-        const dx=x-c[0],dy=y-c[1],q=Math.hypot(dx,dy)/a.bl.at(Math.atan2(dy,dx));
-        let val=1-q;
-        if(val>0)for(const o of rivals){const ox=x-o.c[0],oy=y-o.c[1],qo=Math.hypot(ox,oy)/o.bl.at(Math.atan2(oy,ox));if(qo<q){val=-0.05;break;}}
-        f[j*nx+i]=val;
+        const idx=j*nx+i,x=bx0+(i+0.5)*h,y=by0+(j+0.5)*h;
+        const dx=x-c[0],dy=y-c[1],rr=a.bl.at(Math.atan2(dy,dx)),q=Math.hypot(dx,dy)/rr;
+        let dmin=1e9;for(const p of a.n.pts){const dd=Math.hypot(x-p[0],y-p[1]);if(dd<dmin)dmin=dd;}
+        let val=Math.min((1-q)*rr,maxNear-dmin);          // innerhalb der Freihandform UND nicht zu weit von den Inseln
+        if(val>0&&foreign&&foreign(idx))val=-4;           // nicht in fremdes Land hinein
+        if(val>0)for(const o of rivals){const ox=x-o.c[0],oy=y-o.c[1],qo=Math.hypot(ox,oy)/o.bl.at(Math.atan2(oy,ox));if(qo<q){val=-0.5;break;}}
+        f[idx]=val;
       }
-      const geo=d3.contours().size([nx,ny]).thresholds([0]).smooth(true)(f)[0];
+      const sm=gaussBlur(f,nx,ny,1.8);                      // wieder weich und rund machen
+      const geo=d3.contours().size([nx,ny]).thresholds([0]).smooth(true)(sm)[0];
       const polys=geo.coordinates.map(poly=>poly.map(ring=>ring.map(([gx,gy])=>[bx0+gx*h,by0+gy*h])));
       return {n:a.n,polys};
     });
@@ -212,8 +259,8 @@
   function render(){
     const rho=+document.getElementById('rho').value,gap=+document.getElementById('gap').value;
     document.getElementById('rhoV').textContent=rho.toFixed(1);document.getElementById('gapV').textContent=gap.toFixed(1);
-    const zones=style==='free'?computeFree(rho,+document.getElementById('harm').value):computeZones(rho,gap);
-    document.getElementById('harmV').textContent=document.getElementById('harm').value;
+    const zones=style==='free'?computeFree(rho,+document.getElementById('harm').value,+document.getElementById('near').value):computeZones(rho,gap);
+    document.getElementById('harmV').textContent=document.getElementById('harm').value;document.getElementById('nearV').textContent=(+document.getElementById('near').value).toFixed(1);
     grid.innerHTML='';
     zones.forEach(z=>{
       const n=z.n;
@@ -246,13 +293,13 @@
     });
   }
   let timer=null;
-  ['rho','gap','harm'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(render,120);}));
+  ['rho','gap','harm','near'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(render,120);}));
   const set=m=>{document.body.className=m;['bBoth','bDot','bZone'].forEach(i=>document.getElementById(i).classList.remove('on'));document.getElementById(m==='nozone'?'bDot':m==='zoneonly'?'bZone':'bBoth').classList.add('on');};
   document.getElementById('bBoth').onclick=()=>set('');
   document.getElementById('bDot').onclick=()=>set('nozone');
   document.getElementById('bZone').onclick=()=>set('zoneonly');
   const setStyle=m=>{style=m;document.getElementById('sFree').classList.toggle('on',m==='free');document.getElementById('sTight').classList.toggle('on',m==='tight');
-    document.getElementById('roundRow').style.display=m==='free'?'':'none';document.getElementById('gap').closest('label').style.display=m==='free'?'none':'';render();};
+    document.getElementById('roundRow').style.display=m==='free'?'':'none';document.getElementById('nearRow').style.display=m==='free'?'':'none';document.getElementById('gap').closest('label').style.display=m==='free'?'none':'';render();};
   document.getElementById('sFree').onclick=()=>setStyle('free');
   document.getElementById('sTight').onclick=()=>setStyle('tight');
   setStyle('free');
