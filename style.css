@@ -146,6 +146,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .home-play:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(31,111,174,.6);}
 .home-play:active{transform:translateY(0);}
 .home-options-btn{margin-top:1rem;padding:10px 32px;font-size:15px;font-weight:500;color:#cfe0f0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:12px;cursor:pointer;transition:background .15s,transform .15s;}
+.home-play,.home-options-btn{width:min(86vw,300px);box-sizing:border-box;padding-left:16px;padding-right:16px;text-align:center;}
 .home-options-btn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px);}
 .opts-box{max-width:460px;text-align:left;}
 .opts-box .opts-grid{gap:1.1rem 1.6rem;}
@@ -282,6 +283,12 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .fr-challenge-btn:hover{background:rgba(61,168,130,.18);border-color:rgba(61,168,130,.5);}
 /* Multiplayer-Duelle (duel.js) */
 .duel-box{max-width:360px;align-items:stretch;text-align:center;}
+.duel-friends{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow-y:auto;text-align:left;}
+.duel-friend{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#d6e0ee;font-size:14px;cursor:pointer;}
+.duel-friend.selected{border-color:rgba(61,168,130,.7);background:rgba(61,168,130,.12);}
+.duel-friend.disabled{opacity:.4;cursor:not-allowed;}
+.duel-check{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#7be0b8;flex:0 0 auto;}
+.duel-btn[disabled]{opacity:.45;cursor:not-allowed;}
 .duel-sub{color:#8a9bb8;font-size:14px;line-height:1.4;}
 .duel-count{font-size:64px;font-weight:700;color:#fff;line-height:1.1;}
 .duel-mode{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);}
@@ -407,17 +414,22 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .cat-screen{position:relative;min-height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;}
 .cat-bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 30%,#16314f 0%,#0d1b2e 45%,#070d18 100%);}
 .cat-topbar{position:relative;z-index:1;padding:.85rem 1rem;flex-shrink:0;}
+.cat-picker .cat-topbar{position:absolute;top:0;left:0;z-index:2;}
 /* No max-width, no side/bottom padding: the grid below reaches the actual screen edges (left,
    right, bottom) — only .cat-heading/.cat-sub keep their own inset so the text stays readable. */
 .cat-inner{position:relative;z-index:1;width:100%;margin:0;text-align:center;padding:0;box-sizing:border-box;flex:1;display:flex;flex-direction:column;min-height:0;}
+/* The heading gets its own top band and is centred in it (horizontally + vertically), so it sits
+   in the middle of the space above the tiles instead of hugging them. The back button floats over
+   the band's top-left corner (.cat-topbar is absolute). */
 .cat-heading{font-size:clamp(24px,5vw,32px);font-weight:600;letter-spacing:-.01em;margin:0 0 .3rem;color:#fff;flex-shrink:0;padding:0 1.25rem;}
+.cat-picker .cat-heading{margin:0;flex:0 0 clamp(96px,17vh,170px);display:flex;align-items:center;justify-content:center;box-sizing:border-box;}
 .cat-sub{font-size:14px;opacity:.75;margin:0 0 1.25rem;flex-shrink:0;padding:0 1.25rem;}
 /* Explicit 2x2 row/column template (CATEGORIES is always exactly 4 entries) rather than
    grid-auto-rows, so both dimensions split the available space evenly and the cards can stretch
    to fill their cell with height:100% below. gap:0 (no border-radius anywhere) makes the four
    tiles read as one flush, fully square-cornered block of boxes. */
 .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:0;flex:1;min-height:280px;}
-@media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);min-height:560px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-heading{margin-bottom:.15rem;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
+@media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);min-height:560px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-picker .cat-heading{flex-basis:clamp(104px,16vh,130px);padding-top:38px;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
 /* No border-radius anywhere and no hover lift — square-cornered boxes flush against each other
    (a translateY lift would look broken with zero gap between tiles, riding up over its neighbour).
    The 1px border on all four sides still reads as a hairline divider between adjacent tiles. */

@@ -38,11 +38,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Multiplayer-Duelle (duel.js): nur die beiden Beteiligten sehen und aendern ein Duell.
+    // Multiplayer-Duelle (duel.js): 2-4 Spieler; nur Beteiligte sehen und aendern ein Duell.
     match /duels/{duelId} {
       allow create: if request.auth != null &&
-        request.resource.data.from == request.auth.uid &&
-        request.auth.uid in request.resource.data.players;
+        request.resource.data.host == request.auth.uid &&
+        request.auth.uid in request.resource.data.players &&
+        request.resource.data.players.size() <= 4;
       allow read, update, delete: if request.auth != null &&
         request.auth.uid in resource.data.players;
     }

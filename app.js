@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 J';
+const BUILD_ID='2026-11-05 K';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -303,6 +303,7 @@ function openCategoryPicker(){
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
   const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
   showScreen('category-screen');
+  $('category-screen').classList.add('cat-picker');
   $('category-screen').innerHTML=`
     <div class="cat-bg"></div>
     <div class="cat-topbar"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button></div>
@@ -372,6 +373,7 @@ function renderClickPage(){
     {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
   ];
   const regionCards=REGION_QUIZ_LIST.map(r=>gsCard("startRegionQuiz('"+r.key+"')",r.name[lang],r.count+' '+t('regions'),'region:'+r.key)).join('');
+  $('category-screen').classList.remove('cat-picker');
   $('category-screen').innerHTML=`
     <div class="cat-bg"></div>
     <div class="cat-topbar"><button class="gs-home-btn" onclick="openCategoryPicker()">${t('back')}</button></div>
@@ -528,7 +530,7 @@ function toggleOpts(){optsOpen=!optsOpen;$('opts-panel').style.display=optsOpen?
 function setTxt(id,v){const e=$(id);if(e)e.textContent=v;}
 function renderHome(){
   setTxt('home-title',t('homeTitle'));setTxt('home-sub',t('homeSub'));
-  setTxt('home-play',t('playBtn'));setTxt('home-random-btn',t('randomChallengeBtn'));setTxt('home-daily-btn',t('dailyChallengeBtn'));setTxt('home-options-btn','⚙ '+t('optionsLbl'));
+  setTxt('home-play',t('playBtn'));setTxt('home-random-btn',t('randomChallengeBtn'));setTxt('home-daily-btn',t('dailyChallengeBtn'));setTxt('home-duel-btn','⚔️ '+({en:'Challenge friends',es:'Desafiar a amigos',fr:'Défier des amis'}[lang]||'Freunde herausfordern'));setTxt('home-options-btn','⚙ '+t('optionsLbl'));
   const dailyBtn=$('home-daily-btn');if(dailyBtn)dailyBtn.title=window._authUser?'':t('dailyLoginRequired');
   setTxt('home-opts-title',t('optionsLbl'));
   setTxt('build-stamp','Build '+BUILD_ID);
@@ -826,7 +828,7 @@ function restart(){if(_regGame)return void startRegionQuiz(_regGame.key);if(game
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){if(_regGame)return void regionBack();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -840,7 +842,9 @@ function learnSortIds(ids,prefix,quizKey){
   if(!learnMode||typeof getMisses!=='function')return firstLapOrder(quizKey,[...ids]);
   const misses=getMisses(),corrects=typeof getCorrects==='function'?getCorrects():{};
   const filtered=ids.filter(id=>(corrects[prefix+id]||0)<=3);
-  const front=filtered.filter(id=>!(corrects[prefix+id])&&misses[prefix+id])
+  // shuffle() first: the sort is stable, so ids with the same miss count come out in random order
+  // instead of always the same one.
+  const front=shuffle(filtered.filter(id=>!(corrects[prefix+id])&&misses[prefix+id]))
     .sort((a,b)=>(misses[prefix+b]||0)-(misses[prefix+a]||0));
   const mid=shuffle(filtered.filter(id=>!(corrects[prefix+id])&&!(misses[prefix+id])));
   const end=filtered.filter(id=>(corrects[prefix+id]||0)>=1);
@@ -1209,13 +1213,12 @@ function addPin(layer,pt,color){
   grp.append('path').attr('d','M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z').attr('fill',color).attr('stroke','#fff').attr('stroke-width',1.5);
   grp.append('circle').attr('cx',0).attr('cy',-15).attr('r',3).attr('fill','#fff');
 }
-async function startPinGame(region){
+async function startPinGame(region,fixedCities){
   region=region||'EU';
-  const pool=getPinCities(region);
-  const n=Math.min(quizRoundLimit,pool.length);
-  const cities=shuffle(pool).slice(0,n);
+  // fixedCities: a multiplayer duel hands both players the same cities (see duel.js).
+  const cities=(fixedCities&&fixedCities.length)?fixedCities:shuffle(getPinCities(region)).slice(0,Math.min(quizRoundLimit,getPinCities(region).length));
   game={mode:'pin',pinMode:true,difficulty:region,pinRegion:region,
-    pinCities:cities,queue:cities.map((_,i)=>i),
+    pinCities:cities,queue:cities.map((_,i)=>i),pinDuel:!!(fixedCities&&fixedCities.length),
     current:null,pinScore:0,pinTotalDist:0,pinRound:0,total:cities.length};
   lastMode='pin';canClick=true;optsOpen=false;
   showScreen('game-screen');$('opts-panel').style.display='none';
@@ -1274,6 +1277,7 @@ function handlePinClick(ev){
   }
   showFeedback(t('pinFb')(Math.round(dist),pts)+(countryBonus?' (+50 🎯)':''),THEMES[theme].found);
   updateStats();
+  if(game.pinDuel&&typeof duelPinProgress==='function')duelPinProgress();
   setTimeout(nextPin,2300);
 }
 function showPinResult(){
@@ -1288,6 +1292,7 @@ function showPinResult(){
   $('res-l1').textContent=game.pinScore+' / '+max+' '+t('pointsLbl')+' ('+pct+'%)';
   $('res-l2').textContent=t('avgLbl')+': '+avg+' km'+note;
   $('res-btn-back').textContent=t('back');$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');$('btn-share').textContent=t('shareBtn');
+  if(game.pinDuel&&typeof duelPinFinish==='function')duelPinFinish();
   if(typeof checkAchievements==='function')checkAchievements();
 }
 
@@ -2794,7 +2799,9 @@ async function startInputQuiz(cfg){
   if(cfg.type==='outline')await iqEnsureOutlineGeo();
   const ids=iqPoolIds(cfg);
   if(!ids.length)return;
-  const queue=learnSortIds(ids,IQ_PREFIX[cfg.type],iqScoreKey(cfg)).slice(0,allTargets?Infinity:quizRoundLimit);
+  // Normal mode: a plain fresh shuffle every round (completely random). Learn mode keeps its own
+  // ordering on purpose — it brings back what the player got wrong.
+  const queue=(learnMode?learnSortIds(ids,IQ_PREFIX[cfg.type],iqScoreKey(cfg)):shuffle(ids)).slice(0,allTargets?Infinity:quizRoundLimit);
   // The two hardest difficulty tiers show every possible country in the dropdown, not just this
   // round's pool — a short list would let you find the answer by elimination instead of actually
   // recognising the flag/capital/outline. Easier tiers (and region-scoped rounds) keep the short,

@@ -1296,7 +1296,7 @@ async function openFriendProfile(uid){
         <span style="font-size:11px;color:#8a9bb8;">${achCount}/${achTotal} ${isDE?'Achievements':'Achievements'} (${achPct}%)</span>
       </div>
       ${achHtml}
-      <button class="fr-challenge-btn" onclick="closeFriendProfile();duelOpenPicker()">⚔️ ${isDE?'Herausfordern':'Challenge'}</button>
+      <button class="fr-challenge-btn" onclick="closeFriendProfile();duelOpenPicker(window._fpCur&&window._fpCur.uid)">⚔️ ${isDE?'Herausfordern':'Challenge'}</button>
       </div>`;
   }catch(e){el.innerHTML=`<div class="fr-empty">${isDE?'Fehler beim Laden':'Error loading profile'}</div>`;}
 }
