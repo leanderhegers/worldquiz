@@ -68,6 +68,10 @@ so anything in it is in the hot path:
 - `app.js` — everything gameplay: screens, all quiz modes, `renderMap()` (one ~370-line
   function), colours, i18n (`TX`). Entry points: `loadMap()`, `renderMap()`, `handleClick()`,
   `nextCountry()`, `updateColors()`.
+- `duel.js` — 1-gegen-1-Duelle in Echtzeit (Flaggen-Quiz): Firestore `duels/{id}` + `onSnapshot`; ein Duell
+  ist eine normale Challenge (`_challenge.duel`) mit gemeinsamer Fragenliste. Startet nie aus einem
+  bloßen Dokument, nur wenn man selbst wartet/annimmt. Braucht die `duels`-Regeln in `firestore.rules`
+  (separat deployen: `firebase deploy --only firestore:rules`).
 - `auth.js` — Firebase auth + Firestore persistence, with a localStorage fallback; also scores,
   achievements, friends.
 - `countries.js` / `capitals.js` / `cities.js` — static game data.

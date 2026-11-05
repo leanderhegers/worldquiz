@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 H';
+const BUILD_ID='2026-11-05 I';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -826,7 +826,7 @@ function restart(){if(_regGame)return void startRegionQuiz(_regGame.key);if(game
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){if(_regGame)return void regionBack();if(game.challengeMode){_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(_regGame)return void regionBack();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -2400,6 +2400,7 @@ function nextChallengeQuestion(){
 function advanceChallenge(){
   if(!game.wrongOnCurrent)_challenge.firstTry++;
   _challenge.pos++;
+  if(_challenge.duel&&typeof duelProgress==='function')duelProgress();
   nextChallengeQuestion();
 }
 function showChallengeResult(){
@@ -2422,6 +2423,7 @@ function showChallengeResult(){
       submitDailyChallengeScore(g.date,g.firstTry,g.total,g.timeMs,g.score).then(()=>renderDailyLeaderboard(g.date));
     }
   }else if(dw)dw.style.display='none';
+  if(g.duel&&typeof duelShowResult==='function')duelShowResult(g);
   // game.challengeMode deliberately stays set (not reset to {}) so restart()/back() can still
   // tell this result screen belongs to a challenge — they're the ones that clear it.
   if(typeof checkAchievements==='function')checkAchievements();
@@ -2450,7 +2452,7 @@ function _seededRng(seedStr){
 function _dailyToday(){return typeof _todayStr==='function'?_todayStr():new Date().toISOString().slice(0,10);}
 function _formatDailyTime(ms){return(Math.max(0,ms)/1000).toFixed(1)+'s';}
 let _dailyTimerHandle=null;
-function _startDailyTimer(){_stopDailyTimer();_dailyTimerHandle=setInterval(()=>{if(_challenge&&_challenge.daily){updateStats();updateFlagStats();}},500);}
+function _startDailyTimer(){_stopDailyTimer();_dailyTimerHandle=setInterval(()=>{if(_challenge&&(_challenge.daily||_challenge.duel)){updateStats();updateFlagStats();}},500);}
 function _stopDailyTimer(){if(_dailyTimerHandle){clearInterval(_dailyTimerHandle);_dailyTimerHandle=null;}}
 
 async function openDailyChallenge(){
@@ -3019,7 +3021,7 @@ function updateFlagStats(){
     $('flag-score').textContent=g.pos+'/'+g.total;
     $('flag-stat-c').textContent=g.firstTry;
     $('flag-stat-w').textContent=game.flagWrong||0;
-    if(g.daily){$('flag-stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('flag-lbl-s').textContent=t('timeLbl');}
+    if(g.daily||g.duel){$('flag-stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('flag-lbl-s').textContent=t('timeLbl');}
     else{$('flag-stat-s').textContent=g.skipped||0;$('flag-lbl-s').textContent=t('skippedLbl');}
     $('flag-stat-r').textContent=(g.total-g.pos)+' '+t('remLbl');
     $('flag-prog').style.width=Math.round((g.pos/g.total)*100)+'%';

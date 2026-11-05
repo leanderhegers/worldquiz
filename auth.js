@@ -27,6 +27,7 @@ function onAuthChanged(u) {
   renderAuthUI(u);
   loadUserData(u);
   if(u&&typeof _checkFriendRequests==='function')setTimeout(_checkFriendRequests,1500);
+  if(typeof duelListen==='function'){if(u)duelListen();else duelStop();}
 }
 
 // ── DATENSCHICHT: Einstellungen + Highscores (Cloud wenn eingeloggt, sonst localStorage) ──
@@ -1244,6 +1245,7 @@ async function openFriendProfile(uid){
     const doc=await _db.collection('profiles').doc(uid).get();
     const d=doc.exists?doc.data():{};
     const nm=d.username||'?';
+    window._fpCur={uid:uid,name:nm};
     const scores=d.scores||{};
     const achs=d.achievements||{};
     const fAvatar=d.avatar||null;
@@ -1284,7 +1286,7 @@ async function openFriendProfile(uid){
         <span style="font-size:11px;color:#8a9bb8;">${achCount}/${achTotal} ${isDE?'Achievements':'Achievements'} (${achPct}%)</span>
       </div>
       ${achHtml}
-      <button class="fr-challenge-btn" disabled>⚔️ ${isDE?'Herausfordern (bald verfügbar)':'Challenge (coming soon)'}</button>
+      <button class="fr-challenge-btn" onclick="closeFriendProfile();duelOpenPicker()">⚔️ ${isDE?'Herausfordern':'Challenge'}</button>
       </div>`;
   }catch(e){el.innerHTML=`<div class="fr-empty">${isDE?'Fehler beim Laden':'Error loading profile'}</div>`;}
 }

@@ -37,5 +37,14 @@ service cloud.firestore {
         docId == request.resource.data.date + '_' + request.auth.uid;
       allow update, delete: if false;
     }
+
+    // Multiplayer-Duelle (duel.js): nur die beiden Beteiligten sehen und aendern ein Duell.
+    match /duels/{duelId} {
+      allow create: if request.auth != null &&
+        request.resource.data.from == request.auth.uid &&
+        request.auth.uid in request.resource.data.players;
+      allow read, update, delete: if request.auth != null &&
+        request.auth.uid in resource.data.players;
+    }
   }
 }
