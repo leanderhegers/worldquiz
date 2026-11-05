@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 T';
+const BUILD_ID='2026-11-05 V';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1278,6 +1278,35 @@ function pinTargetFeature(city,feats){
   _pinCountryCache.set(key,hit||null);
   return hit||null;
 }
+// Distance (km) from a lon/lat point to an area: 0 inside it, otherwise to the nearest edge (planar
+// maths on a local equirectangular projection — plenty accurate at these sizes). Also returns the
+// nearest edge point so the result line can end there.
+function pinPolyDist(poly,g){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
+    if((yi>g[1])!==(yj>g[1])&&g[0]<(xj-xi)*(g[1]-yi)/(yj-yi)+xi)inside=!inside;
+  }
+  if(inside)return {dist:0,near:null};
+  const kx=111.32*Math.cos(g[1]*Math.PI/180),ky=110.57;
+  let best=Infinity,near=null;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const ax=(poly[j][0]-g[0])*kx,ay=(poly[j][1]-g[1])*ky,bx=(poly[i][0]-g[0])*kx,by=(poly[i][1]-g[1])*ky;
+    const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
+    const t=l2?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/l2)):0;
+    const d=Math.hypot(ax+t*dx,ay+t*dy);
+    if(d<best){best=d;near=[poly[j][0]+(poly[i][0]-poly[j][0])*t,poly[j][1]+(poly[i][1]-poly[j][1])*t];}
+  }
+  return {dist:best,near};
+}
+// d3 expects exterior rings clockwise (opposite of GeoJSON's RFC 7946) — a wrongly wound small
+// polygon would be read as "the whole sphere minus this", so orient it explicitly.
+function pinAreaFeature(poly){
+  let a=0;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++)a+=poly[j][0]*poly[i][1]-poly[i][0]*poly[j][1];
+  const ring=a>0?poly.slice().reverse():poly.slice();
+  return {type:'Polygon',coordinates:[ring.concat([ring[0]])]};
+}
 function handlePinClick(ev){
   if(!canClick||!game||!game.pinMode||game.current===null||game.current===undefined)return;
   const p=d3.pointer(ev,gGroup.node());
@@ -1285,7 +1314,9 @@ function handlePinClick(ev){
   if(!guess||isNaN(guess[0])||isNaN(guess[1]))return;
   canClick=false;
   const city=game.pinCities[game.current];
-  const dist=haversine(guess[0],guess[1],city.lon,city.lat);
+  // Extended targets (a canal, a reef, a lake …) have an `poly` area: inside it counts as a direct hit.
+  let dist=haversine(guess[0],guess[1],city.lon,city.lat),areaNear=null;
+  if(city.poly){const r=pinPolyDist(city.poly,guess);dist=r.dist;areaNear=r.near;}
   const decay=(typeof PIN_DECAY!=='undefined'&&PIN_DECAY[game.pinRegion])||700;
   const maxDist=decay*5;
   let pts=dist>=maxDist?0:Math.round(1000*Math.exp(-Math.max(0,dist-20)/decay));
@@ -1307,16 +1338,18 @@ function handlePinClick(ev){
   const gp=currentProj([guess[0],guess[1]]),tp=currentProj([city.lon,city.lat]);
   if(pinLayer){
     pinLayer.selectAll('*').remove();
-    // 20km Vollpunkt-Umkreis um den richtigen Standort
+    // 20km Vollpunkt-Umkreis um den richtigen Standort — bei ausgedehnten Zielen deren Fläche
     if(currentProj){
       const circleGeoPath=d3.geoPath().projection(currentProj);
-      const circleFeature=d3.geoCircle().center([city.lon,city.lat]).radius(20/111.32)();
+      const circleFeature=city.poly?pinAreaFeature(city.poly):d3.geoCircle().center([city.lon,city.lat]).radius(20/111.32)();
       pinLayer.append('path').datum(circleFeature).attr('d',circleGeoPath)
         .attr('fill','rgba(29,158,117,0.12)').attr('stroke',THEMES[theme].found)
         .attr('stroke-width',1.2).attr('stroke-dasharray','5,3')
         .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
     }
-    pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',tp[0]).attr('y2',tp[1])
+    // Line to the target — for an area, to its nearest edge point (none if the pin is inside it)
+    const lineEnd=city.poly?(areaNear?currentProj(areaNear):null):tp;
+    if(lineEnd)pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',lineEnd[0]).attr('y2',lineEnd[1])
       .attr('stroke',THEMES[theme].border).attr('stroke-width',1.2).attr('stroke-dasharray','4,3').style('vector-effect','non-scaling-stroke');
     addPin(pinLayer,gp,'#e23a2a');      // Schätzung (rot)
     addPin(pinLayer,tp,THEMES[theme].found); // tatsächlich (grün)
@@ -1583,12 +1616,12 @@ function zoomTo(cx,cy,k){
 }
 
 // State/province border lines for Drop-a-Pin (fades in at strong zoom, see applyDotR). Lazily
-// fetched and cached in memory — it's ~1.2 MB and only pin mode needs it, so it stays out of the
+// fetched and cached in memory — it is ~0.6 MB and only pin mode needs it, so it stays out of the
 // service worker's precache list and is picked up by RUNTIME_CACHEABLE on first use instead.
-let admin1Data=null;
+let admin1Lines=null;
 async function ensureAdmin1Borders(){
-  if(admin1Data)return;
-  try{admin1Data=await fetch('data/admin1-borders-10m.json').then(r=>r.json());}catch(e){}
+  if(admin1Lines)return;
+  try{admin1Lines=await fetch('data/admin1-lines.json').then(r=>r.json());}catch(e){}
 }
 let lakesData=null,riversData=null;
 async function loadMap(){
@@ -2129,31 +2162,14 @@ function renderMap(world){
     // zoomed in enough that they'd actually be legible (see the fade in applyDotR below).
     // Lives in dynG, not g: its opacity is rewritten every scale-changed zoom frame, and any DOM
     // mutation inside g's <use>-cloned subtree forces a shadow-tree rebuild in WebKit (rule 3).
-    if(admin1Data&&admin1Data.objects&&admin1Data.objects.admin1){
-      // Natural Earth's admin-1 layer is wildly inconsistent in granularity — e.g. France split
-      // into 101 départements, Slovenia into 193 municipalities, vs. Germany's 16 correct
-      // Bundesländer — because this file deliberately keeps every raw polygon (see
-      // admin1-borders.README.md) rather than pre-dissolving them, the `grp` property is what
-      // decides which polygons count as "the same region" for drawing purposes: the mesh filter
-      // below only draws a line where the two neighbouring polygons have a *different* grp, which
-      // suppresses internal borders (e.g. between two French départements in the same région)
-      // without needing an actual geometry union.
-      // Solid stroke, not dashed: dashing forces the renderer to walk this path's ~3300 separate
-      // subpaths and chop each into dash segments on every repaint — measured at ~43,000 vertices
-      // total, that's expensive CPU-side work (stroke tessellation, not GPU fill) redone on every
-      // opacity change below. borderPath/coastline are comparably large but solid and never
-      // touched after creation, and don't cost anything per frame — this is the same fix.
-      // grp is "<country>||<label>" (see admin1-borders.README.md) — a segment between two
-      // polygons of *different* countries is an international border, which borderPath already
-      // draws; only draw a segment here when it's an internal border (same country, different
-      // grp), or a country's Bundesländer would get a second, slightly misaligned line right on
-      // top of the real border wherever two neighbouring countries happen to touch.
-      const admin1Country=g=>g.slice(0,g.indexOf('||'));
-      const admin1Mesh=topojson.mesh(admin1Data,admin1Data.objects.admin1,(a,b)=>{
-        const ga=a.properties.grp,gb=b.properties.grp;
-        return ga!==gb&&admin1Country(ga)===admin1Country(gb);
-      });
-      admin1Path=dynG.append('path').datum(admin1Mesh).attr('d',gpath).attr('fill','none')
+    if(admin1Lines){
+      // Ready-made lines (data/admin1-lines.json, built by tools/build-admin1-lines.js): internal
+      // borders only, already clipped to the 50m country outlines so none pokes across a country
+      // border. Solid stroke, not dashed — dashing makes the renderer chop thousands of subpaths
+      // into segments on every repaint. Lives in dynG, not g: its opacity is rewritten on zoom
+      // frames and any DOM mutation inside g's <use>-cloned subtree forces a shadow-tree rebuild in
+      // WebKit (rule 3).
+      admin1Path=dynG.append('path').datum(admin1Lines).attr('d',gpath).attr('fill','none')
         .attr('stroke',th.border).attr('stroke-width',0.45)
         .style('vector-effect','non-scaling-stroke').attr('pointer-events','none')
         .style('display','none').style('opacity',0);
@@ -2211,7 +2227,7 @@ function renderMap(world){
       // appear near the *top* of whatever range this device has, not at some fixed absolute k
       // that's barely zoomed in at all on touch.
       const maxK=COARSE?50:20;
-      const ADMIN1_FADE_START=maxK*0.75,ADMIN1_FADE_END=maxK*0.95;
+      const ADMIN1_FADE_START=maxK*0.6,ADMIN1_FADE_END=maxK*0.85;
       // display:none takes this path out of the paint pipeline entirely — below the fade
       // threshold (the vast majority of any zoom gesture) applyDotR does nothing to it at all,
       // instead of recomputing its stroke geometry on every single frame regardless of whether

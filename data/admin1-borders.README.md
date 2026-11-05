@@ -77,3 +77,7 @@ from simplification can never accidentally split a region that should read as on
 Not in `sw.js`'s precache `ASSETS` list (it's pin-mode-only and ~1.4 MB) — `RUNTIME_CACHEABLE`
 picks it up on first fetch instead, same as `countries-10m.json` for the outline quiz. Adding or
 regenerating this file still means bumping `CACHE_NAME`, same as any other `data/` change.
+
+## Laufzeit-Datei: admin1-lines.json
+
+Das Spiel lädt nicht mehr diese Quelldatei, sondern `data/admin1-lines.json` (fertige, an die 50m-Länderumrisse zugeschnittene Linien, ~0,6 MB). Erzeugt mit `node tools/build-admin1-lines.js` aus dieser Datei und `data/countries-50m.json`; Hintergrund und Funktionsweise stehen im Kopf des Skripts. Nach jeder Neuerzeugung `CACHE_NAME` in `sw.js` erhöhen. Diese Quelldatei wird nicht mit ausgeliefert (siehe `firebase.json`).

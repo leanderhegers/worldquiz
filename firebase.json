@@ -25,7 +25,9 @@
       "countries-50m.json",
       "ne_50m_*.geojson",
       "regions/**",
-      "data/**/*.md"
+      "data/**/*.md",
+      "tools/**",
+      "data/admin1-borders-10m.json"
     ],
     "headers": [
       {
