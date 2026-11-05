@@ -87,8 +87,6 @@ const PIN_CITIES = [
   {name_de:"Riga", name_en:"Riga", name_es:"Riga", name_fr:"Riga", lon:24.11, lat:56.95, cont:"EU"},
   {name_de:"Vilnius", name_en:"Vilnius", name_es:"Vilnius", name_fr:"Vilnius", lon:25.28, lat:54.69, cont:"EU"},
   {name_de:"Kiew", name_en:"Kyiv", name_es:"Kiev", name_fr:"Kiev", lon:30.52, lat:50.45, cont:"EU"},
-  {name_de:"Moskau", name_en:"Moscow", name_es:"Moscú", name_fr:"Moscou", lon:37.62, lat:55.76, cont:"EU"},
-  {name_de:"Sankt Petersburg", name_en:"St. Petersburg", name_es:"San Petersburgo", name_fr:"Saint-Pétersbourg", lon:30.34, lat:59.93, cont:"EU"},
   {name_de:"Berlin", name_en:"Berlin", name_es:"Berlin", name_fr:"Berlin", lon:13.4, lat:52.52, cont:"EU", country:"DE"},
   {name_de:"Hamburg", name_en:"Hamburg", name_es:"Hamburg", name_fr:"Hamburg", lon:10, lat:53.55, cont:"EU", country:"DE"},
   {name_de:"München", name_en:"Munich", name_es:"Múnich", name_fr:"Munich", lon:11.58, lat:48.14, cont:"EU", country:"DE"},
