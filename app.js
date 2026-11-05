@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 Q';
+const BUILD_ID='2026-11-05 R';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1237,6 +1237,38 @@ function nextPin(){
   $('target-name').textContent=cityDisplayName(game.pinCities[game.current]);
   clearFeedback();updateStats();
 }
+// The country a city belongs to, for the +50 bonus. The map polygons are coarse, so a coastal or
+// island city (Copenhagen, Lisbon, Stockholm, Venice, Split …) can sit just outside every polygon —
+// then there was no target country at all and the bonus could never be earned. Fall back to the
+// country that holds most of a ring of sample points around the city (15 km and 40 km out).
+const _pinCountryCache=new Map(),_pinBounds=new WeakMap();
+// geoContains on big polygons is slow; a cheap bounding-box test first keeps this to a few ms.
+function _pinInside(f,pt){
+  let b=_pinBounds.get(f);if(!b){b=d3.geoBounds(f);_pinBounds.set(f,b);}
+  const x=pt[0],y=pt[1];
+  if(y<b[0][1]||y>b[1][1])return false;
+  const inX=b[0][0]<=b[1][0]?(x>=b[0][0]&&x<=b[1][0]):(x>=b[0][0]||x<=b[1][0]);
+  return inX&&d3.geoContains(f,pt);
+}
+function pinTargetFeature(city,feats){
+  const key=city.lon+','+city.lat;
+  if(_pinCountryCache.has(key))return _pinCountryCache.get(key);
+  let hit=feats.find(f=>_pinInside(f,[city.lon,city.lat]));
+  if(!hit){
+    // Nearest land wins: look at rings 4, 8, 15, 30, 50 km out and stop at the first ring that hits
+    // any country (most hits within it decides) — a far-away bigger neighbour must not outvote the
+    // sliver of coast right next to the city (Dubrovnik vs. Bosnia).
+    for(const km of [4,8,15,30,50]){
+      const votes=new Map();
+      d3.geoCircle().center([city.lon,city.lat]).radius(km/111.32).precision(22.5)().coordinates[0].forEach(pt=>{
+        const f=feats.find(x=>_pinInside(x,pt));if(f)votes.set(f,(votes.get(f)||0)+1);
+      });
+      if(votes.size){let best=0;votes.forEach((n,f)=>{if(n>best){best=n;hit=f;}});break;}
+    }
+  }
+  _pinCountryCache.set(key,hit||null);
+  return hit||null;
+}
 function handlePinClick(ev){
   if(!canClick||!game||!game.pinMode||game.current===null||game.current===undefined)return;
   const p=d3.pointer(ev,gGroup.node());
@@ -1256,7 +1288,7 @@ function handlePinClick(ev){
     if(dist<=20){pts+=50;countryBonus=true;}
     else if(countryPaths){
       const feats=countryPaths.data();
-      const targetFeat=feats.find(f=>d3.geoContains(f,[city.lon,city.lat]));
+      const targetFeat=pinTargetFeature(city,feats);
       if(targetFeat&&d3.geoContains(targetFeat,guess)){pts+=50;countryBonus=true;}
     }
   }
