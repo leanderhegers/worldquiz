@@ -17,7 +17,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // vereinfacht (Toleranz ~1 Bildschirmpixel, abhängig vom Zoom). Beides nur für die Live-Ansicht; beim Loslassen baut
 // renderMap() mit den vollen Daten neu.
 const INFO=new WeakMap(),SIMP=new WeakMap();
-let TOL=0.3;
+let TOL=0.15;
+const tolFor=k=>k>=8?0.03:k>=4?0.05:k>=2?0.09:0.15; // Toleranz in Grad; live und statisch gleich, damit beim Neuaufbau nichts umspringt
 function ptsOf(g,out){ // alle Stützpunkte einer Geometrie (jeder 6. reicht für den Radius)
   const t=g.type,c=g.coordinates;
   if(t==='Polygon'||t==='MultiLineString')c.forEach(r=>{for(let i=0;i<r.length;i+=6)out.push(r[i]);});
@@ -96,7 +97,7 @@ function simplifiedFor(d,tol){
   return m.get(tol);
 }
 function setLive(on){
-  if(on){const k=G.k;TOL=k>=8?0.05:k>=4?0.1:k>=2?0.18:0.3;if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
+  if(on){TOL=tolFor(G.k);if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
   if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null);
   if(window.Relief)window.Relief.live=!!on;
 }
@@ -125,6 +126,38 @@ function onUp(ev){
   G.drag=null;
   if(d.moved){G.suppressUntil=performance.now()+400;clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,280);}
 }
+// Mausrad: Zoom zum Cursor. Beim Hineinzoomen dreht sich die Kugel dabei so, dass der Punkt unter dem Cursor zur Mitte hin
+// wandert (man schaut nicht schräg von der Seite auf die Stelle); der Punkt bleibt dabei unter dem Cursor.
+function wheel(ev,svg,node){
+  ev.preventDefault();
+  const dy=ev.deltaY*(ev.deltaMode===1?15:ev.deltaMode===2?300:1);
+  const f=Math.pow(2,-dy*0.0022),k0=G.k,k1=clamp(k0*f,1,12);
+  if(Math.abs(k1-k0)<1e-6||!currentProj||!G.apply)return;
+  const inv=node.getScreenCTM().inverse();
+  const ux=inv.a*ev.clientX+inv.c*ev.clientY+inv.e,uy=inv.b*ev.clientX+inv.d*ev.clientY+inv.f;
+  const px=(ux-G.tx)/k0,py=(uy-G.ty)/k0;
+  const ll=currentProj.invert([px,py]);
+  const onGlobe=ll&&isFinite(ll[0])&&isFinite(ll[1])&&Math.hypot(px-W/2,py-H/2)<R0*0.985;
+  let rotated=false,p2=[px,py];
+  if(onGlobe&&k1>k0){
+    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.6,Math.log2(k1/k0)*0.9);
+    const nc=d3.geoInterpolate(c0,ll)(step);
+    globeRot=[-nc[0],clamp(-nc[1],-90,90)];currentProj.rotate(globeRot);
+    const q=currentProj(ll);if(q&&isFinite(q[0])){p2=q;rotated=true;}
+  }
+  let tx=ux-p2[0]*k1,ty=uy-p2[1]*k1;
+  const bx=W/2*(1-k1),by=H/2*(1-k1),lim=(k1-1)*R0;let dx=tx-bx,dyy=ty-by;const l=Math.hypot(dx,dyy);
+  if(l>lim){dx*=lim/(l||1);dyy*=lim/(l||1);}
+  tx=bx+dx;ty=by+dyy;
+  G.apply(k1,tx,ty);
+  svg.property('__zoom',d3.zoomIdentity.translate(tx,ty).scale(k1)); // d3-Zoom (Pinch) kennt den neuen Stand
+  if(rotated){
+    if(!G.wheelLive){setLive(true);G.wheelLive=true;}
+    if(window.Sky)window.Sky.rotate(globeRot);
+    frame();
+    clearTimeout(G.rebuildT);G.rebuildT=setTimeout(()=>{G.wheelLive=false;rebuild();},280);
+  }else if(G.dotR){G.dotR(k1);}
+}
 function bindOnce(parent){
   if(G.bound)return;G.bound=true;
   window.addEventListener('pointermove',onMove);
@@ -138,7 +171,7 @@ window.Globe={
   radius:R0,
   simplifiedTol(d,tol){return simplifiedFor(d,tol);},
   precision(){const k=G.k;return k>=8?0.3:k>=4?0.5:k>=2?0.8:1.2;}, // gröbere Kurvenunterteilung ist beim Herauszoomen unsichtbar, spart Rechenzeit
-  simplified(d){const k=G.k,tol=k>=8?0:k>=4?0.03:k>=2?0.06:0.1;return simplifiedFor(d,tol)||d;},
+  simplified(d){return simplifiedFor(d,tolFor(G.k))||d;},
   behind(d){const i=info(d);return !!(i.c&&d3.geoDistance(i.c,[-globeRot[0],-globeRot[1]])>Math.PI/2+i.r+0.03);},
   get k(){return G.k;},
   // Wird von renderMap() nach dem Aufbau des Kartenbaums aufgerufen (nur im Globus-Modus)
@@ -158,7 +191,7 @@ window.Globe={
     if(G.tx==null){[G.tx,G.ty]=centred(G.k);}
     G.apply(G.k,G.tx,G.ty);
     zoomBehavior=d3.zoom().scaleExtent([1,12])
-      .filter(ev=>ev.type==='wheel'||(ev.touches&&ev.touches.length>1))
+      .filter(ev=>ev.touches&&ev.touches.length>1) // Mausrad macht on('wheel.globe') unten
       .constrain(t=>{ // Versatz zur zentrierten Lage höchstens (k-1)*Radius: bei k=1 genau zentriert
         const k=t.k,[bx,by]=centred(k),lim=(k-1)*R0;let dx=t.x-bx,dy=t.y-by;const l=Math.hypot(dx,dy);
         if(l>lim){dx*=lim/(l||1);dy*=lim/(l||1);}
@@ -167,6 +200,8 @@ window.Globe={
       .on('end',()=>{if(G.dotR)G.dotR(G.k);});
     svg.call(zoomBehavior);svg.on('dblclick.zoom',null);
     zoomBehavior.transform&&svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(G.tx,G.ty).scale(G.k)); // internen Zustand angleichen
+    svg.on('wheel.zoom',null);
+    svg.on('wheel.globe',ev=>wheel(ev,svg,node));
     svg.on('pointerdown.globe',ev=>{
       if(ev.pointerType==='mouse'&&ev.button!==0)return;
       if(G.drag&&G.drag.id!==ev.pointerId){G.drag.cancel=true;return;} // zweiter Finger = Pinch

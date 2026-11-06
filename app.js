@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 S';
+const BUILD_ID='2026-11-06 T';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -852,7 +852,7 @@ function mapBg(h){return projection==='globe'?'#02040a':h.bg;} // Globus: dunkle
 // Hintergrund der Karte: Farbe des Themes, beim Globus Sternenhimmel (sky.js); das Ozean-Rechteck ist dort durchsichtig
 function setMapBg(h){const el=$('map-bg');if(!el)return;el.style.backgroundColor=mapBg(h);el.style.backgroundImage='none';if(projection==='globe'&&window.Sky)window.Sky.apply(el);else if(window.Sky)window.Sky.clear();}
 function oceanFill(h){return projection==='globe'?'none':h.bg;}
-function applyTheme(){const h=THEMES[theme];setMapBg(h);$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',oceanFill(h));d3.select('#map path.ocean-mask').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
+function applyTheme(){const h=THEMES[theme];setMapBg(h);$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',oceanFill(h));d3.select('#map path.ocean-mask').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(projection==='globe'&&countryPaths)countryPaths.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
 function toggleOpts(){openCtxOpts('game');}
 
 function setTxt(id,v){const e=$(id);if(e)e.textContent=v;}
@@ -2173,7 +2173,7 @@ function renderMap(world){
       if(hi>=0&&lo<=W)rings.push(sh?r.map(p=>[p[0]+sh,p[1]]):r);
     }));
     // type/geometry: GeoJSON-Linien derselben Ringe, damit der Globus die Zone beim Drehen live mitzeichnen kann (canvas-map)
-    return{...z,type:'Feature',geometry:{type:'MultiLineString',coordinates:zd.rings.map(r=>r.concat([r[0]]))},rings,cx:all.reduce((t,p)=>t+p[0],0)/all.length,cy:all.reduce((t,p)=>t+p[1],0)/all.length};
+    return{...z,noSimp:true,type:'Feature',geometry:{type:'MultiLineString',coordinates:zd.rings.map(r=>r.concat([r[0]]))},rings,cx:all.reduce((t,p)=>t+p[0],0)/all.length,cy:all.reduce((t,p)=>t+p[1],0)/all.length};
   }).filter(Boolean);
   zoneHulls=activeZones;
 
@@ -2246,7 +2246,7 @@ function renderMap(world){
     renderFeatures=renderFeatures.filter((_,i)=>i!==ci).map(f=>+f.id===504?{...f,geometry:merged}:f);
   })();
 
-  countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke','none')
+  countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke',projection==='globe'?th.border:'none').attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke')
     .on('mouseover',function(ev,d){const id=eff(+d.id);if(wrongFlashIds.has(id))return;const neededNow=game.currentGroup&&game.currentGroup.has(id);if(!game.found||!C[id]||!isActive(id)||(!neededNow&&(game.found.has(id)||(game.skippedItems&&game.skippedItems.has(id)))))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){countryPaths.filter(f=>eff(+f.id)===eff(+d.id)).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===eff(+d.id)).attr('fill',x=>getMSColor(x.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
@@ -2279,7 +2279,12 @@ function renderMap(world){
 
   // Coastlines (land–ocean boundary), always visible
   const coastMesh=topojson.mesh(world,world.objects.countries,(a,b)=>a===b);
-  g.append('path').attr('class','coastline').datum(coastMesh).attr('d',gpath).attr('fill','none').attr('stroke',th.border).attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke').attr('pointer-events','none');
+  const coastEl=g.append('path').attr('class','coastline').datum(coastMesh).attr('d',gpath).attr('fill','none').attr('stroke',th.border).attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke').attr('pointer-events','none');
+
+  if(projection==='globe'){ // Konturen kommen vom Strich der Länderflächen: getrennt vereinfachte Netze würden daneben liegen
+    if(borderPath)borderPath.attr('data-away','1');
+    coastEl.attr('data-away','1');
+  }
 
   // Rivers — rendered before lakes so lakes appear on top; hidden in lake mode (they distract)
   riverPaths=null;riverHitboxes=null;
@@ -2511,7 +2516,7 @@ function renderMap(world){
   const _ro=new ResizeObserver(()=>{
     syncViewBox();
     _sc=computeSc();
-    applyDotR(_lastT?_lastT.k:1);
+    applyDotR(projection==='globe'&&window.Globe?window.Globe.k:(_lastT?_lastT.k:1)); // Globus hat kein _lastT, sonst springen die Punkte nach dem Neuaufbau auf Zoom 1 zurück
   });
   _ro.observe(svg.node());
 
