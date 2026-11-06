@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-07 G';
+const BUILD_ID='2026-11-07 H';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2084,7 +2084,9 @@ function zoneIdAtPoint(x,y){
   return best;
 }
 
+let _mapKind=null; // welches Spiel die aktuelle Karte aufgebaut hat: country | pin | city | river | lake | mountain | range
 function renderMap(world){
+  _mapKind=game&&game.pinMode?'pin':game&&game.cityMode?'city':game&&game.riverMode?'river':game&&game.lakeMode?'lake':game&&game.mountainMode?'mountain':game&&game.rangeMode?'range':'country';
   const svg=d3.select('#map');svg.selectAll('*').remove();borderPath=null;admin1Path=null;gGroup=null;
   const th=THEMES[theme],W=960,H=500;
   const proj=buildProjection();
@@ -2738,7 +2740,9 @@ function nextChallengeQuestion(){
     game={challengeMode:true,current:q.id,found:new Set(),correct:0,wrong:0,wrongOnCurrent:false};
     canClick=true;
     showScreen('game-screen');
-    if(!countryPaths)renderMap(worldData);
+    // Karte neu aufbauen, wenn sie noch von einem anderen Spiel stammt (Drop-a-Pin hinterlässt Klickfläche und Pfade, Städte/Berge/Flüsse
+    // eigene Punkte und Treffer) – sonst wird der Klick auf ein Land verschluckt
+    if(!countryPaths||_mapKind!=='country')renderMap(worldData);
     $('find-label').textContent=t('find');
     $('target-name').textContent=cn(q.id);
     clearFeedback();updateColors();updateStats();
