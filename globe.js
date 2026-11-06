@@ -9,7 +9,7 @@
 (function(){
 'use strict';
 const W=960,H=500,R0=235;
-const G={k:1,drag:null,suppressUntil:0,apply:null,dotR:null,fly:null,bound:false};
+const G={k:1,tx:null,ty:null,drag:null,suppressUntil:0,apply:null,dotR:null,fly:null,bound:false};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── Live-Zeichnen beschleunigen ──
@@ -117,6 +117,7 @@ function onMove(ev){
   const sens=180/Math.PI/(R0*G.k*sc);
   globeRot=[d.r[0]+dx*sens,clamp(d.r[1]-dy*sens,-90,90)];
   currentProj.rotate(globeRot);
+  if(window.Sky)window.Sky.rotate(globeRot); // Sternenhimmel dreht mit
   frame();
 }
 function onUp(ev){
@@ -144,20 +145,35 @@ window.Globe={
   install(svg,wrapG,applyDotR){
     const node=svg.node(),cx=W/2,cy=H/2;
     G.dotR=applyDotR;
-    G.apply=k=>{G.k=k;wrapG.attr('transform','translate('+(cx*(1-k)).toFixed(3)+','+(cy*(1-k)).toFixed(3)+') scale('+k+')');};
-    G.k=clamp(G.k,1,12);G.apply(G.k);
+    // Ansicht = translate(tx,ty) scale(k). Zoom richtet sich nach dem Cursor/den Fingern (wie bei den flachen Karten);
+    // die Verschiebung ist so begrenzt, dass die Kugel beim Herauszoomen wieder in die Mitte zurückkehrt.
+    const centred=k=>[cx*(1-k),cy*(1-k)];
+    G.centred=centred;
+    G.apply=(k,tx,ty)=>{
+      if(tx==null){[tx,ty]=centred(k);}
+      G.k=k;G.tx=tx;G.ty=ty;
+      wrapG.attr('transform','translate('+tx.toFixed(3)+','+ty.toFixed(3)+') scale('+k+')');
+    };
+    G.k=clamp(G.k,1,12);
+    if(G.tx==null){[G.tx,G.ty]=centred(G.k);}
+    G.apply(G.k,G.tx,G.ty);
     zoomBehavior=d3.zoom().scaleExtent([1,12])
       .filter(ev=>ev.type==='wheel'||(ev.touches&&ev.touches.length>1))
-      .on('zoom',ev=>{const k=ev.transform.k;if(Math.abs(k-G.k)>1e-4){G.apply(k);if(G.dotR)G.dotR(k);}})
+      .constrain(t=>{ // Versatz zur zentrierten Lage höchstens (k-1)*Radius: bei k=1 genau zentriert
+        const k=t.k,[bx,by]=centred(k),lim=(k-1)*R0;let dx=t.x-bx,dy=t.y-by;const l=Math.hypot(dx,dy);
+        if(l>lim){dx*=lim/(l||1);dy*=lim/(l||1);}
+        return d3.zoomIdentity.translate(bx+dx,by+dy).scale(k);})
+      .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);if(kc&&G.dotR)G.dotR(t.k);}})
       .on('end',()=>{if(G.dotR)G.dotR(G.k);});
     svg.call(zoomBehavior);svg.on('dblclick.zoom',null);
-    zoomBehavior.transform&&svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(cx*(1-G.k),cy*(1-G.k)).scale(G.k)); // internen Zustand angleichen
+    zoomBehavior.transform&&svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(G.tx,G.ty).scale(G.k)); // internen Zustand angleichen
     svg.on('pointerdown.globe',ev=>{
       if(ev.pointerType==='mouse'&&ev.button!==0)return;
       if(G.drag&&G.drag.id!==ev.pointerId){G.drag.cancel=true;return;} // zweiter Finger = Pinch
       G.drag={id:ev.pointerId,x:ev.clientX,y:ev.clientY,r:globeRot.slice(),moved:false,cancel:false};
     });
     bindOnce(node.parentNode);
+    if(window.Sky)window.Sky.rotate(globeRot);
     this.cull();
     if(G.dotR)G.dotR(G.k);
   },
@@ -174,17 +190,18 @@ window.Globe={
   // Sanft zu einem Ort drehen (Presets, Städte-Zoom, Start einer Runde)
   flyTo(lon,lat,k,ms){
     k=clamp(k||1,1,8);ms=ms==null?600:ms;
-    const r0=globeRot.slice(),k0=G.k,r1=[-lon,clamp(-lat,-90,90)];
+    const r0=globeRot.slice(),k0=G.k,tx0=G.tx,ty0=G.ty,r1=[-lon,clamp(-lat,-90,90)];
     const dl=((r1[0]-r0[0]+540)%360)-180;
     cancelAnimationFrame(G.fly);
-    if(!currentProj||!G.apply||ms<=0){globeRot=[r0[0]+dl,r1[1]];G.k=k;rebuild();return;}
+    if(!currentProj||!G.apply||ms<=0){globeRot=[r0[0]+dl,r1[1]];G.k=k;G.tx=null;G.ty=null;rebuild();return;}
     setLive(true);
     const t0=performance.now();
     const step=now=>{
       const t=Math.min(1,(now-t0)/ms),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
       globeRot=[r0[0]+dl*e,r0[1]+(r1[1]-r0[1])*e];
       currentProj.rotate(globeRot);
-      G.apply(k0+(k-k0)*e);
+      if(window.Sky)window.Sky.rotate(globeRot);
+      {const kk=k0+(k-k0)*e,ce=G.centred(k);G.apply(kk,tx0+(ce[0]-tx0)*e,ty0+(ce[1]-ty0)*e);}
       if(window.CanvasMap)window.CanvasMap.invalidate();
       if(t<1)G.fly=requestAnimationFrame(step);else rebuild();
     };

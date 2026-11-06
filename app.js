@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 O';
+const BUILD_ID='2026-11-06 P';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -772,7 +772,7 @@ function resultBestNote(){
 }
 function mapBg(h){return projection==='globe'?'#02040a':h.bg;} // Globus: dunkler Weltraum um die Kugel
 // Hintergrund der Karte: Farbe des Themes, beim Globus Sternenhimmel (sky.js); das Ozean-Rechteck ist dort durchsichtig
-function setMapBg(h){const el=$('map-bg');if(!el)return;el.style.backgroundColor=mapBg(h);if(projection==='globe'&&window.Sky)window.Sky.apply(el);else el.style.backgroundImage='none';}
+function setMapBg(h){const el=$('map-bg');if(!el)return;el.style.backgroundColor=mapBg(h);el.style.backgroundImage='none';if(projection==='globe'&&window.Sky)window.Sky.apply(el);else if(window.Sky)window.Sky.clear();}
 function oceanFill(h){return projection==='globe'?'none':h.bg;}
 function applyTheme(){const h=THEMES[theme];setMapBg(h);$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',oceanFill(h));d3.select('#map path.ocean-mask').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
 function toggleOpts(){openCtxOpts('game');}
