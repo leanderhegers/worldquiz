@@ -1,6 +1,6 @@
 // Sternenhimmel mit Milchstraße als Hintergrund des Globus (#map-bg), dreht sich mit der Kugel mit.
 //
-// Der Himmel wird einmal prozedural als breites (3.2:1), waagerecht NAHTLOS umlaufendes Panorama gezeichnet (festes
+// Der Himmel wird einmal prozedural als breites (2.4:1), waagerecht NAHTLOS umlaufendes Panorama gezeichnet (festes
 // Zufallsmuster, immer derselbe Himmel), als JPEG im Speicher gehalten und in einer eigenen Ebene hinter der Karte
 // als Hintergrundbild gezeigt. Beim Drehen des Globus (Sky.rotate) wird nur die Hintergrundposition verschoben, etwas
 // langsamer als die Oberfläche (Tiefeneindruck); das kostet nichts. Erzeugung ca. 150–300 ms, nur wenn der Globus
@@ -27,7 +27,7 @@ function makeNoise(seed){
 const TEMPS=[[155,176,255],[190,205,255],[235,240,255],[248,247,255],[255,246,236],[255,236,210],[255,214,170],[255,188,140]];
 const TW=[1,2,3,4,4,3,2,1];
 function pickTemp(r){let t=r()*TW.reduce((a,b)=>a+b),i=0;while(t>TW[i]){t-=TW[i];i++;}return TEMPS[i];}
-const TAU=Math.PI*2;
+const TAU=Math.PI*2,ASPECT=2.4; // Panorama: Breite = 2.4 × Höhe
 
 // Varianten des Himmels: stars = Anteil Sterne, pow = je höher, desto mehr schwache Sterne, glow = Schein um helle Sterne,
 // grain = Körnung im Band, bandA = Helligkeit des Bandes, bandW = Breite, warm/cold = Farben von Kern und Rand, bg = Grundverlauf
@@ -46,11 +46,11 @@ const PRESETS={
 };
 let currentPreset='schwarzblau'; // gewählt: Schwarz, mehr Kontrast, Blauhauch
 const tick=()=>new Promise(r=>setTimeout(r,0));
-// Breites Panorama (Seitenverhältnis 3.2:1, nahtlos umlaufend). Läuft in Scheiben von ~10 ms mit Pausen dazwischen, damit das Spiel
+// Breites Panorama (Seitenverhältnis 2.4:1, nahtlos umlaufend). Läuft in Scheiben von ~10 ms mit Pausen dazwischen, damit das Spiel
 // beim Erzeugen nicht ruckelt. Gibt ein Promise mit der JPEG-Daten-URL zurück.
 async function build(w,pn,h){
   const o=PRESETS[pn||currentPreset]||PRESETS.aktuell;
-  h=h||Math.round(w/3.2);
+  h=h||Math.round(w/ASPECT);
   const R=rng(20261106),nz=makeNoise(7),nz2=makeNoise(99);
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const x=c.getContext('2d');
@@ -63,16 +63,16 @@ async function build(w,pn,h){
   for(let i=0;i<=COLS;i++){
     const u=i/COLS;
     vcA[i]=1.9*(nzB(u*2.6+1,0.5,3,2.6,u)-0.5)+0.5*(nzB(u*8+4,2.5,2,8,u)-0.5); // Rohwert, wird unten zentriert und auf feste Spannweite gebracht
-    bwA[i]=0.65+0.9*nzC(u*6+2,1.5,3,6,u);                                                                      // Breite 0.65…1.55
-    const e=nzD(u*4.5+9,3.1,3,4.5,u);enA[i]=Math.min(1,Math.max(0.1,(e-0.28)*3.2));                            // Lücken: Helligkeit 0.1…1
+    bwA[i]=0.5+1.3*nzC(u*8+2,1.5,3,8,u);                                                                      // Breite 0.65…1.55
+    const e=0.6*nzD(u*7+9,3.1,3,7,u)+0.4*nzD(u*19+3,6.1,2,19,u);enA[i]=Math.min(1,Math.max(0.0,(e-0.39)*3.6)); // viele tiefe Lücken: das Band zerfällt in einzelne Wolken                            // Lücken: Helligkeit 0.1…1
   }
   {let mean=0,mx=0;for(let i=0;i<=COLS;i++)mean+=vcA[i];mean/=COLS+1;for(let i=0;i<=COLS;i++){vcA[i]-=mean;mx=Math.max(mx,Math.abs(vcA[i]));}
-   for(let i=0;i<=COLS;i++)vcA[i]=0.46+0.24*(vcA[i]/(mx||1)); // Mitte 0.46 (Horizont der Kugel), Auslenkung bis ±0.24 → 0.22…0.70
+   for(let i=0;i<=COLS;i++)vcA[i]=0.46+0.2*(vcA[i]/(mx||1)); // Mitte 0.46 (Horizont der Kugel), Auslenkung bis ±0.24 → 0.22…0.70
   }
   const vc=u=>vcA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],bwAt=u=>bwA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],enAt=u=>enA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))];
   const dist=(p,q)=>{const d=Math.abs(p-q)%1;return Math.min(d,1-d);};
-  // Rauschfrequenzen so gewählt, dass die Strukturen in Breite und Höhe etwa gleich groß sind (Breite ist 3.2× die Höhe)
-  const PER=26;
+  // Rauschfrequenzen so gewählt, dass die Strukturen in Breite und Höhe etwa gleich groß sind (Breite ist 2.4× die Höhe)
+  const PER=22;
   let last=performance.now();
   const yieldNow=async()=>{if(performance.now()-last>10){await tick();last=performance.now();}};
   // 1) Leuchten des Bandes in reduzierter Auflösung (1/3), danach hochskaliert
@@ -84,7 +84,7 @@ async function build(w,pn,h){
     for(let i=0;i<gw;i++){
       const u=i/gw,t=v-vc(u);
       const bw=o.bandW*bwAt(u),en=enAt(u);
-      const core=Math.exp(-(t*t)/(2*0.055*0.055*bw*bw)),halo=Math.exp(-(t*t)/(2*0.16*0.16*bw*bw));
+      const core=Math.exp(-(t*t)/(2*0.044*0.044*bw*bw)),halo=Math.exp(-(t*t)/(2*0.125*0.125*bw*bw));
       const bulge=0.6+0.4*Math.exp(-Math.pow(dist(u,0.3),2)/(2*0.1*0.1))+0.1*Math.exp(-Math.pow(dist(u,0.72),2)/(2*0.06*0.06));
       const cloud=Math.min(1,Math.pow(nz(u*PER,v*9+2,5,PER,u),1.7)*2.4);
       const fine=nz(u*PER*4,v*30,3,PER*4,u);
@@ -142,13 +142,14 @@ async function build(w,pn,h){
   return c.toDataURL('image/jpeg',0.92);
 }
 
-// Darstellungsgröße: Bildhöhe mindestens 1.3× Viewport-Höhe (damit senkrechtes Verschieben nie über den Rand läuft), Breite 3.2× Höhe.
+// Darstellungsgröße: Bildhöhe 2× Viewport-Höhe, Breite 2.4× Höhe; vertikal reicht der Überstand genau für ±90° Kippen.
 // Der Himmel wandert beim Drehen mit ~0.55× dem Tempo der Oberfläche (ppd = Pixel je Grad Drehung); die Bildbreite (viele Bildschirm-
 // breiten) ist unabhängig davon, deshalb wiederholt sich das Muster höchstens alle ~3-4 Bildschirmhöhen.
 function layout(el){
   const r=el.getBoundingClientRect(),vw=r.width||innerWidth,vh=r.height||innerHeight;
   const surfPpd=0.49*Math.min(vw,vh)*Math.PI/180;       // Pixel je Grad am Kugelrand bei Zoom 1
-  const ppd=0.55*surfPpd,ppdV=0.85*surfPpd,Hd=Math.round(Math.min(Math.max(1.55*vh,vh+120),1500)),Wd=Math.round(Hd*3.2);
+  const ppd=0.55*surfPpd,Hd=Math.round(Math.min(Math.max(2*vh,vh+300),2200)),Wd=Math.round(Hd*ASPECT);
+  const ppdV=(Hd-vh)/180; // ±90° Kippen = ±halber Überstand: an den Polen erreicht der Himmel genau den Bildrand, läuft aber nie darüber hinaus
   geo={ppd,ppdV,Hd,Wd,vh,vw};
 }
 function place(rot){
@@ -164,6 +165,7 @@ function ensureLayer(el){
   el.insertBefore(layer,el.firstChild);
 }
 
+window.addEventListener('resize',()=>{if(layer&&layer.parentNode&&geo){layout(layer.parentNode);layer.style.backgroundSize=geo.Wd+'px '+geo.Hd+'px';place(typeof globeRot!=='undefined'?globeRot:null);}});
 window.Sky={
   PRESETS,build,
   setPreset(name){if(PRESETS[name]&&name!==currentPreset){currentPreset=name;url=null;}},
