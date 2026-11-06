@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 T';
+const BUILD_ID='2026-11-06 U';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2129,7 +2129,7 @@ function renderMap(world){
   const dynG=wrapG.append('g').attr('class','dyn');
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
   const grat=d3.geoGraticule()();grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
-  g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
+  g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',projection==='globe'?0.6:0.3).style('vector-effect',projection==='globe'?'non-scaling-stroke':null);
 
   // Theme Relief: Höhenfarben-Hintergrund (relief.js zeichnet beim Marker-Rechteck) und darüber eine Meer-Maske
   // (Rechteck minus Landfläche, gerade-ungerade gefüllt), die die grobe Küste der Kacheln genau abschneidet.
@@ -2270,7 +2270,8 @@ function renderMap(world){
   overlayParts(528,[9,10,11]);
 
   // Internal borders (country–country), hidden in lake mode
-  const borderMesh=topojson.mesh(world,world.objects.countries,(a,b)=>{
+  const EMPTY_LINES={type:'MultiLineString',coordinates:[]}; // Globus: Konturen kommen vom Strich der Länderflächen, Netze werden nicht gebraucht
+  const borderMesh=projection==='globe'?EMPTY_LINES:topojson.mesh(world,world.objects.countries,(a,b)=>{
     if(a===b)return false;
     for(const[g1,g2]of mergedPairs){if((a===g1&&b===g2)||(a===g2&&b===g1))return false;}
     return true;
@@ -2278,7 +2279,7 @@ function renderMap(world){
   borderPath=g.append('path').datum(borderMesh).attr('d',gpath).attr('fill','none').attr('stroke',th.border).attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke').attr('pointer-events','none');
 
   // Coastlines (land–ocean boundary), always visible
-  const coastMesh=topojson.mesh(world,world.objects.countries,(a,b)=>a===b);
+  const coastMesh=projection==='globe'?EMPTY_LINES:topojson.mesh(world,world.objects.countries,(a,b)=>a===b);
   const coastEl=g.append('path').attr('class','coastline').datum(coastMesh).attr('d',gpath).attr('fill','none').attr('stroke',th.border).attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke').attr('pointer-events','none');
 
   if(projection==='globe'){ // Konturen kommen vom Strich der Länderflächen: getrennt vereinfachte Netze würden daneben liegen

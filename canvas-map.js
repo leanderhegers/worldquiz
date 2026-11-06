@@ -14,7 +14,7 @@ const TAU=Math.PI*2;
 const SKIP=new Set(['defs','filter','style','title','desc','clipPath','linearGradient','radialGradient']);
 const S={svg:null,canvas:null,ctx:null,hitCtx:null,mo:null,ro:null,cache:new WeakMap(),hover:null,
   lastEv:null,movePending:false,fontFamily:'sans-serif',cursor:'',
-  liveProj:null,liveGeom:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
+  liveProj:null,liveGeom:null,liveDraw:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
 const tcache=new Map();
 
 function mul(m,n){return[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];}
@@ -77,7 +77,7 @@ function draw(){
   const t0=performance.now();
   const rect=svg.getBoundingClientRect();
   const ctm=svg.getScreenCTM();
-  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const dpr=Math.min(window.devicePixelRatio||1,S.liveProj?1.25:2);
   const w=Math.max(1,Math.round(rect.width*dpr)),h=Math.max(1,Math.round(rect.height*dpr));
   if(S.canvas.width!==w||S.canvas.height!==h){S.canvas.width=w;S.canvas.height=h;}
   const main=S.mainCtx;main.setTransform(1,0,0,1,0,0);main.clearRect(0,0,w,h);
@@ -163,7 +163,7 @@ function shape(el,tag,m,alpha){
   }else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
   ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
   if(tag==='text'){text(el,m,alpha,fill,stroke);return;}
-  if(live){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(live);}
+  if(live){if(!(S.liveDraw&&S.liveDraw(ctx,live))){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(live);}} // eigene schnelle Kugelprojektion, sonst d3
   else if(tag!=='path'){
     ctx.beginPath();
     if(tag==='circle')ctx.arc(num(el,'cx',0),num(el,'cy',0),num(el,'r',0),0,TAU);
@@ -341,7 +341,7 @@ window.CanvasMap={
   },
   redraw:draw,
   invalidate(){S.layerDirty=true;draw();},
-  setLive(proj,geomFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.layerDirty=true;S.layer=null;},
+  setLive(proj,geomFn,drawFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.layerDirty=true;S.layer=null;},
   stats:S.stats
 };
 })();

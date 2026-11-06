@@ -17,7 +17,6 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // vereinfacht (Toleranz ~1 Bildschirmpixel, abhängig vom Zoom). Beides nur für die Live-Ansicht; beim Loslassen baut
 // renderMap() mit den vollen Daten neu.
 const INFO=new WeakMap(),SIMP=new WeakMap();
-let TOL=0.15;
 const tolFor=k=>k>=8?0.03:k>=4?0.05:k>=2?0.09:0.15; // Toleranz in Grad; live und statisch gleich, damit beim Neuaufbau nichts umspringt
 function ptsOf(g,out){ // alle Stützpunkte einer Geometrie (jeder 6. reicht für den Radius)
   const t=g.type,c=g.coordinates;
@@ -71,7 +70,7 @@ function simpGeom(g,tol){
 function liveGeom(d){
   const i=info(d);
   if(i.c){const c=[-globeRot[0],-globeRot[1]];if(d3.geoDistance(i.c,c)>Math.PI/2+i.r+0.03)return null;}
-  return simplifiedFor(d,TOL);
+  return simplifiedFor(d,tolFor(G.k)); // Toleranz folgt dem aktuellen Zoom (auch mitten im Hineinzoomen)
 }
 function simplifiedFor(d,tol){
   if(d.type==='Sphere'||d.type==='FeatureCollection'||d.noSimp||!tol)return d;
@@ -96,14 +95,64 @@ function simplifiedFor(d,tol){
   }
   return m.get(tol);
 }
+// ── Eigene schnelle Kugelprojektion fürs Live-Zeichnen ──
+// d3.geoPath (Drehung + Kreisbeschnitt + Unterteilung) war mit ~2 µs je Punkt der größte Posten pro Bild. Hier werden die
+// Punkte einmal in Bogenmaß/Sinus/Kosinus vorberechnet und pro Bild nur noch mit ~10 Multiplikationen projiziert.
+// Punkte auf der Rückseite werden radial an den Kugelrand gesetzt (Flächen) bzw. unterbrechen die Linie.
+const D2R=Math.PI/180,PREP=new WeakMap();
+function ringArr(c){const n=c.length,o={n,cl:new Float32Array(n),sl:new Float32Array(n),cp:new Float32Array(n),sp:new Float32Array(n)};
+  for(let i=0;i<n;i++){const l=c[i][0]*D2R,p=c[i][1]*D2R;o.cl[i]=Math.cos(l);o.sl[i]=Math.sin(l);o.cp[i]=Math.cos(p);o.sp[i]=Math.sin(p);}return o;}
+function prep(g){
+  let p=PREP.get(g);if(p!==undefined)return p;
+  const geom=g.type==='Feature'?g.geometry:g;p=null;
+  if(geom){
+    if(geom.type==='Polygon')p={polys:[geom.coordinates.map(ringArr)]};
+    else if(geom.type==='MultiPolygon')p={polys:geom.coordinates.map(poly=>poly.map(ringArr))};
+    else if(geom.type==='LineString')p={lines:[ringArr(geom.coordinates)]};
+    else if(geom.type==='MultiLineString')p={lines:geom.coordinates.map(ringArr)};
+  }
+  PREP.set(g,p);return p;
+}
+let TX=new Float32Array(4096),TY=new Float32Array(4096);
+function drawLive(ctx,g){
+  if(g.type==='Sphere'){ctx.beginPath();ctx.arc(W/2,H/2,R0,0,Math.PI*2);return true;}
+  const p=prep(g);if(!p)return false;
+  const lc=-globeRot[0]*D2R,pc=-globeRot[1]*D2R,cL=Math.cos(lc),sL=Math.sin(lc),cP=Math.cos(pc),sP=Math.sin(pc),cx=W/2,cy=H/2;
+  ctx.beginPath();
+  if(p.polys){
+    for(const poly of p.polys)for(const r of poly){
+      const n=r.n;if(n>TX.length){TX=new Float32Array(n*2);TY=new Float32Array(n*2);}
+      let vis=0;
+      for(let i=0;i<n;i++){
+        const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
+        let x=r.cp[i]*ds,y=cP*r.sp[i]-sP*r.cp[i]*dc;
+        if(sP*r.sp[i]+cP*r.cp[i]*dc>=0)vis++;else{const h=Math.sqrt(x*x+y*y)||1;x/=h;y/=h;}
+        TX[i]=cx+R0*x;TY[i]=cy-R0*y;
+      }
+      if(!vis)continue;
+      ctx.moveTo(TX[0],TY[0]);for(let i=1;i<n;i++)ctx.lineTo(TX[i],TY[i]);ctx.closePath();
+    }
+  }else{
+    for(const r of p.lines){
+      let pen=false;
+      for(let i=0;i<r.n;i++){
+        const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
+        if(sP*r.sp[i]+cP*r.cp[i]*dc<0){pen=false;continue;}
+        const x=cx+R0*r.cp[i]*ds,y=cy-R0*(cP*r.sp[i]-sP*r.cp[i]*dc);
+        if(pen)ctx.lineTo(x,y);else{ctx.moveTo(x,y);pen=true;}
+      }
+    }
+  }
+  return true;
+}
 function setLive(on){
-  if(on){TOL=tolFor(G.k);if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
-  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null);
+  if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
+  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null);
   if(window.Relief)window.Relief.live=!!on;
 }
 function frame(){ // eine Zeichnung pro Animationsbild
   if(G.raf)return;
-  G.raf=requestAnimationFrame(()=>{G.raf=0;if(window.CanvasMap)window.CanvasMap.invalidate();});
+  G.raf=requestAnimationFrame(()=>{G.raf=0;if(window.Sky)window.Sky.rotate(globeRot);if(window.CanvasMap)window.CanvasMap.invalidate();});
 }
 function rebuild(){
   setLive(false);
@@ -118,13 +167,29 @@ function onMove(ev){
   const sens=180/Math.PI/(R0*G.k*sc);
   globeRot=[d.r[0]+dx*sens,clamp(d.r[1]-dy*sens,-90,90)];
   currentProj.rotate(globeRot);
-  if(window.Sky)window.Sky.rotate(globeRot); // Sternenhimmel dreht mit
-  frame();
+  frame(); // Zeichnen und Sternenhimmel einmal pro Bild
 }
 function onUp(ev){
   const d=G.drag;if(!d||ev.pointerId!==d.id)return;
   G.drag=null;
   if(d.moved){G.suppressUntil=performance.now()+400;clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,280);}
+}
+// Feinere Konturen nach dem Hineinzoomen: sofort live (Toleranz folgt dem Zoom), 280 ms später Neuaufbau mit feinen Pfaden
+function refine(){
+  if(!G.wheelLive){setLive(true);G.wheelLive=true;}
+  frame();clearTimeout(G.rebuildT);G.rebuildT=setTimeout(()=>{G.wheelLive=false;rebuild();},280);
+}
+// Alle Toleranzstufen im Leerlauf vorberechnen, damit schnelles Hineinzoomen nicht stockt
+function prebuild(){
+  if(G.prebuilt)return;G.prebuilt=true;
+  const items=[];d3.selectAll('#map path').each(function(d){if(d&&d.type&&!d.noSimp&&d.type!=='Sphere'&&d.type!=='FeatureCollection'&&!this.hasAttribute('data-away')&&!(d.type==='GeometryCollection'))items.push(d);});
+  const tols=[0.15,0.09,0.05,0.03];let ti=0,i=0;
+  const step=()=>{
+    const t0=performance.now();
+    while(ti<tols.length&&performance.now()-t0<12){const d=items[i];const s=simplifiedFor(d,tols[ti]);if(s)prep(s);if(++i>=items.length){i=0;ti++;}}
+    if(ti<tols.length)setTimeout(step,30);
+  };
+  setTimeout(step,400);
 }
 // Mausrad: Zoom zum Cursor. Beim Hineinzoomen dreht sich die Kugel dabei so, dass der Punkt unter dem Cursor zur Mitte hin
 // wandert (man schaut nicht schräg von der Seite auf die Stelle); der Punkt bleibt dabei unter dem Cursor.
@@ -156,7 +221,8 @@ function wheel(ev,svg,node){
     if(window.Sky)window.Sky.rotate(globeRot);
     frame();
     clearTimeout(G.rebuildT);G.rebuildT=setTimeout(()=>{G.wheelLive=false;rebuild();},280);
-  }else if(G.dotR){G.dotR(k1);}
+  }else if(tolFor(k1)<G.builtTol){refine();}
+  else if(G.dotR&&!G.wheelLive){G.dotR(k1);}
 }
 function bindOnce(parent){
   if(G.bound)return;G.bound=true;
@@ -187,7 +253,7 @@ window.Globe={
       G.k=k;G.tx=tx;G.ty=ty;
       wrapG.attr('transform','translate('+tx.toFixed(3)+','+ty.toFixed(3)+') scale('+k+')');
     };
-    G.k=clamp(G.k,1,12);
+    G.k=clamp(G.k,1,12);G.builtTol=tolFor(G.k);
     if(G.tx==null){[G.tx,G.ty]=centred(G.k);}
     G.apply(G.k,G.tx,G.ty);
     zoomBehavior=d3.zoom().scaleExtent([1,12])
@@ -196,7 +262,9 @@ window.Globe={
         const k=t.k,[bx,by]=centred(k),lim=(k-1)*R0;let dx=t.x-bx,dy=t.y-by;const l=Math.hypot(dx,dy);
         if(l>lim){dx*=lim/(l||1);dy*=lim/(l||1);}
         return d3.zoomIdentity.translate(bx+dx,by+dy).scale(k);})
-      .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);if(kc&&G.dotR)G.dotR(t.k);}})
+      .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);
+        if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
+        else if(kc&&G.dotR&&!G.wheelLive)G.dotR(t.k);}})
       .on('end',()=>{if(G.dotR)G.dotR(G.k);});
     svg.call(zoomBehavior);svg.on('dblclick.zoom',null);
     zoomBehavior.transform&&svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(G.tx,G.ty).scale(G.k)); // internen Zustand angleichen
@@ -211,6 +279,7 @@ window.Globe={
     if(window.Sky)window.Sky.rotate(globeRot);
     this.cull();
     if(G.dotR)G.dotR(G.k);
+    prebuild();
   },
   // Punkte auf der abgewandten Seite ausblenden (canvas-map überspringt Elemente mit data-away)
   cull(){
