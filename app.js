@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 Y';
+const BUILD_ID='2026-11-06 Z';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2129,7 +2129,14 @@ function renderMap(world){
   const dynG=wrapG.append('g').attr('class','dyn');
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
   const addGrat=()=>{
-    const grat=d3.geoGraticule()();grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
+    // Globus: d3.geoGraticule liefert Meridiane mit nur 3 Stützpunkten (Pol, Äquator, Pol) und verlässt sich auf die Großkreis-
+    // Unterteilung von d3. Die eigene Live-Zeichnung verbindet Stützpunkte gerade, daher hier dicht abgetastet (alle 2.5°),
+    // sonst springen die Linien beim Neuaufbau.
+    const grat=projection==='globe'?(()=>{const L=[];
+      for(let lon=-180;lon<=180;lon+=10){const m=lon%90===0?90:80,pts=[];for(let lat=-m;lat<=m+1e-9;lat+=2.5)pts.push([lon,Math.max(-89.999999,Math.min(89.999999,lat))]);L.push(pts);}
+      for(let lat=-80;lat<=80;lat+=10){const pts=[];for(let lon=-180;lon<=180;lon+=2.5)pts.push([lon,lat]);L.push(pts);}
+      return{type:'MultiLineString',coordinates:L};})():d3.geoGraticule()();
+    grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
     g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',projection==='globe'?0.6:0.3).style('vector-effect',projection==='globe'?'non-scaling-stroke':null);
   };
   if(theme!=='relief')addGrat(); // Relief: Gradnetz kommt nach Relief und Meer-Maske (siehe unten)
