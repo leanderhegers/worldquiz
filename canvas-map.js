@@ -14,7 +14,7 @@ const TAU=Math.PI*2;
 const SKIP=new Set(['defs','filter','style','title','desc','clipPath','linearGradient','radialGradient']);
 const S={svg:null,canvas:null,ctx:null,hitCtx:null,mo:null,ro:null,cache:new WeakMap(),hover:null,
   lastEv:null,movePending:false,fontFamily:'sans-serif',cursor:'',
-  liveProj:null,liveGeom:null,liveDraw:null,liveHit:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
+  liveProj:null,liveGeom:null,liveDraw:null,liveHit:null,liveCircle:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
 const tcache=new Map();
 
 function mul(m,n){return[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];}
@@ -134,7 +134,7 @@ function paint(el,m,alpha){
   const tag=el.localName;
   if(SKIP.has(tag))return;
   const st=el.style;
-  if(st.display==='none'||el.getAttribute('display')==='none'||el.hasAttribute('data-away'))return;
+  if(st.display==='none'||el.getAttribute('display')==='none'||(el.hasAttribute('data-away')&&!(S.liveProj&&tag==='circle')))return;
   const tr=el.getAttribute('transform');if(tr)m=mul(m,parseTransform(tr));
   if(st.opacity!=='')alpha*=+st.opacity;
   if(tag==='rect'&&el.classList.contains('relief-under')){if(window.Relief){S.ctx.globalAlpha=alpha;window.Relief.draw(S.ctx,m,S.vp);S.ctx.globalAlpha=1;}return;}
@@ -154,19 +154,20 @@ function shape(el,tag,m,alpha){
   const stroke=paintOf(el,'stroke');
   const doFill=!isNone(fill)&&tag!=='line',doStroke=!isNone(stroke);
   if(!doFill&&!doStroke)return;
-  let p=null,c=null,live=false;
+  let p=null,c=null,live=false,lp=null;
   if(tag==='path'){
     // Live-Modus (Globus beim Drehen): Geo-Formen werden aus ihrem GeoJSON direkt mit der aktuellen Projektion gezeichnet
     if(S.liveProj){const gd=el.__data__;if(!gd||!gd.type)return;live=S.liveGeom?S.liveGeom(gd):gd;if(!live)return;}
     else{c=geom(el);p=c.p;if(!p)return;
       const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;}
-  }else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
+  }else if(S.liveProj&&tag==='circle'&&S.liveCircle){lp=S.liveCircle(el);if(!lp)return;}
+  else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
   ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
   if(tag==='text'){text(el,m,alpha,fill,stroke);return;}
   if(live){if(!(S.liveDraw&&S.liveDraw(ctx,live))){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(live);}} // eigene schnelle Kugelprojektion, sonst d3
   else if(tag!=='path'){
     ctx.beginPath();
-    if(tag==='circle')ctx.arc(num(el,'cx',0),num(el,'cy',0),num(el,'r',0),0,TAU);
+    if(tag==='circle')ctx.arc(lp?lp[0]:num(el,'cx',0),lp?lp[1]:num(el,'cy',0),num(el,'r',0),0,TAU);
     else if(tag==='rect')ctx.rect(num(el,'x',0),num(el,'y',0),num(el,'width',0),num(el,'height',0));
     else if(tag==='line'){ctx.moveTo(num(el,'x1',0),num(el,'y1',0));ctx.lineTo(num(el,'x2',0),num(el,'y2',0));}
     else return;
@@ -317,6 +318,7 @@ function init(svg){
         // The app re-sets many attributes to the value they already have (e.g. dot radii when a
         // gesture ends) — such a write changes nothing visible, so it must not cost a redraw.
         if(r.oldValue===t.getAttribute(r.attributeName))continue;
+        if(S.liveProj&&(r.attributeName==='cx'||r.attributeName==='cy'||r.attributeName==='data-away'))continue;
         changed=true;
         if(r.attributeName==='d')S.cache.delete(t);
         if(t===svg)continue;
@@ -341,7 +343,7 @@ window.CanvasMap={
   },
   redraw:draw,
   invalidate(){S.layerDirty=true;draw();},
-  setLive(proj,geomFn,drawFn,hitFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.liveHit=hitFn||null;S.layerDirty=true;S.layer=null;},
+  setLive(proj,geomFn,drawFn,hitFn,circleFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.liveHit=hitFn||null;S.liveCircle=circleFn||null;S.layerDirty=true;S.layer=null;},
   stats:S.stats
 };
 })();

@@ -56,8 +56,17 @@ async function build(w,pn,h){
   const x=c.getContext('2d');
   const bg=x.createLinearGradient(0,0,0,h);bg.addColorStop(0,o.bg[0]);bg.addColorStop(.5,o.bg[1]);bg.addColorStop(1,o.bg[2]);
   x.fillStyle=bg;x.fillRect(0,0,w,h);
-  // Band: Mittellinie vc(u) mit mehreren Wellen (periodisch in u, nirgends gleichförmig), t = senkrechter Abstand in v-Einheiten
-  const vc=u=>0.5+0.15*Math.sin(TAU*u+0.7)+0.045*Math.sin(TAU*2*u+2.1)+0.03*Math.sin(TAU*3*u+1.3)+0.014*Math.sin(TAU*5*u+0.4)+0.008*Math.sin(TAU*8*u+2.2);
+  // Band: Mittellinie, Breite und Helligkeit folgen weichem Zufallsrauschen (periodisch in u) statt Sinuswellen: das Band knickt
+  // unregelmäßig ab, wird stellenweise schmal/dünn und reißt in dunklen Lücken fast ab. Je Spalte einmal vorberechnet.
+  const nzB=makeNoise(31),nzC=makeNoise(53),nzD=makeNoise(77);
+  const COLS=4096,vcA=new Float32Array(COLS+1),bwA=new Float32Array(COLS+1),enA=new Float32Array(COLS+1);
+  for(let i=0;i<=COLS;i++){
+    const u=i/COLS;
+    vcA[i]=Math.min(0.8,Math.max(0.2,0.5+1.25*(nzB(u*2.6+1,0.5,3,2.6,u)-0.5)+0.32*(nzB(u*8+4,2.5,2,8,u)-0.5))); // große Schwünge + kleinere Knicke, ungleichmäßig
+    bwA[i]=0.65+0.9*nzC(u*6+2,1.5,3,6,u);                                                                      // Breite 0.65…1.55
+    const e=nzD(u*4.5+9,3.1,3,4.5,u);enA[i]=Math.min(1,Math.max(0.1,(e-0.28)*3.2));                            // Lücken: Helligkeit 0.1…1
+  }
+  const vc=u=>vcA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],bwAt=u=>bwA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],enAt=u=>enA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))];
   const dist=(p,q)=>{const d=Math.abs(p-q)%1;return Math.min(d,1-d);};
   // Rauschfrequenzen so gewählt, dass die Strukturen in Breite und Höhe etwa gleich groß sind (Breite ist 3.2× die Höhe)
   const PER=26;
@@ -71,14 +80,15 @@ async function build(w,pn,h){
     const v=j/gh;
     for(let i=0;i<gw;i++){
       const u=i/gw,t=v-vc(u);
-      const core=Math.exp(-(t*t)/(2*0.055*0.055*o.bandW*o.bandW)),halo=Math.exp(-(t*t)/(2*0.16*0.16*o.bandW*o.bandW));
+      const bw=o.bandW*bwAt(u),en=enAt(u);
+      const core=Math.exp(-(t*t)/(2*0.055*0.055*bw*bw)),halo=Math.exp(-(t*t)/(2*0.16*0.16*bw*bw));
       const bulge=0.6+0.4*Math.exp(-Math.pow(dist(u,0.3),2)/(2*0.1*0.1))+0.1*Math.exp(-Math.pow(dist(u,0.72),2)/(2*0.06*0.06));
       const cloud=Math.min(1,Math.pow(nz(u*PER,v*9+2,5,PER,u),1.7)*2.4);
       const fine=nz(u*PER*4,v*30,3,PER*4,u);
       let lane=Math.max(0,nz2(u*PER*2.8+9,v*22,4,PER*2.8,u)-0.52)*3.2;
       lane*=Math.exp(-(t*t)/(2*0.06*0.06));
       let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(o.halo==null?1:o.halo)*(0.3+cloud))*(0.55+0.7*fine);
-      val*=Math.max(0,1-lane*1.15);
+      val*=Math.max(0,1-lane*1.15)*en; // en = Lücken im Band
       val=Math.min(1,val*0.9);
       const warm=Math.min(1,core*bulge*1.1);
       const k=(j*gw+i)*4;
@@ -94,7 +104,7 @@ async function build(w,pn,h){
   const nb=Math.round(w*h/36*o.grain);
   for(let n=0;n<nb;n++){
     const u=R(),v=R(),t=v-vc(u);
-    const p=Math.exp(-(t*t)/(2*0.09*0.09))*(0.45+0.55*nz(u*PER*2,v*18,2,PER*2,u));
+    const p=Math.exp(-(t*t)/(2*0.09*0.09*bwAt(u)*bwAt(u)))*enAt(u)*(0.45+0.55*nz(u*PER*2,v*18,2,PER*2,u));
     if(R()>p)continue;
     const m=R();x.globalAlpha=0.06+0.2*m;x.fillStyle=m>.6?'#fff4e2':'#cfe0ff';
     const r=0.8+R()*1.2,px=u*w;x.fillRect(px,v*h,r,r);if(px>w-2)x.fillRect(px-w,v*h,r,r);

@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 X';
+const BUILD_ID='2026-11-06 Y';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -93,7 +93,7 @@ function zoomToGeo(lon,lat,k){if(projection==='globe'&&window.Globe){window.Glob
 // and terrain both moved off their original hue (a lighter blue, and a dark green too close to
 // terrain's own land fill), while neon's magenta border already fit that theme's glow aesthetic
 // and stayed.
-const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#0a2a52',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#000',mtn:'#7a5230'},relief:{bg:'#4d8fc2',sph:'#4d8fc2',grd:'#4d8fc2',avail:'#cfd8a0',found:'rgba(24,150,60,0.72)',dim:'rgba(40,50,70,0.5)',hov:'rgba(255,255,255,0.4)',wrong:'rgba(200,40,25,0.74)',skipped:'rgba(230,130,10,0.74)',bar:'#2e8a4a',dot:'rgba(0,0,0,0.85)',border:'#4a3b2a',mtn:'#6b4a2a'}};
+const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#0a2a52',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#000',mtn:'#7a5230'},relief:{bg:'#4d8fc2',sph:'#4d8fc2',grd:'rgba(255,255,255,0.34)',avail:'#cfd8a0',found:'rgba(24,150,60,0.72)',dim:'rgba(40,50,70,0.5)',hov:'rgba(255,255,255,0.4)',wrong:'rgba(200,40,25,0.74)',skipped:'rgba(230,130,10,0.74)',bar:'#2e8a4a',dot:'rgba(0,0,0,0.85)',border:'#4a3b2a',mtn:'#6b4a2a'}};
 const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
 const THEME_DOT={atlas:'#b0a080',neon:'#ff2a6d',terrain:'#6a9a58',relief:'#b9a070'};
 // Colorblind Mode is a toggle in the global options (home screen), not a 4th Design — it's
@@ -2128,8 +2128,11 @@ function renderMap(world){
   const g=wrapG.append('g');gGroup=g;
   const dynG=wrapG.append('g').attr('class','dyn');
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
-  const grat=d3.geoGraticule()();grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
-  g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',projection==='globe'?0.6:0.3).style('vector-effect',projection==='globe'?'non-scaling-stroke':null);
+  const addGrat=()=>{
+    const grat=d3.geoGraticule()();grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
+    g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',projection==='globe'?0.6:0.3).style('vector-effect',projection==='globe'?'non-scaling-stroke':null);
+  };
+  if(theme!=='relief')addGrat(); // Relief: Gradnetz kommt nach Relief und Meer-Maske (siehe unten)
 
   // Theme Relief: Höhenfarben-Hintergrund (relief.js zeichnet beim Marker-Rechteck) und darüber eine Meer-Maske
   // (Rechteck minus Landfläche, gerade-ungerade gefüllt), die die grobe Küste der Kacheln genau abschneidet.
@@ -2140,6 +2143,7 @@ function renderMap(world){
       g.append('path').attr('class','ocean-mask').datum({type:'GeometryCollection',geometries:[{type:'Sphere'},lg]}).attr('d',gpath).attr('fill',th.bg).attr('fill-rule','evenodd').attr('stroke','none').attr('pointer-events','none');}
     else g.append('path').attr('class','ocean-mask').attr('d','M-80,-2H'+(W+80)+'V'+(H+2)+'H-80Z'+(gpath(landF)||'')).attr('fill',th.bg).attr('fill-rule','evenodd').attr('stroke','none').attr('pointer-events','none');
     if(window.Relief)window.Relief.init();
+    addGrat();
   }
   const countries=topojson.feature(world,world.objects.countries);
 

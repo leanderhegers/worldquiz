@@ -171,6 +171,27 @@ function drawLive(ctx,g){
   else for(const r of p.lines)linePath(ctx,r,cL,sL,cP,sP,cx,cy);
   return true;
 }
+// Position eines Punktes (Datum mit lon/lat oder Feature) in Projektionskoordinaten bei der aktuellen Drehung; null = Rückseite
+function dotPos(d){
+  let ll=null;
+  if(d&&d.lon!==undefined)ll=[d.lon,d.lat];else if(d&&d.geometry)ll=info(d).c;
+  if(!ll)return null;
+  const lc=-globeRot[0]*D2R,pc=-globeRot[1]*D2R,l=ll[0]*D2R,p=ll[1]*D2R,dl=l-lc,cp=Math.cos(p);
+  const z=Math.sin(pc)*Math.sin(p)+Math.cos(pc)*cp*Math.cos(dl);
+  if(z<0.012)return null;
+  return [W/2+R0*cp*Math.sin(dl)+(d.dx||0),H/2-R0*(Math.cos(pc)*Math.sin(p)-Math.sin(pc)*cp*Math.cos(dl))];
+}
+function liveCircle(el){if(el.getAttribute('fill')==='transparent')return null;return dotPos(el.__data__);} // Trefferkreise (transparent) nicht zeichnen
+// Punkte-Elemente (cx/cy/data-away) auf die aktuelle Drehung bringen, damit die Handler der Treffer-/Hover-Logik (nearestDot) stimmen
+function syncDots(){
+  const sig=globeRot[0]+','+globeRot[1]+','+G.k;if(G.dotSig===sig)return;G.dotSig=sig;
+  d3.selectAll('#map .dyn circle').each(function(d){
+    if(!(d&&(d.lon!==undefined||d.geometry)))return; // Kreise ohne Ortsdaten nicht anfassen
+    const pos=dotPos(d);
+    if(!pos){this.setAttribute('data-away','1');return;}
+    this.removeAttribute('data-away');this.setAttribute('cx',pos[0]);this.setAttribute('cy',pos[1]);
+  });
+}
 // Treffer-Suche im Live-Modus (kurz nach dem Loslassen, bis renderMap die Klickflächen neu aufgebaut hat): Zeigerposition
 // → Länge/Breite → Land (erst grob über Umkreis, dann d3.geoContains). Während des Ziehens selbst kein Hover.
 function hitLive(cx,cy){
@@ -181,17 +202,45 @@ function hitLive(cx,cy){
   const px=(ux-G.tx)/G.k,py=(uy-G.ty)/G.k;
   if(Math.hypot(px-W/2,py-H/2)>=R0)return null;
   const ll=currentProj.invert([px,py]);if(!ll||!isFinite(ll[0])||!isFinite(ll[1]))return null;
-  let best=null;
+  // 1) Drop-a-Pin: die Vollflächen-Klickfläche fängt alles ab (Klick wertet die Zeigerposition über currentProj.invert aus)
+  const po=node.querySelector('.pin-overlay');if(po)return po;
+  syncDots();
+  // 2) Punkte: nächstgelegener Trefferkreis, in dem der Zeiger liegt
+  let best=null,bd=Infinity;
+  d3.selectAll('#map .dyn g[class$="-hit"] circle').each(function(d){
+    if(this.style.display==='none')return;
+    const pos=dotPos(d);if(!pos)return;
+    const dd=Math.hypot(pos[0]-px,pos[1]-py);
+    if(dd<=(+this.getAttribute('r')||0)&&dd<bd){bd=dd;best=this;}
+  });
+  if(best)return best;
+  // 3) Seen (nur im Seen-Quiz anklickbar)
+  d3.selectAll('#map .lakes path').each(function(d){
+    if(best||this.style.cursor!=='pointer'||!d||!d.type)return;
+    const i=info(d);if(i.c&&d3.geoDistance(i.c,ll)>i.r+0.02)return;
+    if(d3.geoContains(d,ll))best=this;
+  });
+  if(best)return best;
+  // 4) Länder
   countryPaths.each(function(d){
     if(best||!d||!d.type)return;
     const i=info(d);if(i.c&&d3.geoDistance(i.c,ll)>i.r+0.02)return;
     if(d3.geoContains(d,ll))best=this;
   });
+  if(best)return best;
+  // 5) Inselzonen (über dem Meer): Ringe live projizieren, ebene Punkt-in-Fläche-Prüfung
+  d3.selectAll('#map .iz-hits path').each(function(z){
+    if(best||!z||!z.geometry)return;
+    for(const ring of z.geometry.coordinates){
+      const pts=[];for(const q of ring){const pp=dotPos({lon:q[0],lat:q[1]});if(pp)pts.push(pp);}
+      if(pts.length>=3&&d3.polygonContains(pts,[px,py])){best=this;return;}
+    }
+  });
   return best;
 }
 function setLive(on){
   if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
-  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null);
+  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null,on?liveCircle:null);
   if(window.Relief)window.Relief.live=!!on;
 }
 function frame(){ // eine Zeichnung pro Animationsbild
@@ -216,7 +265,7 @@ function onMove(ev){
 function onUp(ev){
   const d=G.drag;if(!d||ev.pointerId!==d.id)return;
   G.drag=null;
-  if(d.moved){G.suppressUntil=performance.now()+400;clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,280);}
+  if(d.moved){G.suppressUntil=performance.now()+60;clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,280);}
 }
 // Feinere Konturen nach dem Hineinzoomen: sofort live (Toleranz folgt dem Zoom), 280 ms später Neuaufbau mit feinen Pfaden
 function refine(){
