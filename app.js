@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 F';
+const BUILD_ID='2026-11-06 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -444,16 +444,18 @@ function renderInputPage(){
     {cls:'gs-flag',head:t('inputQuiz'),items:INPUT_QUIZZES.map(q=>({icon:INPUT_ICONS[q.type]||'✏️',title:t(q.titleKey),sub:t(q.subKey),onclick:"openInputCfg('"+q.type+"')"}))}
   ]);
 }
+// Bereichsüberschriften ohne die Endung "-Quiz": einfach Städte, Flüsse, Seen, Gebirge
+const OTHER_HEADS={de:['Städte','Flüsse','Seen','Gebirge'],en:['Cities','Rivers','Lakes','Mountains'],es:['Ciudades','Ríos','Lagos','Montañas'],fr:['Villes','Fleuves','Lacs','Montagnes']};
 function renderOtherPage(){
-  const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries;
+  const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries,H=OTHER_HEADS[lang]||OTHER_HEADS.de;
   _showCatPage(renderOtherPage,t('catOtherTitle'),[
-    {cls:'gs-city',head:t('cityQuiz'),items:[
+    {cls:'gs-city',head:H[0],items:[
       {icon:'⭐',title:t('optDifficulty'),sub:cityDiffs.map(d=>d.label).join(', '),panel:'city-diffs',renderPanel:()=>_cardsPanel(cityDiffs.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,getAllCitiesByDifficulty(d.key).length+' '+t('cities'),'city:'+d.key)),'gs-grid-city')},
       {icon:'🏳️',title:t('landerTitle'),sub:cityCountries.map(d=>d.label).join(', '),panel:'city-countries',renderPanel:()=>_cardsPanel(cityCountries.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,(CITY_COUNTRIES[d.key]?CITY_COUNTRIES[d.key].cities.length:0)+' '+t('cities'),'city:'+d.key)),'gs-grid-city')}
     ]},
-    {cls:'gs-river',head:t('riverQuiz'),gridCls:'gs-grid-river',grid:TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key)).join('')},
-    {cls:'gs-lake',head:t('lakeQuiz'),gridCls:'gs-grid-lake',grid:TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)).join('')},
-    {cls:'gs-mountain',head:t('mountainQuiz'),items:[
+    {cls:'gs-river',head:H[1],gridCls:'gs-grid-river',grid:TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key)).join('')},
+    {cls:'gs-lake',head:H[2],gridCls:'gs-grid-lake',grid:TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)).join('')},
+    {cls:'gs-mountain',head:H[3],items:[
       {icon:'⛰️',title:t('peaks'),sub:TX[lang].mountainDiffs.map(d=>d.label).join(', '),panel:'mt-peaks',renderPanel:()=>_cardsPanel(TX[lang].mountainDiffs.map(d=>gsCard("startMountainGame('"+d.key+"')",d.label,d.count+' '+t('peaks'),'mountain:'+d.key)),'gs-grid-pin')},
       {icon:'🏔️',title:t('mountainRanges'),sub:TX[lang].rangeDiffs.map(d=>d.label).join(', '),panel:'mt-ranges',renderPanel:()=>_cardsPanel(TX[lang].rangeDiffs.map(d=>gsCard("startRangeGame('"+d.key+"')",d.label,d.count+' '+t('mountainRanges'),'range:'+d.key)),'gs-grid-pin')}
     ]}
