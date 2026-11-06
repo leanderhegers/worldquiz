@@ -312,7 +312,7 @@ const DS_CONTENT = {
 <p><strong>4. Dienstleister / Auftragsverarbeitung</strong><br>Wir nutzen <strong>Firebase</strong> (Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA) für Authentifizierung und Datenbankdienste. Die Datenübertragung in die USA erfolgt auf Grundlage der EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Weitere Informationen: <a href="https://firebase.google.com/support/privacy" target="_blank" class="legal-link">firebase.google.com/support/privacy</a></p>
 <p><strong>5. Speicherdauer</strong><br>Deine Daten werden gespeichert, solange dein Konto besteht. Du kannst dein Konto und alle gespeicherten Daten jederzeit im Profil unter „Konto löschen" entfernen.</p>
 <p><strong>6. Deine Rechte</strong><br>Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten (Art. 15–18 DSGVO). Anfragen richtest du an: <a href="mailto:leanderhegers@gmx.de" class="legal-link">leanderhegers@gmx.de</a></p>
-<p><strong>7. Cookies / Lokaler Speicher</strong><br>Die App nutzt den lokalen Speicher (localStorage) des Browsers ausschließlich zur Speicherung deiner Spieleinstellungen, ohne externe Tracking-Dienste.</p>
+<p><strong>7. Cookies / Lokaler Speicher</strong><br>Die App nutzt den lokalen Speicher (localStorage) des Browsers ausschließlich zur Speicherung deiner Spieleinstellungen und Spielstände sowie dazu, ob dir eine Spielmodus-Erklärung schon angezeigt wurde, ohne externe Tracking-Dienste.</p>
 <p><strong>8. Beschwerderecht</strong><br>Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist die Landesbeauftragte für Datenschutz und Informationsfreiheit NRW.</p>`
   },
   en: {
@@ -323,7 +323,7 @@ const DS_CONTENT = {
 <p><strong>4. Service Providers / Data Processing</strong><br>We use <strong>Firebase</strong> (Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA) for authentication and database services. Data transfers to the USA are carried out on the basis of EU Standard Contractual Clauses (Art. 46 (2)(c) GDPR). More information: <a href="https://firebase.google.com/support/privacy" target="_blank" class="legal-link">firebase.google.com/support/privacy</a></p>
 <p><strong>5. Storage Period</strong><br>Your data is stored as long as your account exists. You can delete your account and all associated data at any time via your profile under "Delete Account".</p>
 <p><strong>6. Your Rights</strong><br>You have the right to access, rectify, erase, and restrict the processing of your data (Art. 15–18 GDPR). Requests can be sent to: <a href="mailto:leanderhegers@gmx.de" class="legal-link">leanderhegers@gmx.de</a></p>
-<p><strong>7. Cookies / Local Storage</strong><br>The app uses your browser's local storage solely to save your game settings. No external tracking services are used.</p>
+<p><strong>7. Cookies / Local Storage</strong><br>The app uses your browser's local storage solely to save your game settings and scores, and whether a game-mode explanation has already been shown to you. No external tracking services are used.</p>
 <p><strong>8. Right to Lodge a Complaint</strong><br>You have the right to lodge a complaint with a data protection supervisory authority. The competent authority for Germany (NRW) is the Landesbeauftragte für Datenschutz und Informationsfreiheit NRW.</p>`
   }
 };
