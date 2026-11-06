@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 M';
+const BUILD_ID='2026-11-06 N';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2068,7 +2068,15 @@ function renderMap(world){
   const activeZones=ISLAND_ZONES.filter(z=>isActive(z.id)).map(z=>{
     const zd=islandZoneData&&islandZoneData.zones.find(q=>q.id===z.id);
     if(!zd)return null;
-    const proj0=zd.rings.map(r=>r.map(p=>proj(p)).filter(p=>p&&isFinite(p[0])&&isFinite(p[1])));
+    // Globus: orthographic proj() spiegelt Punkte der Rückseite auf die Vorderseite. Zonen ganz auf der Rückseite entfallen,
+    // einzelne Rückseitenpunkte werden radial an den Kugelrand gesetzt (Azimut bleibt erhalten), damit die Form am Horizont endet.
+    let pj=p=>proj(p);
+    if(projection==='globe'){
+      const c0=[-globeRot[0],-globeRot[1]],cen=proj.translate(),Rg=proj.scale();
+      if(zd.rings.every(r=>r.every(p=>d3.geoDistance(p,c0)>Math.PI/2)))return null;
+      pj=p=>{const q=proj(p);if(!q)return null;if(d3.geoDistance(p,c0)<=Math.PI/2)return q;const dx=q[0]-cen[0],dy=q[1]-cen[1],l=Math.hypot(dx,dy)||1;return[cen[0]+dx/l*Rg,cen[1]+dy/l*Rg];};
+    }
+    const proj0=zd.rings.map(r=>r.map(p=>pj(p)).filter(p=>p&&isFinite(p[0])&&isFinite(p[1])));
     const xs=proj0.flat().map(p=>p[0]).sort((a,b)=>a-b);
     if(!xs.length)return null;
     const med=xs[Math.floor(xs.length/2)];
@@ -2082,7 +2090,8 @@ function renderMap(world){
       let lo=Infinity,hi=-Infinity;for(const p of r){const x=p[0]+sh;if(x<lo)lo=x;if(x>hi)hi=x;}
       if(hi>=0&&lo<=W)rings.push(sh?r.map(p=>[p[0]+sh,p[1]]):r);
     }));
-    return{...z,rings,cx:all.reduce((t,p)=>t+p[0],0)/all.length,cy:all.reduce((t,p)=>t+p[1],0)/all.length};
+    // type/geometry: GeoJSON-Linien derselben Ringe, damit der Globus die Zone beim Drehen live mitzeichnen kann (canvas-map)
+    return{...z,type:'Feature',geometry:{type:'MultiLineString',coordinates:zd.rings.map(r=>r.concat([r[0]]))},rings,cx:all.reduce((t,p)=>t+p[0],0)/all.length,cy:all.reduce((t,p)=>t+p[1],0)/all.length};
   }).filter(Boolean);
   zoneHulls=activeZones;
 
