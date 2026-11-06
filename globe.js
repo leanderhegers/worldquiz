@@ -293,6 +293,7 @@ function prebuild(){
 // Mausrad: Zoom zum Cursor. Beim Hineinzoomen dreht sich die Kugel dabei so, dass der Punkt unter dem Cursor zur Mitte hin
 // wandert (man schaut nicht schräg von der Seite auf die Stelle); der Punkt bleibt dabei unter dem Cursor.
 function wheel(ev,svg,node){
+  if(typeof projection==='undefined'||projection!=='globe')return; // nur im Globus-Modus zuständig
   ev.preventDefault();
   const dy=ev.deltaY*(ev.deltaMode===1?15:ev.deltaMode===2?300:1);
   const f=Math.pow(2,-dy*0.0022),k0=G.k,k1=clamp(k0*f,1,12);

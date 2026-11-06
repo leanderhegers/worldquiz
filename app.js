@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-07 F';
+const BUILD_ID='2026-11-07 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2618,7 +2618,7 @@ function renderMap(world){
     });
   svg.call(zoomBehavior);
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
-  else svg.on('pointerdown.globe',null);
+  else{svg.on('pointerdown.globe',null);svg.on('wheel.globe',null);} // Globus-Handler dürfen in den anderen Projektionen nicht weiterleben (sonst springt Mercator beim Scrollen zum Globus)
   setMapBg(th);updateColors();
   // "?canvas" variant: the SVG tree above becomes an invisible scene graph drawn by canvas-map.js.
   if(window.CANVAS_MAP&&window.CanvasMap)CanvasMap.attach(svg.node());
