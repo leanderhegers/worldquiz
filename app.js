@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 A';
+const BUILD_ID='2026-11-06 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1465,12 +1465,14 @@ function _triviaBuildSpecs(sorted,dir,singleQ,multiQ,singleCount,groupN,maxRank)
     const id=dir==='most'?sorted[i]:sorted[sorted.length-1-i];
     specs.push({ids:[id],q:singleQ(i+1,dir)});
   }
-  // The multi-target "5 smallest" style question names no specific rank, so it stays answerable
-  // by elimination regardless of how deep into the list it reaches — no cap needed here. Starts
-  // right after the single-question ranks so a round's single and group questions for the same
-  // metric+direction don't ask about the exact same country twice.
+  // The multi-target "4 most populous" style question must be the TRUE top N of the ranking — it
+  // starts at rank 1, not after the single questions. (It used to start at rank singleCount+1 to
+  // avoid asking about the same country twice, which made "the 4 most populous countries" quietly
+  // mean ranks 3-6 and leave out China and India: factually wrong.) A country showing up in both a
+  // single and a group question of the same round is fine — the game state supports that (see the
+  // note above this function).
   const group=[];
-  for(let i=singleCount;i<sorted.length&&group.length<groupN;i++){
+  for(let i=0;i<sorted.length&&group.length<groupN;i++){
     group.push(dir==='most'?sorted[i]:sorted[sorted.length-1-i]);
   }
   if(group.length)specs.push({ids:group,q:multiQ(group.length,dir)});
@@ -2234,15 +2236,12 @@ function renderMap(world){
 
 
 function _avail(rawId){return theme==='terrain'?terrainFill(rawId):THEMES[theme].avail;}
-// Trivia never paints a found/skipped fill at all — a country can legitimately be part of more
-// than one question in the same round (see _triviaBuildSpecs()'s comment), and painting it done
-// (or skipped) after an earlier, different question would revert to plain "available" the instant
-// a later question needs it again — a color CHANGE right as the new question loads, which is
-// itself a giveaway that this specific country belongs to the new answer. Never showing the
-// found/skipped fill in trivia removes that tell entirely, at the cost of the "see your progress"
-// green trail every other mode has — a deliberate tradeoff for this mode specifically.
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.triviaMode)return _avail(rawId);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.triviaMode)return _avail(id);if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
+// Trivia paints found (green) and skipped countries like every other mode. A country can belong to more
+// than one question in a round (see _triviaBuildSpecs()'s comment); it simply keeps its colour when a
+// later question needs it again — it is never reset to "available" — so the colour never CHANGES as a
+// new question loads and therefore gives nothing away about which countries the new answer contains.
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){

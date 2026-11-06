@@ -25,9 +25,10 @@ const land=topojson.feature(world,world.objects.countries);
 const DEFAULTS={margin:4,near:8,harm:2};
 const OVERRIDES={
   // Beispiel: 584:{margin:3,near:6,harm:3}
+  44:{near:5}   // Bahamas: weniger weit über die äußersten Inseln hinaus
 };
 
-const WW=960,H=0.5,SIGMA=1.8,NA=90,FOREIGN_BUFFER=2.0; // Abstand zu fremdem Land in Karteneinheiten (~85 km am Äquator)
+const WW=960,H=0.5,SIGMA=2.6,NA=90,FOREIGN_BUFFER=2.0; // Abstand zu fremdem Land in Karteneinheiten (~85 km am Äquator)
 const wproj=d3.geoMercator().scale(WW/(2*Math.PI)).translate([WW/2,250]);
 const km=(a,b)=>{const R=6371,r=Math.PI/180,dl=(b[1]-a[1])*r,dn=(b[0]-a[0])*r;const x=Math.sin(dl/2)**2+Math.cos(a[1]*r)*Math.cos(b[1]*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x));};
 function coordsOf(f){const out=[];(function walk(c){if(typeof c[0]==='number')out.push(c);else c.forEach(walk);})(f.geometry.coordinates);return out;}
@@ -135,22 +136,25 @@ all.forEach(a=>{
     let dmin=1e9;for(const p of a.n.pts){const dd=Math.hypot(x-p[0],y-p[1]);if(dd<dmin)dmin=dd;}
     f[j*nx+i]=Math.min((1-q)*rr,maxNear-dmin);
   }
-  // Fremdes Land samt Sicherheitsabstand (FOREIGN_BUFFER Karteneinheiten) ausschneiden. Der Abstand hält
-  // den Bereich auch von kleinen fremden Inseln fern (z. B. Haitis Inseln nördlich der Bahamas).
+  // Fremdes Land: Abstandsfeld statt hartem Ausschnitt. Pro Zelle wird die Entfernung zum nächsten
+  // fremden Landpunkt bestimmt; der Wert wird auf (Entfernung − FOREIGN_BUFFER) gedeckelt. Das ergibt
+  // eine glatte Linie im Sicherheitsabstand zum fremden Land (auch zu kleinen fremden Inseln) statt
+  // gezackter Rasterkanten.
   if(!a.n.noOutline){
-    const rB=Math.ceil(FOREIGN_BUFFER/H),cand=new Uint8Array(nx*ny),fg=new Uint8Array(nx*ny);
-    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)if(f[j*nx+i]>0)for(let dj=-rB;dj<=rB;dj++)for(let di=-rB;di<=rB;di++){
+    const rS=Math.ceil((FOREIGN_BUFFER+6)/H),cand=new Uint8Array(nx*ny);
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)if(f[j*nx+i]>-1)for(let dj=-rS;dj<=rS;dj+=2)for(let di=-rS;di<=rS;di+=2){
       const ii=i+di,jj=j+dj;if(ii>=0&&jj>=0&&ii<nx&&jj<ny)cand[jj*nx+ii]=1;
     }
-    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)if(cand[j*nx+i])fg[j*nx+i]=foreignAt(a.n.id,bx0+(i+0.5)*H,by0+(j+0.5)*H)?1:0;
-    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
-      if(f[j*nx+i]<=0)continue;
-      let hit=false;
-      for(let dj=-rB;dj<=rB&&!hit;dj++)for(let di=-rB;di<=rB;di++){
-        if(di*di+dj*dj>rB*rB)continue;
-        const ii=i+di,jj=j+dj;if(ii>=0&&jj>=0&&ii<nx&&jj<ny&&fg[jj*nx+ii]){hit=true;break;}
+    const land=[];
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)if(cand[j*nx+i]&&foreignAt(a.n.id,bx0+(i+0.5)*H,by0+(j+0.5)*H))land.push([bx0+(i+0.5)*H,by0+(j+0.5)*H]);
+    if(land.length){
+      for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+        const idx=j*nx+i;if(f[idx]<=-1)continue;
+        const x=bx0+(i+0.5)*H,y=by0+(j+0.5)*H;
+        let dm=1e9;for(const p of land){const dd=Math.hypot(x-p[0],y-p[1]);if(dd<dm)dm=dd;}
+        const cap=dm-0.35-FOREIGN_BUFFER; // 0,35 ≈ halbe Zelldiagonale (Land ist zellweise erfasst)
+        if(cap<f[idx])f[idx]=cap;
       }
-      if(hit)f[j*nx+i]=-4;
     }
   }
   a.F={bx0,by0,nx,ny,d:gaussBlur(f,nx,ny,SIGMA)};
@@ -160,6 +164,13 @@ function sample(F,x,y){
   if(i<0||j<0||i>=F.nx-1||j>=F.ny-1)return 0;
   const fx=gx-i,fy=gy-j,A=F.d[j*F.nx+i],B=F.d[j*F.nx+i+1],Cc=F.d[(j+1)*F.nx+i],D=F.d[(j+1)*F.nx+i+1];
   return A*(1-fx)*(1-fy)+B*fx*(1-fy)+Cc*(1-fx)*fy+D*fx*fy;
+}
+// Chaikin-Eckenschnitt für geschlossene Ringe (letzter Punkt = erster): rundet die letzten Ecken ab
+function chaikin1(ring){
+  const p=ring.slice(0,-1),q=[];
+  for(let k=0;k<p.length;k++){const a=p[k],b=p[(k+1)%p.length];q.push([.75*a[0]+.25*b[0],.75*a[1]+.25*b[1]],[.25*a[0]+.75*b[0],.25*a[1]+.75*b[1]]);}
+  q.push(q[0]);
+  return q.map(([x,y])=>[Math.round(x*100)/100,Math.round(y*100)/100]);
 }
 const result=[];
 all.forEach(a=>{
