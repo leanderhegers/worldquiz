@@ -520,3 +520,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 @keyframes mi-drop{0%{transform:translateY(-70px);opacity:0;}6%{opacity:1;}30%{transform:translateY(0);}36%{transform:translateY(-6px);}42%,100%{transform:translateY(0);opacity:1;}}
 @keyframes mi-type{0%,12%{width:0;}58%,100%{width:130px;}}
 @keyframes mi-chk{0%,62%{opacity:0;}68%,100%{opacity:1;}}
+
+.legal-content a{color:#8cc4ff;text-decoration:underline;text-underline-offset:2px;}
+.legal-content a:hover{color:#bcdcff;}

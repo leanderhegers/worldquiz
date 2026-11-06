@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 K';
+const BUILD_ID='2026-11-06 L';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -795,6 +795,7 @@ function updateAllText(){
   // rather than being clobbered back into a country name here.
   if(game.current&&C[game.current]&&!(game.riverMode||game.lakeMode||game.cityMode||game.mountainMode||game.rangeMode||game.pinMode||game.triviaMode))$('target-name').textContent=cn(game.current);updateStats();
   if(typeof _renderDsContent==='function'&&$('datenschutz-modal')&&$('datenschutz-modal').style.display!=='none')_renderDsContent();
+  if(typeof _renderSrc==='function'&&$('sources-modal')&&$('sources-modal').style.display!=='none')_renderSrc();
 }
 
 const SECTIONS=['map','region','flag','pin','city','river','lake','mountain'];
