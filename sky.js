@@ -1,6 +1,6 @@
 // Sternenhimmel mit Milchstraße als Hintergrund des Globus (#map-bg), dreht sich mit der Kugel mit.
 //
-// Der Himmel wird einmal prozedural als quadratisches, waagerecht NAHTLOS umlaufendes Panorama gezeichnet (festes
+// Der Himmel wird einmal prozedural als breites (3.2:1), waagerecht NAHTLOS umlaufendes Panorama gezeichnet (festes
 // Zufallsmuster, immer derselbe Himmel), als JPEG im Speicher gehalten und in einer eigenen Ebene hinter der Karte
 // als Hintergrundbild gezeigt. Beim Drehen des Globus (Sky.rotate) wird nur die Hintergrundposition verschoben, etwas
 // langsamer als die Oberfläche (Tiefeneindruck); das kostet nichts. Erzeugung ca. 150–300 ms, nur wenn der Globus
@@ -45,51 +45,63 @@ const PRESETS={
   ruhig:{label:'Fast leer',stars:.05,pow:6,glow:false,grain:.2,bandA:.0,bandW:1,warm:[255,255,255],cold:[255,255,255],bg:['#02040b','#050a16','#02040b']}
 };
 let currentPreset='schwarzblau'; // gewählt: Schwarz, mehr Kontrast, Blauhauch
-function build(w,pn){
+const tick=()=>new Promise(r=>setTimeout(r,0));
+// Breites Panorama (Seitenverhältnis 3.2:1, nahtlos umlaufend). Läuft in Scheiben von ~10 ms mit Pausen dazwischen, damit das Spiel
+// beim Erzeugen nicht ruckelt. Gibt ein Promise mit der JPEG-Daten-URL zurück.
+async function build(w,pn,h){
   const o=PRESETS[pn||currentPreset]||PRESETS.aktuell;
-  const h=w,R=rng(20261106),nz=makeNoise(7),nz2=makeNoise(99);
+  h=h||Math.round(w/3.2);
+  const R=rng(20261106),nz=makeNoise(7),nz2=makeNoise(99);
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const x=c.getContext('2d');
   const bg=x.createLinearGradient(0,0,0,h);bg.addColorStop(0,o.bg[0]);bg.addColorStop(.5,o.bg[1]);bg.addColorStop(1,o.bg[2]);
   x.fillStyle=bg;x.fillRect(0,0,w,h);
-  // Band: Mittellinie vc(u) wellt um die Mitte (periodisch in u), t = senkrechter Abstand in v-Einheiten
-  const vc=u=>0.5+0.17*Math.sin(TAU*u+0.7)+0.04*Math.sin(TAU*2*u+2.1);
-  const dist=(a,b)=>{const d=Math.abs(a-b)%1;return Math.min(d,1-d);};
-  const PER=8; // Rauschperiode in Rauscheinheiten (u*PER)
-  // 1) Leuchten in niedriger Auflösung
-  const gw=Math.round(w/4),gh=Math.round(h/4);
+  // Band: Mittellinie vc(u) mit mehreren Wellen (periodisch in u, nirgends gleichförmig), t = senkrechter Abstand in v-Einheiten
+  const vc=u=>0.5+0.15*Math.sin(TAU*u+0.7)+0.045*Math.sin(TAU*2*u+2.1)+0.03*Math.sin(TAU*3*u+1.3)+0.014*Math.sin(TAU*5*u+0.4)+0.008*Math.sin(TAU*8*u+2.2);
+  const dist=(p,q)=>{const d=Math.abs(p-q)%1;return Math.min(d,1-d);};
+  // Rauschfrequenzen so gewählt, dass die Strukturen in Breite und Höhe etwa gleich groß sind (Breite ist 3.2× die Höhe)
+  const PER=26;
+  let last=performance.now();
+  const yieldNow=async()=>{if(performance.now()-last>10){await tick();last=performance.now();}};
+  // 1) Leuchten des Bandes in reduzierter Auflösung (1/3), danach hochskaliert
+  const gw=Math.round(w/3),gh=Math.round(h/3);
   const g=document.createElement('canvas');g.width=gw;g.height=gh;
   const gx=g.getContext('2d'),img=gx.createImageData(gw,gh),d=img.data;
-  for(let j=0;j<gh;j++)for(let i=0;i<gw;i++){
-    const u=i/gw,v=j/gh,t=v-vc(u);
-    const core=Math.exp(-(t*t)/(2*0.055*0.055*o.bandW*o.bandW)),halo=Math.exp(-(t*t)/(2*0.16*0.16*o.bandW*o.bandW));
-    const bulge=0.6+0.4*Math.exp(-Math.pow(dist(u,0.3),2)/(2*0.13*0.13));    // galaktisches Zentrum bei u≈0.3
-    const cloud=Math.min(1,Math.pow(nz(u*PER,v*9+2,5,PER,u),1.7)*2.4);
-    const fine=nz(u*PER*4,v*30,3,PER*4,u);
-    let lane=Math.max(0,nz2(u*PER*1.4+9,v*22,4,PER*1.4,u)-0.52)*3.2;
-    lane*=Math.exp(-(t*t)/(2*0.06*0.06));
-    let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(o.halo==null?1:o.halo)*(0.3+cloud))*(0.55+0.7*fine);
-    val*=Math.max(0,1-lane*1.15);
-    val=Math.min(1,val*0.9);
-    const warm=Math.min(1,core*bulge*1.1);
-    const k=(j*gw+i)*4;
-    d[k]=o.cold[0]+(o.warm[0]-o.cold[0])*warm;d[k+1]=o.cold[1]+(o.warm[1]-o.cold[1])*warm;d[k+2]=o.cold[2]+(o.warm[2]-o.cold[2])*warm;d[k+3]=Math.round(255*Math.pow(val,o.gamma||1.45)*o.bandA);
+  for(let j=0;j<gh;j++){
+    const v=j/gh;
+    for(let i=0;i<gw;i++){
+      const u=i/gw,t=v-vc(u);
+      const core=Math.exp(-(t*t)/(2*0.055*0.055*o.bandW*o.bandW)),halo=Math.exp(-(t*t)/(2*0.16*0.16*o.bandW*o.bandW));
+      const bulge=0.6+0.4*Math.exp(-Math.pow(dist(u,0.3),2)/(2*0.1*0.1))+0.1*Math.exp(-Math.pow(dist(u,0.72),2)/(2*0.06*0.06));
+      const cloud=Math.min(1,Math.pow(nz(u*PER,v*9+2,5,PER,u),1.7)*2.4);
+      const fine=nz(u*PER*4,v*30,3,PER*4,u);
+      let lane=Math.max(0,nz2(u*PER*2.8+9,v*22,4,PER*2.8,u)-0.52)*3.2;
+      lane*=Math.exp(-(t*t)/(2*0.06*0.06));
+      let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(o.halo==null?1:o.halo)*(0.3+cloud))*(0.55+0.7*fine);
+      val*=Math.max(0,1-lane*1.15);
+      val=Math.min(1,val*0.9);
+      const warm=Math.min(1,core*bulge*1.1);
+      const k=(j*gw+i)*4;
+      d[k]=o.cold[0]+(o.warm[0]-o.cold[0])*warm;d[k+1]=o.cold[1]+(o.warm[1]-o.cold[1])*warm;d[k+2]=o.cold[2]+(o.warm[2]-o.cold[2])*warm;d[k+3]=Math.round(255*Math.pow(val,o.gamma||1.45)*o.bandA);
+    }
+    await yieldNow();
   }
   gx.putImageData(img,0,0);
   x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
   x.globalCompositeOperation='lighter';
   x.drawImage(g,0,0,gw,gh,0,0,w,h);
-  // 2) unaufgelöste Sterne im Band
+  // 2) unaufgelöste Sterne im Band (Körnung)
   const nb=Math.round(w*h/36*o.grain);
   for(let n=0;n<nb;n++){
     const u=R(),v=R(),t=v-vc(u);
     const p=Math.exp(-(t*t)/(2*0.09*0.09))*(0.45+0.55*nz(u*PER*2,v*18,2,PER*2,u));
     if(R()>p)continue;
-    const m=R();x.globalAlpha=0.05+0.16*m;x.fillStyle=m>.6?'#fff4e2':'#cfe0ff';
-    const r=0.7+R()*1.1,px=u*w;x.fillRect(px,v*h,r,r);if(px>w-2)x.fillRect(px-w,v*h,r,r);
+    const m=R();x.globalAlpha=0.06+0.2*m;x.fillStyle=m>.6?'#fff4e2':'#cfe0ff';
+    const r=0.8+R()*1.2,px=u*w;x.fillRect(px,v*h,r,r);if(px>w-2)x.fillRect(px-w,v*h,r,r);
+    if((n&2047)===0)await yieldNow();
   }
   x.globalAlpha=1;
-  // 3) Sterne (am Rand doppelt gezeichnet, damit das Panorama nahtlos bleibt)
+  // 3) Sterne: etwas größer und heller als vorher (schärfer); am Rand doppelt gezeichnet, damit das Panorama nahtlos bleibt
   x.globalCompositeOperation='source-over';
   const ns=Math.round(w*h/150*o.stars);
   for(let n=0;n<ns;n++){
@@ -97,7 +109,7 @@ function build(w,pn){
     const dens=0.4+0.6*Math.exp(-(t*t)/(2*0.12*0.12));
     if(R()>dens)continue;
     const m=Math.pow(R(),o.pow),col=pickTemp(R);
-    const px=u*w,py=v*h,rad=0.4+m*1.5,al=0.25+0.75*m;
+    const px=u*w,py=v*h,rad=0.55+m*1.5,al=0.34+0.66*m;
     const draw=X=>{
       if(o.glow&&m>0.88){
         const gr=x.createRadialGradient(X,py,0,X,py,rad*4.5);
@@ -107,21 +119,24 @@ function build(w,pn){
       x.fillStyle='rgba('+col+','+al+')';x.beginPath();x.arc(X,py,rad,0,TAU);x.fill();
     };
     draw(px);if(px<14)draw(px+w);else if(px>w-14)draw(px-w);
+    if((n&1023)===0)await yieldNow();
   }
-  return c.toDataURL('image/jpeg',0.9);
+  await tick();
+  return c.toDataURL('image/jpeg',0.92);
 }
 
-// Darstellungsgröße: Periode (= Bildbreite = -höhe) so, dass der Himmel ~0.55× so schnell wandert wie die Oberfläche,
-// mindestens aber 1.3× Viewport-Höhe (damit senkrechtes Verschieben nie über den Rand läuft)
+// Darstellungsgröße: Bildhöhe mindestens 1.3× Viewport-Höhe (damit senkrechtes Verschieben nie über den Rand läuft), Breite 3.2× Höhe.
+// Der Himmel wandert beim Drehen mit ~0.55× dem Tempo der Oberfläche (ppd = Pixel je Grad Drehung); die Bildbreite (viele Bildschirm-
+// breiten) ist unabhängig davon, deshalb wiederholt sich das Muster höchstens alle ~3-4 Bildschirmhöhen.
 function layout(el){
   const r=el.getBoundingClientRect(),vw=r.width||innerWidth,vh=r.height||innerHeight;
   const surfPpd=0.49*Math.min(vw,vh)*Math.PI/180;       // Pixel je Grad am Kugelrand bei Zoom 1
-  const ppd=Math.max(0.55*surfPpd,1.3*vh/360);
-  geo={ppd,size:Math.round(ppd*360),vh,vw};
+  const ppd=0.55*surfPpd,Hd=Math.round(Math.max(1.3*vh,vh+120)),Wd=Math.round(Hd*3.2);
+  geo={ppd,Hd,Wd,vh,vw};
 }
 function place(rot){
   if(!layer||!geo)return;
-  const slack=geo.size-geo.vh;
+  const slack=geo.Hd-geo.vh;
   const x=(rot?rot[0]:0)*geo.ppd,y=Math.max(-slack,Math.min(0,-slack/2-(rot?rot[1]:0)*geo.ppd));
   layer.style.backgroundPosition=x.toFixed(1)+'px '+y.toFixed(1)+'px';
 }
@@ -138,13 +153,13 @@ window.Sky={
   get preset(){return currentPreset;},
   apply(el){
     ensureLayer(el);layout(el);
-    layer.style.backgroundSize=geo.size+'px '+geo.size+'px';
+    layer.style.backgroundSize=geo.Wd+'px '+geo.Hd+'px';
     if(url){layer.style.backgroundImage='url('+url+')';place(typeof globeRot!=='undefined'?globeRot:null);return;}
     if(building)return;building=true;
-    const run=()=>{
+    const run=async()=>{
       try{
         const coarse=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
-        url=build(coarse?1024:1600);
+        url=await build(coarse?3072:4096);
       }catch(e){url=null;}
       building=false;
       if(url&&typeof projection!=='undefined'&&projection==='globe'){const m=document.getElementById('map-bg');if(m)window.Sky.apply(m);}

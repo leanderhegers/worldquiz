@@ -171,9 +171,27 @@ function drawLive(ctx,g){
   else for(const r of p.lines)linePath(ctx,r,cL,sL,cP,sP,cx,cy);
   return true;
 }
+// Treffer-Suche im Live-Modus (kurz nach dem Loslassen, bis renderMap die Klickflächen neu aufgebaut hat): Zeigerposition
+// → Länge/Breite → Land (erst grob über Umkreis, dann d3.geoContains). Während des Ziehens selbst kein Hover.
+function hitLive(cx,cy){
+  if(G.drag&&G.drag.moved)return null;
+  const node=document.getElementById('map');if(!node||!currentProj||!G.apply||typeof countryPaths==='undefined'||!countryPaths)return null;
+  const inv=node.getScreenCTM().inverse();
+  const ux=inv.a*cx+inv.c*cy+inv.e,uy=inv.b*cx+inv.d*cy+inv.f;
+  const px=(ux-G.tx)/G.k,py=(uy-G.ty)/G.k;
+  if(Math.hypot(px-W/2,py-H/2)>=R0)return null;
+  const ll=currentProj.invert([px,py]);if(!ll||!isFinite(ll[0])||!isFinite(ll[1]))return null;
+  let best=null;
+  countryPaths.each(function(d){
+    if(best||!d||!d.type)return;
+    const i=info(d);if(i.c&&d3.geoDistance(i.c,ll)>i.r+0.02)return;
+    if(d3.geoContains(d,ll))best=this;
+  });
+  return best;
+}
 function setLive(on){
   if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
-  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null);
+  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null);
   if(window.Relief)window.Relief.live=!!on;
 }
 function frame(){ // eine Zeichnung pro Animationsbild
