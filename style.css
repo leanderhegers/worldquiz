@@ -474,3 +474,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
    wächst das Fenster nur nach unten, die Reiter-Leiste bleibt unter dem Cursor. */
 #profile-modal,#friends-modal,#friend-profile-modal{align-items:flex-start;padding:max(14px,5vh) 0 14px;box-sizing:border-box;}
 #profile-modal .profile-box,#friend-profile-modal .profile-box,#friends-modal .friends-box{max-height:calc(100vh - max(14px,5vh) - 14px);}
+
+/* Kategorie-Seiten (Pin, Texteingabe, Weitere Quizzes): Leiste mit Zurück links und Lernmodus rechts */
+.cat-topbar-split{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.gs-mountain{--accent:#c8a070;--cardBg:rgba(200,160,112,.08);--cardBorder:rgba(200,160,112,.18);--cardHov:rgba(200,160,112,.16);}
+.gs-grid-lake,.gs-grid-river{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}

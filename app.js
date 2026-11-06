@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 E';
+const BUILD_ID='2026-11-06 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -303,6 +303,7 @@ let _activeSections=['pin'];
 let _modeScreenBackOnclick="openCategoryPicker()";
 
 function openCategoryPicker(){
+  _catRerender=null;
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
   const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
   showScreen('category-screen');
@@ -317,6 +318,10 @@ function openCategoryPicker(){
 }
 function openCategory(catKey,focusSection){
   if(catKey==='click'){renderClickPage();return;}
+  // Alle Kategorien haben dasselbe Seitenlayout wie "Auf der Karte anklicken" (siehe CATEGORY PAGES).
+  if(catKey==='pin'){renderPinPage();return;}
+  if(catKey==='input'){renderInputPage();return;}
+  if(catKey==='other'){renderOtherPage();return;}
   const sections={pin:['pin'],input:['flag'],other:['city','river','lake','mountain']}[catKey]||['pin'];
   openSections(sections,'openCategoryPicker()',focusSection);
 }
@@ -348,7 +353,8 @@ function goToGames(sectionKey){
 // (world, a continent, custom, population, and region) returns straight back to renderClickPage().
 let _clickOpenPanel=null; // 'continents' | 'trivia' | null
 function _quizBackAction(){renderClickPage();}
-function toggleClickPanel(key){_clickOpenPanel=_clickOpenPanel===key?null:key;renderClickPage();}
+let _catRerender=null; // zeichnet die gerade offene Kategorie-Seite neu (null = Kategorie-Auswahl)
+function toggleClickPanel(key){_clickOpenPanel=_clickOpenPanel===key?null:key;(_catRerender||renderClickPage)();}
 
 function _clickItem(it){
   if(it.disabled)return `<div class="click-item click-item-disabled"><span class="click-item-icon">${it.icon}</span><span class="click-item-text"><span class="click-item-title">${it.title}</span><span class="click-item-sub">${it.sub}</span></span></div>`;
@@ -368,6 +374,7 @@ function _difficultyPanel(){
 }
 function renderClickPage(){
   showScreen('category-screen');
+  _catRerender=renderClickPage;
   const landerItems=[
     {icon:'🌐',title:t('optWorld'),sub:t('optWorldSub'),onclick:"startGame('world')"},
     {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'continents',renderPanel:_continentsPanel},
@@ -391,6 +398,66 @@ function renderClickPage(){
         <div class="gs-grid gs-grid-region">${regionCards}</div>
       </div>
     </div>`;
+}
+
+// ── CATEGORY PAGES (Drop-a-Pin, Texteingabe & Multiple Choice, Weitere Quizzes) ──
+// Dasselbe Layout wie die Klick-Seite: eine Seite, farbige Bereiche mit Überschrift, darin Zeilen
+// (Symbol, Titel, Untertitel); Listen mit mehreren Karten klappen als Panel direkt darunter auf
+// (_clickItem/toggleClickPanel). Oben rechts sitzt der Lernmodus-Schalter, den es nur auf diesen
+// Seiten gibt (früher in der Wisch-Ansicht).
+function learnToggleHTML(){
+  const learnBtn=window._authUser
+    ?`<button class="gs-mode-btn${learnMode?' active':''}" onclick="setLearnMode(true)">${t('learnModeLbl')}</button>`
+    :`<div class="gs-mode-tooltip-wrap"><button class="gs-mode-btn gs-mode-btn-locked" onclick="toggleLearnTooltip(event)">${t('learnModeLbl')}</button><div class="gs-mode-tooltip"><strong>${t('learnModeLbl')}</strong><p>${t('learnModeDesc')}</p><span class="gs-mode-tooltip-cta" onclick="openAuth('login')">${t('learnModeCta')}</span></div></div>`;
+  return `<div class="gs-mode-toggle"><button class="gs-mode-btn${!learnMode?' active':''}" onclick="setLearnMode(false)">${t('normalMode')}</button>${learnBtn}</div>`;
+}
+function _showCatPage(rerender,heading,groups){
+  showScreen('category-screen');
+  const cs=$('category-screen');cs.classList.remove('cat-picker');
+  _catRerender=rerender;
+  cs.innerHTML=`
+    <div class="cat-bg"></div>
+    <div class="cat-topbar cat-topbar-split"><button class="gs-home-btn" onclick="openCategoryPicker()">${t('back')}</button>${learnToggleHTML()}</div>
+    <div class="cat-inner click-inner">
+      <h1 class="cat-heading">${heading}</h1>
+      ${groups.map(g=>`<div class="click-group ${g.cls}"><h2 class="click-group-head">${g.head}</h2>${(g.items||[]).map(_clickItem).join('')}${g.grid?`<div class="gs-grid ${g.gridCls||''}">${g.grid}</div>`:''}</div>`).join('')}
+    </div>`;
+}
+function _cardsPanel(cards,gridCls){return `<div class="gs-grid ${gridCls}">${cards.join('')}</div>`;}
+function renderPinPage(){
+  const labels=TX[lang].cityCountries.map(d=>d.label).join(', ');
+  _showCatPage(renderPinPage,t('catPinTitle'),[
+    {cls:'gs-pin',head:t('pinQuiz'),items:[
+      {icon:'🌐',title:t('flagWorld'),sub:getPinCities('world').length+' '+t('cities'),onclick:"startPinGame('world')"},
+      {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'pin-conts',renderPanel:()=>_cardsPanel(['EU','AF','AS','NA','SA','OC'].map(m=>gsCard("startPinGame('"+m+"')",MODES[m][lang],getPinCities(m).length+' '+t('cities'),'pin:'+m)),'gs-grid-pin')},
+      {icon:'🏳️',title:t('landerTitle'),sub:labels,panel:'pin-countries',renderPanel:()=>_cardsPanel(TX[lang].cityCountries.map(d=>gsCard("startPinGame('"+d.key+"')",d.label,getPinCities(d.key).length+' '+t('cities'),'pin:'+d.key)),'gs-grid-pin')}
+    ]},
+    {cls:'gs-pin',head:t('optTrivia'),items:[
+      {icon:'💡',title:t('pinTriviaLbl'),sub:getPinCities('trivia').length+' '+t('landmarks'),onclick:"startPinGame('trivia')"},
+      {icon:'🎂',title:t('pinPeopleLbl'),sub:getPinCities('people').length+' '+t('personsLbl'),onclick:"startPinGame('people')"}
+    ]}
+  ]);
+}
+const INPUT_ICONS={flag:'🏳️',capital:'🏛️',outline:'🗾',language:'🗣️',currency:'💱',wappen:'🛡️',neighbor:'🧩'};
+function renderInputPage(){
+  _showCatPage(renderInputPage,t('catInputTitle'),[
+    {cls:'gs-flag',head:t('inputQuiz'),items:INPUT_QUIZZES.map(q=>({icon:INPUT_ICONS[q.type]||'✏️',title:t(q.titleKey),sub:t(q.subKey),onclick:"openInputCfg('"+q.type+"')"}))}
+  ]);
+}
+function renderOtherPage(){
+  const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries;
+  _showCatPage(renderOtherPage,t('catOtherTitle'),[
+    {cls:'gs-city',head:t('cityQuiz'),items:[
+      {icon:'⭐',title:t('optDifficulty'),sub:cityDiffs.map(d=>d.label).join(', '),panel:'city-diffs',renderPanel:()=>_cardsPanel(cityDiffs.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,getAllCitiesByDifficulty(d.key).length+' '+t('cities'),'city:'+d.key)),'gs-grid-city')},
+      {icon:'🏳️',title:t('landerTitle'),sub:cityCountries.map(d=>d.label).join(', '),panel:'city-countries',renderPanel:()=>_cardsPanel(cityCountries.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,(CITY_COUNTRIES[d.key]?CITY_COUNTRIES[d.key].cities.length:0)+' '+t('cities'),'city:'+d.key)),'gs-grid-city')}
+    ]},
+    {cls:'gs-river',head:t('riverQuiz'),gridCls:'gs-grid-river',grid:TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key)).join('')},
+    {cls:'gs-lake',head:t('lakeQuiz'),gridCls:'gs-grid-lake',grid:TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)).join('')},
+    {cls:'gs-mountain',head:t('mountainQuiz'),items:[
+      {icon:'⛰️',title:t('peaks'),sub:TX[lang].mountainDiffs.map(d=>d.label).join(', '),panel:'mt-peaks',renderPanel:()=>_cardsPanel(TX[lang].mountainDiffs.map(d=>gsCard("startMountainGame('"+d.key+"')",d.label,d.count+' '+t('peaks'),'mountain:'+d.key)),'gs-grid-pin')},
+      {icon:'🏔️',title:t('mountainRanges'),sub:TX[lang].rangeDiffs.map(d=>d.label).join(', '),panel:'mt-ranges',renderPanel:()=>_cardsPanel(TX[lang].rangeDiffs.map(d=>gsCard("startRangeGame('"+d.key+"')",d.label,d.count+' '+t('mountainRanges'),'range:'+d.key)),'gs-grid-pin')}
+    ]}
+  ]);
 }
 
 function og(label,inner){return `<div class="opt-group"><div class="opt-label">${label}</div><div class="opt-row">${inner}</div></div>`;}
@@ -498,7 +565,7 @@ function applyRemoteSettings(s){
   }
   updateAllText();applyTheme();renderOptions();
 }
-function refreshScoresUI(){if($('mode-screen')&&$('mode-screen').style.display!=='none')renderModeScreen();}
+function refreshScoresUI(){if($('mode-screen')&&$('mode-screen').style.display!=='none')renderModeScreen();if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none')_catRerender();}
 function gameScoreKey(){
   // Region quizzes track best score too, but keep their own separate state (_regGame) rather
   // than the shared game object — same reasoning as elsewhere in the region-quiz code.
@@ -559,6 +626,7 @@ function renderHome(){
 function updateAllText(){
   renderHome();
   if($('mode-screen').style.display!=='none')renderModeScreen();
+  if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none')_catRerender();
   setTxt('btn-back',t('back'));setTxt('find-label',game.riverMode?t('findRiver'):game.lakeMode?t('findLake'):game.cityMode?t('findCity'):game.mountainMode?t('findMountain'):game.rangeMode?t('findRange'):game.pinMode?pinFindLabel():game.triviaMode?(game.currentGroup&&game.currentGroup.size>1?t('findTriviaN'):t('findTrivia')):t('find'));setTxt('found-label',t('foundLbl'));setTxt('lbl-c',t('correctLbl'));setTxt('lbl-w',t('wrongLbl'));setTxt('btn-skip',t('skipLbl'));setTxt('res-title',t('resTitle'));setTxt('btn-again',t('again'));setTxt('btn-new',t('newgame'));setTxt('btn-share',t('shareBtn'));setTxt('opts-title',t('optionsLbl'));setTxt('flag-btn-back',t('back'));setTxt('flag-lbl-c',t('correctLbl'));setTxt('flag-lbl-w',t('wrongLbl'));
   // Only the plain country quiz shows the target's own name — every other mode (lake/river/city/
   // pin/population) shows a question instead, which must survive a language switch untouched
@@ -850,7 +918,7 @@ function restart(){if(_regGame)return void startRegionQuiz(_regGame.key);if(game
 function back(){if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
-function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
+function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
 function toggleLearnTooltip(e){e.stopPropagation();if(!('ontouchstart' in window))return;const wrap=e.currentTarget.closest('.gs-mode-tooltip-wrap');if(!wrap)return;wrap.classList.toggle('show');}
 
 // Lernmodus-Sortierung: häufig falsch vorne, 1-3× richtig hinten, >3× richtig ausgeblendet.
