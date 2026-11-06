@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 N';
+const BUILD_ID='2026-11-06 O';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -770,8 +770,11 @@ function resultBestNote(){
   if(isBest)return ' · 🏆 '+t('newRecord');
   const b=bestScore(key);return b?' · '+t('bestLabel')+' '+b.pct+'%':'';
 }
-function mapBg(h){return projection==='globe'?'#070d18':h.bg;} // Globus: dunkler Weltraum um die Kugel
-function applyTheme(){const h=THEMES[theme];$('map-bg').style.background=mapBg(h);$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',mapBg(h));d3.select('#map path.ocean-mask').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
+function mapBg(h){return projection==='globe'?'#02040a':h.bg;} // Globus: dunkler Weltraum um die Kugel
+// Hintergrund der Karte: Farbe des Themes, beim Globus Sternenhimmel (sky.js); das Ozean-Rechteck ist dort durchsichtig
+function setMapBg(h){const el=$('map-bg');if(!el)return;el.style.backgroundColor=mapBg(h);if(projection==='globe'&&window.Sky)window.Sky.apply(el);else el.style.backgroundImage='none';}
+function oceanFill(h){return projection==='globe'?'none':h.bg;}
+function applyTheme(){const h=THEMES[theme];setMapBg(h);$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',oceanFill(h));d3.select('#map path.ocean-mask').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
 function toggleOpts(){openCtxOpts('game');}
 
 function setTxt(id,v){const e=$(id);if(e)e.textContent=v;}
@@ -2033,7 +2036,7 @@ function renderMap(world){
     return vbW;
   }
   syncViewBox();
-  svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',mapBg(th));
+  svg.append('rect').attr('class','ocean').attr('x',isMerc?-W:0).attr('width',isMerc?W*3:W).attr('height',H).attr('fill',oceanFill(th));
   const wrapG=svg.append('g');
   // Two sibling layers, deliberately separated for the infinite-wrap tiling's sake:
   //   g (#map-main) holds only content that is NEVER mutated during pan/zoom. This is the
@@ -2047,7 +2050,8 @@ function renderMap(world){
   const g=wrapG.append('g');gGroup=g;
   const dynG=wrapG.append('g').attr('class','dyn');
   g.append('path').attr('class','sphere').datum({type:'Sphere'}).attr('d',gpath).attr('fill',th.sph).attr('stroke',th.grd).attr('stroke-width',1);
-  g.append('path').attr('class','grat').datum(d3.geoGraticule()()).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
+  const grat=d3.geoGraticule()();grat.noSimp=true; // Breitenkreise sind in lon/lat gerade Linien: nicht vereinfachen, sonst werden sie zu Großkreisen
+  g.append('path').attr('class','grat').datum(grat).attr('d',gpath).attr('fill','none').attr('stroke',th.grd).attr('stroke-width',0.3);
 
   // Theme Relief: Höhenfarben-Hintergrund (relief.js zeichnet beim Marker-Rechteck) und darüber eine Meer-Maske
   // (Rechteck minus Landfläche, gerade-ungerade gefüllt), die die grobe Küste der Kacheln genau abschneidet.
@@ -2520,7 +2524,7 @@ function renderMap(world){
   svg.call(zoomBehavior);
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
   else svg.on('pointerdown.globe',null);
-  $('map-bg').style.background=mapBg(th);updateColors();
+  setMapBg(th);updateColors();
   // "?canvas" variant: the SVG tree above becomes an invisible scene graph drawn by canvas-map.js.
   if(window.CANVAS_MAP&&window.CanvasMap)CanvasMap.attach(svg.node());
 }

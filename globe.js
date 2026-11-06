@@ -73,7 +73,7 @@ function liveGeom(d){
   return simplifiedFor(d,TOL);
 }
 function simplifiedFor(d,tol){
-  if(d.type==='Sphere'||d.type==='FeatureCollection'||!tol)return d;
+  if(d.type==='Sphere'||d.type==='FeatureCollection'||d.noSimp||!tol)return d;
   let m=SIMP.get(d);if(!m){m=new Map();SIMP.set(d,m);}
   if(!m.has(tol)){
     const g=d.type==='Feature'?d.geometry:d;
