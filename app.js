@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-05 X';
+const BUILD_ID='2026-11-06 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1623,14 +1623,15 @@ async function ensureAdmin1Borders(){
   if(admin1Lines)return;
   try{admin1Lines=await fetch('data/admin1-lines.json').then(r=>r.json());}catch(e){}
 }
-let lakesData=null,riversData=null;
+let lakesData=null,riversData=null,islandZoneData=null;
 async function loadMap(){
   if(worldData){renderMap(worldData);return;}
   try{
-    [worldData,lakesData,riversData]=await Promise.all([
+    [worldData,lakesData,riversData,islandZoneData]=await Promise.all([
       fetch('data/countries-50m.json').then(r=>r.json()),
       fetch('data/ne_50m_lakes.geojson').then(r=>r.json()).catch(()=>null),
-      fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null)
+      fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null),
+      fetch('data/island-zones.json').then(r=>r.json()).catch(()=>null)
     ]);
     // Normalize known river sections to their common names, then merge same-named segments
     const RIVER_ALIASES={
@@ -1722,153 +1723,17 @@ function isActive(id){
   return C[id]&&ac.has(C[id].c);
 }
 
-// Convex Hull (Andrew's monotone chain) for island zone outlines
-function convexHull(points){
-  if(points.length<3)return points;
-  const sorted=[...points].sort((a,b)=>a[0]!==b[0]?a[0]-b[0]:a[1]-b[1]);
-  const ccw=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0])>0;
-  let lower=[],upper=[];
-  for(let p of sorted){while(lower.length>=2&&!ccw(lower[lower.length-2],lower[lower.length-1],p))lower.pop();lower.push(p);}
-  for(let p of[...sorted].reverse()){while(upper.length>=2&&!ccw(upper[upper.length-2],upper[upper.length-1],p))upper.pop();upper.push(p);}
-  return lower.concat(upper.slice(1,-1));
-}
-// Collect all [lon,lat] vertices from a GeoJSON Polygon/MultiPolygon geometry.
-function geomPoints(geom){
-  const out=[];
-  (function walk(c){if(typeof c[0]==='number'){out.push([c[0],c[1]]);return;}c.forEach(walk);})(geom.coordinates);
-  return out;
-}
-// Build the padded, projected convex-hull outline (array of screen points) for one island zone.
-// `features` is the full country feature list; the zone's own id plus any `extraIds` contribute points.
-function buildZoneHull(zone,features,proj){
-  let raw=[];
-  for(const id of [zone.id,...(zone.extraIds||[])]){
-    const f=features.find(ff=>+ff.id===id);
-    if(f&&f.geometry)raw.push(...geomPoints(f.geometry));
-  }
-  // Only islands near zone.near (within zone.nearKm): keeps far-flung outliers (Kiribati's Line
-  // Islands) out of the hull.
-  if(zone.near&&zone.nearKm)raw=raw.filter(p=>haversine(p[0],p[1],zone.near[0],zone.near[1])<=zone.nearKm);
-  if(!raw.length){
-    if(zone.fallbackLon==null)return[];
-    // No geometry (e.g. Tuvalu): synthesize a small ring of points around the fallback center.
-    const r=zone.fallbackR||2;
-    for(let a=0;a<360;a+=45)raw.push([zone.fallbackLon+r*Math.cos(a*Math.PI/180),zone.fallbackLat+r*Math.sin(a*Math.PI/180)]);
-  }
-  let pts=raw.map(p=>proj(p)).filter(p=>p&&isFinite(p[0])&&isFinite(p[1]));
-  if(pts.length<3)return pts;
-  // Unwrap across the projection seam: nations near lon ±180 project to BOTH map edges.
-  // Shift outliers by ±W so the dominant cluster stays contiguous (median x = reference).
-  const W=960;
-  const medX=[...pts.map(p=>p[0])].sort((a,b)=>a-b)[Math.floor(pts.length/2)];
-  pts=pts.map(([x,y])=>{let nx=x;if(x-medX>W/2)nx=x-W;else if(medX-x>W/2)nx=x+W;return[nx,y];});
-  return convexHull(pts);
-}
-// Rounded buffer around the hull (Minkowski sum with a disk of radius r), returned as a POLYGON of
-// points (arcs flattened to short segments). Thin chains → capsules, tiny nations → circles.
-function bufferHullPolygon(hull,r){
-  if(!hull||!hull.length)return[];
-  const circle=([x,y])=>{const o=[];for(let a=0;a<360;a+=20)o.push([x+r*Math.cos(a*Math.PI/180),y+r*Math.sin(a*Math.PI/180)]);return o;};
-  if(hull.length===1)return circle(hull[0]);
-  const n=hull.length;
-  const cx=hull.reduce((s,p)=>s+p[0],0)/n,cy=hull.reduce((s,p)=>s+p[1],0)/n;
-  const edges=[];
-  for(let i=0;i<n;i++){
-    const a=hull[i],b=hull[(i+1)%n];
-    const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);
-    if(len<1e-6)continue;
-    let nx=dy/len,ny=-dx/len;
-    const mx=(a[0]+b[0])/2-cx,my=(a[1]+b[1])/2-cy;
-    if(nx*mx+ny*my<0){nx=-nx;ny=-ny;}
-    edges.push({v:b,a:[a[0]+nx*r,a[1]+ny*r],b:[b[0]+nx*r,b[1]+ny*r]});
-  }
-  if(!edges.length)return circle(hull[0]);
-  const out=[];
-  for(let i=0;i<edges.length;i++){
-    const e=edges[i],next=edges[(i+1)%edges.length];
-    out.push(e.a,e.b);
-    // Arc around the shared vertex e.v from e.b to next.a (short way, outward)
-    const v=e.v;
-    let a0=Math.atan2(e.b[1]-v[1],e.b[0]-v[0]),a1=Math.atan2(next.a[1]-v[1],next.a[0]-v[0]);
-    let da=a1-a0;while(da<=-Math.PI)da+=2*Math.PI;while(da>Math.PI)da-=2*Math.PI;
-    const steps=Math.max(1,Math.round(Math.abs(da)/(Math.PI/8)));
-    for(let s=1;s<steps;s++){const a=a0+da*s/steps;out.push([v[0]+r*Math.cos(a),v[1]+r*Math.sin(a)]);}
-  }
-  return out;
-}
-// Smooth ellipse (PCA-oriented) enclosing all points, plus margin `pad`. Always round, no corners.
-function enclosingEllipse(pts,pad){
-  const n=pts.length;if(n<2)return[];
-  const mx=pts.reduce((s,p)=>s+p[0],0)/n,my=pts.reduce((s,p)=>s+p[1],0)/n;
-  let sxx=0,sxy=0,syy=0;
-  for(const p of pts){const dx=p[0]-mx,dy=p[1]-my;sxx+=dx*dx;sxy+=dx*dy;syy+=dy*dy;}
-  sxx/=n;sxy/=n;syy/=n;
-  // Eigen-decomposition of the 2×2 covariance → principal axis angle
-  const theta=0.5*Math.atan2(2*sxy,sxx-syy);
-  const ct=Math.cos(theta),st=Math.sin(theta);
-  // Max extent of the points along each principal axis
-  let ea=0,eb=0;
-  for(const p of pts){const dx=p[0]-mx,dy=p[1]-my;ea=Math.max(ea,Math.abs(dx*ct+dy*st));eb=Math.max(eb,Math.abs(-dx*st+dy*ct));}
-  ea+=pad;eb+=pad;
-  const out=[];
-  for(let a=0;a<360;a+=5){const r=a*Math.PI/180,ex=ea*Math.cos(r),ey=eb*Math.sin(r);out.push([mx+ex*ct-ey*st,my+ex*st+ey*ct]);}
-  return out;
-}
-// Chaikin corner-cutting: rounds a closed polygon into a smooth blob (softens long straight edges).
-function chaikin(poly,iters){
-  let p=poly;
-  for(let it=0;it<iters;it++){
-    const q=[];
-    for(let i=0;i<p.length;i++){
-      const a=p[i],b=p[(i+1)%p.length];
-      q.push([a[0]*0.75+b[0]*0.25,a[1]*0.75+b[1]*0.25]);
-      q.push([a[0]*0.25+b[0]*0.75,a[1]*0.25+b[1]*0.75]);
-    }
-    p=q;
-  }
-  return p;
-}
-// Sutherland-Hodgman clip of a polygon to a half-plane: keep points where (p-mid)·nrm >= 0.
-function clipPolyHalfPlane(poly,mid,nrm){
-  if(!poly.length)return poly;
-  const side=p=>(p[0]-mid[0])*nrm[0]+(p[1]-mid[1])*nrm[1];
-  const isect=(a,b,sa,sb)=>{const t=sa/(sa-sb);return[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])];};
-  const out=[];
-  for(let i=0;i<poly.length;i++){
-    const cur=poly[i],prev=poly[(i-1+poly.length)%poly.length];
-    const sc=side(cur),sp=side(prev);
-    if(sc>=0){if(sp<0)out.push(isect(prev,cur,sp,sc));out.push(cur);}
-    else if(sp>=0)out.push(isect(prev,cur,sp,sc));
-  }
-  return out;
-}
-// Split every overlapping pair of zones with a straight border (perpendicular bisector of their
-// centroids), so neighbouring zones abut along a clean straight line instead of overlapping curves.
-function separateZones(zones){
-  const cen=z=>{const h=z.hull;return[h.reduce((s,p)=>s+p[0],0)/h.length,h.reduce((s,p)=>s+p[1],0)/h.length];};
-  const cents=zones.map(cen);
-  for(let i=0;i<zones.length;i++)for(let j=i+1;j<zones.length;j++){
-    const ca=cents[i],cb=cents[j];
-    const dx=cb[0]-ca[0],dy=cb[1]-ca[1],d=Math.hypot(dx,dy);
-    if(d<1e-6)continue;
-    const mid=[(ca[0]+cb[0])/2,(ca[1]+cb[1])/2];
-    // Clip zone i to its own side (normal points from mid toward ca); zone j to the opposite side.
-    zones[i].poly=clipPolyHalfPlane(zones[i].poly,mid,[ca[0]-cb[0],ca[1]-cb[1]]);
-    zones[j].poly=clipPolyHalfPlane(zones[j].poly,mid,[cb[0]-ca[0],cb[1]-ca[1]]);
-  }
-}
 function polyPathD(poly){
   if(!poly||poly.length<2)return'';
   return'M'+poly.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')+'Z';
 }
-function zonePathD(z){return polyPathD(z.poly);}
+function zonePathD(z){return z.rings.map(polyPathD).join('');}
 // Which island zone owns the map point (x,y)? With overlapping zones: the one whose centre is nearest.
 function zoneIdAtPoint(x,y){
   let best=null,bd=Infinity;
   for(const z of(zoneHulls||[])){
-    if(!z.poly||z.poly.length<3||!d3.polygonContains(z.poly,[x,y]))continue;
-    const n=z.hull.length,cx=z.hull.reduce((s,p)=>s+p[0],0)/n,cy=z.hull.reduce((s,p)=>s+p[1],0)/n;
-    const d=Math.hypot(x-cx,y-cy);
+    if(!z.rings.some(r=>r.length>=3&&d3.polygonContains(r,[x,y])))continue;
+    const d=Math.hypot(Math.min(Math.abs(x-z.cx),Math.abs(x-z.cx+960),Math.abs(x-z.cx-960)),y-z.cy);
     if(d<bd){bd=d;best=z.id;}
   }
   return best;
@@ -1920,17 +1785,29 @@ function renderMap(world){
 
   const countries=topojson.feature(world,world.objects.countries);
 
-  // Island zone outlines — convex hull of each nation's islands.
-  // Hit areas rendered BELOW country paths so clicks on real land take priority.
+  // Island zones: clickable outlines around scattered island nations. The shapes are precomputed
+  // (tools/build-island-zones.js → data/island-zones.json, lon/lat rings) and only projected here.
+  // Across the projection seam (Fiji, Kiribati …) points are un-wrapped around the median x so a ring
+  // stays in one piece.
   const activeZones=ISLAND_ZONES.filter(z=>isActive(z.id)).map(z=>{
-    const hull=buildZoneHull(z,countries.features,proj);
-    const poly=z.shape==='ellipse'
-      ? enclosingEllipse(hull,z.r||8)
-      : chaikin(bufferHullPolygon(hull,z.r||8),z.smooth==null?1:z.smooth);
-    return{...z,hull,poly};
-  }).filter(z=>z.hull&&z.hull.length>=3&&z.poly.length>=3);
-  // Zones may overlap (round outlines look better than straight cuts); a click in an overlap goes to
-  // the zone whose centre is nearest — see zoneIdAtPoint().
+    const zd=islandZoneData&&islandZoneData.zones.find(q=>q.id===z.id);
+    if(!zd)return null;
+    const proj0=zd.rings.map(r=>r.map(p=>proj(p)).filter(p=>p&&isFinite(p[0])&&isFinite(p[1])));
+    const xs=proj0.flat().map(p=>p[0]).sort((a,b)=>a-b);
+    if(!xs.length)return null;
+    const med=xs[Math.floor(xs.length/2)];
+    const base=proj0.map(r=>r.map(([x,y])=>[x-med>W/2?x-W:med-x>W/2?x+W:x,y])).filter(r=>r.length>=3);
+    if(!base.length)return null;
+    const all=base.flat();
+    // A zone crossing the map edge (Fiji, Kiribati …) must also exist one map width over, or its far
+    // part is cut off at x=0 / x=W: add shifted copies of every ring that reaches into [0,W].
+    const rings=[];
+    base.forEach(r=>[-W,0,W].forEach(sh=>{
+      let lo=Infinity,hi=-Infinity;for(const p of r){const x=p[0]+sh;if(x<lo)lo=x;if(x>hi)hi=x;}
+      if(hi>=0&&lo<=W)rings.push(sh?r.map(p=>[p[0]+sh,p[1]]):r);
+    }));
+    return{...z,rings,cx:all.reduce((t,p)=>t+p[0],0)/all.length,cy:all.reduce((t,p)=>t+p[1],0)/all.length};
+  }).filter(Boolean);
   zoneHulls=activeZones;
 
   islandZoneHits=g.append('g').attr('class','iz-hits').selectAll('path').data(zoneHulls).enter().append('path')

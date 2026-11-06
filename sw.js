@@ -1,6 +1,6 @@
 // Bump this whenever the precached asset list or any file in it changes — activating a new
 // cache name is what evicts the old one.
-const CACHE_NAME = 'weltquiz-v35';
+const CACHE_NAME = 'weltquiz-v37';
 
 // Precached on install: the app shell plus everything the world-map quiz (the entry point for
 // most players) needs. After this the core game is fully playable with no network at all.
@@ -24,7 +24,8 @@ const ASSETS = [
   './vendor/topojson.v3.min.js',
   './data/countries-50m.json',
   './data/ne_50m_lakes.geojson',
-  './data/ne_50m_rivers_lake_centerlines.geojson'
+  './data/ne_50m_rivers_lake_centerlines.geojson',
+  './data/island-zones.json'
 ];
 
 // Deliberately NOT precached — fetched on first use and cached from then on, so the initial

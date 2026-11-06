@@ -17,6 +17,9 @@ by `renderMap()` stays the source of truth (invisible scene graph) — game logi
 colouring are unchanged, so any new layer must be plain path/circle/rect/line/text elements
 (`canvas-map.js` only paints those) and goes in the same `g`/`dynG` groups as before. Pointer
 events are hit-tested in canvas-map.js and re-dispatched to the original elements.
+Island nations get clickable zones (`ISLAND_ZONES` in `countries.js`, shapes precomputed into
+`data/island-zones.json` by `node tools/build-island-zones.js`; per-nation tweaks in its `OVERRIDES`).
+After rebuilding the file, bump `CACHE_NAME`.
 geo-quiz.de points at Firebase Hosting (DNS moved 2026-11-04); GitHub Pages is off.
 
 ## Rules that are easy to break by accident

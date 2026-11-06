@@ -4,13 +4,13 @@ const C={4:{de:"Afghanistan",en:"Afghanistan",es:"Afganistán",fr:"Afghanistan",
 const MICROSTATES=[{id:492,lon:7.425,lat:43.738},{id:336,lon:12.453,lat:41.903},{id:674,lon:12.458,lat:43.942},{id:20,lon:1.522,lat:42.506},{id:438,lon:9.555,lat:47.166},{id:48,lon:50.558,lat:26.027},{id:702,lon:103.82,lat:1.352},{id:462,lon:73.221,lat:3.203},{id:296,lon:172.98,lat:1.350},{id:520,lon:166.93,lat:-0.523},{id:798,lon:179.09,lat:-8.520},{id:584,lon:171.18,lat:7.110},{id:583,lon:158.22,lat:6.888},{id:585,lon:134.58,lat:7.515},{id:882,lon:-172.2,lat:-13.58},{id:776,lon:-175.2,lat:-21.18},{id:690,lon:55.492,lat:-4.680},{id:480,lon:57.552,lat:-20.25},{id:174,lon:43.333,lat:-11.65},{id:678,lon:6.613,lat:0.330},{id:132,lon:-23.04,lat:16.54},{id:52,lon:-59.54,lat:13.19},{id:308,lon:-61.68,lat:12.12},{id:662,lon:-60.98,lat:13.91},{id:659,lon:-62.78,lat:17.36},{id:670,lon:-61.20,lat:13.25},{id:28,lon:-61.80,lat:17.07},{id:212,lon:-61.37,lat:15.42},{id:470,lon:14.375,lat:35.937},{id:442,lon:6.130,lat:49.815},{id:780,lon:-61.31,lat:10.45},{id:548,lon:167.0,lat:-15.5},{id:90,lon:160.0,lat:-9.0},{id:270,lon:-15.3,lat:13.5},{id:388,lon:-77.3,lat:18.1},{id:242,lon:178.0,lat:-18.0}];
 const MS_IDS=new Set(MICROSTATES.map(m=>m.id));
 
-// Island zones: dashed clickable outlines (convex hull of all a nation's islands) around scattered island nations.
-// The hull is computed at render time from the country's actual TopoJSON geometry.
-// fallbackLon/fallbackLat: for nations with NO geometry in the TopoJSON (draw a small circle there instead).
+// Island zones: clickable outlines around scattered island nations (they replace the microstate dot).
+// The ids listed here get a zone; the SHAPES come from data/island-zones.json, built by
+// tools/build-island-zones.js from these entries (near/nearKm: only islands near that point count,
+// fallbackLon/Lat/R: nations with no geometry in the map data). Per-nation shape tweaks live in
+// OVERRIDES at the top of that script.
 const ISLAND_ZONES=[
-  // r = Rand um die Inselhülle in Karteneinheiten (die Karte ist 960 breit). near/nearKm: nur Inseln
-  // nahe diesem Punkt zählen (Kiribati: nur die Gilbert-Inseln, sonst ist die Hülle tausende km breit).
-  {id:583,r:5},                                   // Mikronesien
+    {id:583,r:5},                                   // Mikronesien
   {id:584,r:5},                                   // Marshallinseln
   {id:296,r:5,near:[173.0,1.4],nearKm:900},       // Kiribati (Gilbert-Inseln)
   {id:798,r:5,fallbackLon:179.09,fallbackLat:-8.52,fallbackR:1.2}, // Tuvalu (keine Umriss-Daten)
