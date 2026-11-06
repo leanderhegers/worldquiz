@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 G';
+const BUILD_ID='2026-11-06 H';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -305,7 +305,7 @@ let _modeScreenBackOnclick="openCategoryPicker()";
 function openCategoryPicker(){
   _catRerender=null;
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
-  const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
+  const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {key:c.key,icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
   showScreen('category-screen');
   $('category-screen').classList.add('cat-picker');
   $('category-screen').innerHTML=`
@@ -313,7 +313,7 @@ function openCategoryPicker(){
     <div class="cat-topbar"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button></div>
     <div class="cat-inner">
       <h1 class="cat-heading">${t('catHeading')}</h1>
-      <div class="cat-grid">${cards.map(c=>`<button class="cat-card ${c.cls}" onclick="${c.onclick}"><span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span><span class="cat-card-sub">${c.sub}</span></button>`).join('')}</div>
+      <div class="cat-grid">${cards.map(c=>`<div class="cat-cell"><button class="cat-card ${c.cls}" onclick="${c.onclick}"><span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span><span class="cat-card-sub">${c.sub}</span></button><button class="cat-info" type="button" onclick="openModeInfo('${c.key}')" aria-label="Info">i</button></div>`).join('')}</div>
     </div>`;
 }
 function openCategory(catKey,focusSection){
@@ -353,6 +353,47 @@ function goToGames(sectionKey){
 // (world, a continent, custom, population, and region) returns straight back to renderClickPage().
 let _clickOpenPanel=null; // 'continents' | 'trivia' | null
 function _quizBackAction(){renderClickPage();}
+// Info-Fenster zu den vier Spielmodi (das "i" in der Ecke der Karten auf der Kategorie-Auswahl).
+const MODE_INFO={
+  de:{
+    click:{text:'Oben erscheint ein Name. Du suchst das passende Land, die Region oder den Ort auf der Weltkarte und tippst darauf.',ex:'Oben steht „Peru“ → tippe auf Peru in Südamerika.'},
+    pin:{text:'Setze die Stecknadel so nah wie möglich an den gesuchten Ort. Je kleiner die Entfernung, desto mehr Punkte; ein Treffer im richtigen Land bringt einen Bonus.',ex:'„Wo liegt Wien?“ → tippe auf die Karte und sieh sofort, wie viele Kilometer du daneben lagst.'},
+    input:{text:'Ein Bild oder Begriff wird gezeigt, zum Beispiel eine Flagge, ein Wappen, ein Umriss oder ein Land. Du tippst die Lösung ein oder wählst sie aus den Vorschlägen.',ex:'Du siehst eine rot-weiße Flagge mit Ahornblatt → tippe „Kanada“.'},
+    other:{text:'Hier suchst du Städte, Flüsse, Seen oder Berge. Der Name erscheint oben, du tippst das Ziel auf der Karte an.',ex:'Oben steht „Rhein“ → tippe auf den Fluss in Mitteleuropa.'},
+    exLbl:'Beispiel'},
+  en:{
+    click:{text:'A name appears at the top. You look for the matching country, region or place on the world map and tap it.',ex:'The top says “Peru” → tap Peru in South America.'},
+    pin:{text:'Place the pin as close as you can to the place you are asked for. The smaller the distance, the more points; hitting the right country earns a bonus.',ex:'“Where is Vienna?” → tap the map and see right away how many kilometres you were off.'},
+    input:{text:'A picture or term is shown, for example a flag, a coat of arms, an outline or a country. You type the answer or pick it from the suggestions.',ex:'You see a red-and-white flag with a maple leaf → type “Canada”.'},
+    other:{text:'Here you look for cities, rivers, lakes or mountains. The name appears at the top and you tap the target on the map.',ex:'The top says “Rhine” → tap the river in central Europe.'},
+    exLbl:'Example'},
+  es:{
+    click:{text:'Arriba aparece un nombre. Buscas el país, la región o el lugar correspondiente en el mapa mundial y lo tocas.',ex:'Arriba dice «Perú» → toca Perú en Sudamérica.'},
+    pin:{text:'Coloca la chincheta lo más cerca posible del lugar pedido. Cuanto menor la distancia, más puntos; acertar el país correcto da una bonificación.',ex:'«¿Dónde está Viena?» → toca el mapa y mira enseguida cuántos kilómetros te has desviado.'},
+    input:{text:'Se muestra una imagen o un término, por ejemplo una bandera, un escudo, un contorno o un país. Escribes la respuesta o la eliges de las sugerencias.',ex:'Ves una bandera roja y blanca con una hoja de arce → escribe «Canadá».'},
+    other:{text:'Aquí buscas ciudades, ríos, lagos o montañas. El nombre aparece arriba y tocas el objetivo en el mapa.',ex:'Arriba dice «Rin» → toca el río en Europa central.'},
+    exLbl:'Ejemplo'},
+  fr:{
+    click:{text:'Un nom apparaît en haut. Tu cherches le pays, la région ou le lieu correspondant sur la carte du monde et tu le touches.',ex:'En haut : « Pérou » → touche le Pérou en Amérique du Sud.'},
+    pin:{text:'Place l’épingle le plus près possible du lieu demandé. Plus la distance est petite, plus tu gagnes de points ; viser le bon pays donne un bonus.',ex:'« Où est Vienne ? » → touche la carte et vois tout de suite combien de kilomètres tu étais à côté.'},
+    input:{text:'Une image ou un terme est affiché, par exemple un drapeau, des armoiries, un contour ou un pays. Tu tapes la réponse ou tu la choisis dans les suggestions.',ex:'Tu vois un drapeau rouge et blanc avec une feuille d’érable → tape « Canada ».'},
+    other:{text:'Ici tu cherches des villes, des fleuves, des lacs ou des montagnes. Le nom apparaît en haut et tu touches la cible sur la carte.',ex:'En haut : « Rhin » → touche le fleuve en Europe centrale.'},
+    exLbl:'Exemple'}
+};
+function openModeInfo(key){
+  const L=MODE_INFO[lang]||MODE_INFO.de,m=L[key],meta=CATEGORY_META[key];
+  if(!m||!meta)return;
+  let box=$('mode-info-modal');
+  if(!box){
+    box=document.createElement('div');box.id='mode-info-modal';box.className='auth-modal';box.style.display='none';
+    box.setAttribute('onclick','if(event.target===this)closeModeInfo()');
+    box.innerHTML='<div class="auth-box mode-info-box"><button class="auth-close" onclick="closeModeInfo()" aria-label="close">×</button><div id="mode-info-body"></div></div>';
+    document.body.appendChild(box);
+  }
+  $('mode-info-body').innerHTML=`<h2 class="mode-info-title">${meta.head()}</h2><p class="mode-info-text">${m.text}</p><div class="mode-info-ex"><span class="mode-info-ex-lbl">${L.exLbl}</span>${m.ex}</div>`;
+  box.style.display='flex';
+}
+function closeModeInfo(){const b=$('mode-info-modal');if(b)b.style.display='none';}
 let _catRerender=null; // zeichnet die gerade offene Kategorie-Seite neu (null = Kategorie-Auswahl)
 function toggleClickPanel(key){_clickOpenPanel=_clickOpenPanel===key?null:key;(_catRerender||renderClickPage)();}
 
@@ -386,7 +427,7 @@ function renderClickPage(){
   $('category-screen').classList.remove('cat-picker');
   $('category-screen').innerHTML=`
     <div class="cat-bg"></div>
-    <div class="cat-topbar"><button class="gs-home-btn" onclick="openCategoryPicker()">${t('back')}</button></div>
+    <div class="cat-topbar cat-topbar-split"><button class="gs-home-btn" onclick="openCategoryPicker()">${t('back')}</button>${learnToggleHTML()}</div>
     <div class="cat-inner click-inner">
       <h1 class="cat-heading">${t('catClickTitle')}</h1>
       <div class="click-group gs-map">
@@ -439,13 +480,40 @@ function renderPinPage(){
   ]);
 }
 const INPUT_ICONS={flag:'🏳️',capital:'🏛️',outline:'🗾',language:'🗣️',currency:'💱',wappen:'🛡️',neighbor:'🧩'};
+// Texteingabe & Multiple Choice: kein Zwischenmenü mehr. Quiz-Arten mit Kontinent-/Schwierigkeitswahl klappen
+// direkt darunter auf (Karten: Weltweit, Kontinente, Schwierigkeit), die anderen starten sofort. Beim
+// Hauptstadt-Quiz steht oben im Panel noch die Richtung (Land→Hauptstadt …), sie bleibt gemerkt.
+let _iqDirPref='c2cap';
+function setIqDirPref(v){_iqDirPref=v;renderInputPage();}
+function _iqCard(type,region,diff,label){
+  const cfg={type,region,diff,dir:_iqDirPref};
+  const n=iqPoolIds(cfg).length;
+  return gsCard("startInputQuiz({type:'"+type+"',region:'"+region+"',diff:'"+diff+"',dir:'"+_iqDirPref+"'})",label,n+' '+t('countries'),iqScoreKey(cfg));
+}
+function _iqPanel(type){
+  const regions=['EU','AF','AS','NA','SA','OC'];
+  const diffs=TX[lang].flagDiffs;
+  let html='';
+  if(type==='capital'){
+    const chip=(v,l)=>`<button class="iq-chip${_iqDirPref===v?' on':''}" onclick="setIqDirPref('${v}')">${l}</button>`;
+    html+=`<div class="click-sublabel">${t('cfgDir')}</div><div class="iq-chips click-chips">${chip('c2cap',t('dirC2Cap'))}${chip('cap2c',t('dirCap2C'))}${chip('flag2cap',t('dirFlag2Cap'))}</div>`;
+  }
+  html+=`<div class="click-sublabel">${t('cfgRegion')}</div><div class="gs-grid gs-grid-flag">${_iqCard(type,'world','all',t('regWorld'))}${regions.map(r=>_iqCard(type,r,'all',MODES[r][lang])).join('')}</div>`;
+  html+=`<div class="click-sublabel">${t('cfgDiff')}</div><div class="gs-grid gs-grid-flag">${diffs.map(d=>_iqCard(type,'world',d.key,d.label)).join('')}</div>`;
+  return html;
+}
 function renderInputPage(){
+  if(INPUT_QUIZZES.some(q=>q.type==='outline')&&typeof iqEnsureOutlineGeo==='function'&&!outlineGeo)iqEnsureOutlineGeo().then(()=>{if(_catRerender===renderInputPage&&$('category-screen').style.display!=='none')renderInputPage();});
+  const scopable=ty=>ty!=='language'&&ty!=='currency'&&ty!=='neighbor';
   _showCatPage(renderInputPage,t('catInputTitle'),[
-    {cls:'gs-flag',head:t('inputQuiz'),items:INPUT_QUIZZES.map(q=>({icon:INPUT_ICONS[q.type]||'✏️',title:t(q.titleKey),sub:t(q.subKey),onclick:"openInputCfg('"+q.type+"')"}))}
+    {cls:'gs-flag',head:t('inputQuiz'),items:INPUT_QUIZZES.map(q=>{
+      const base={icon:INPUT_ICONS[q.type]||'✏️',title:t(q.titleKey),sub:t(q.subKey)};
+      return scopable(q.type)
+        ?{...base,panel:'iq-'+q.type,renderPanel:()=>_iqPanel(q.type)}
+        :{...base,onclick:"startInputQuiz({type:'"+q.type+"',region:'world',diff:'all',dir:'c2cap'})"};
+    })}
   ]);
 }
-// Bereichsüberschriften ohne die Endung "-Quiz": einfach Städte, Flüsse, Seen, Gebirge
-const OTHER_HEADS={de:['Städte','Flüsse','Seen','Gebirge'],en:['Cities','Rivers','Lakes','Mountains'],es:['Ciudades','Ríos','Lagos','Montañas'],fr:['Villes','Fleuves','Lacs','Montagnes']};
 function renderOtherPage(){
   const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries,H=OTHER_HEADS[lang]||OTHER_HEADS.de;
   _showCatPage(renderOtherPage,t('catOtherTitle'),[
