@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 P';
+const BUILD_ID='2026-11-06 Q';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -406,11 +406,32 @@ const _MI_PIN=(c)=>'<path d="M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z" fil
 async function modeInfoAnim(key){
   const E=MI_EXAMPLE[lang]||MI_EXAMPLE.de,W=280,H=150;
   if(key==='input'){
-    const nm=C[E.id][lang]||C[E.id].de;
-    return '<svg class="mi-stage mi-input" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true" style="--n:'+nm.length+'"><rect width="'+W+'" height="'+H+'" fill="#0e1621"/>'
-      +'<image href="data/flags/w320/'+ISO2[E.id]+'.png" x="90" y="12" width="100" height="67" preserveAspectRatio="xMidYMid meet"/>'
-      +'<rect x="50" y="94" width="180" height="34" rx="8" fill="#1a2433" stroke="#3a4a60"/><clipPath id="mi-type"><rect class="mi-typeclip" x="58" y="94" height="34" width="130"/></clipPath>'
-      +'<text clip-path="url(#mi-type)" x="64" y="116" fill="#fff" font-size="15">'+escapeHtml(nm)+'</text><text class="mi-check" x="206" y="118" fill="#7be0b8" font-size="18" font-weight="700">✓</text></svg>';
+    // Texteingabe: Flagge, Name wird Buchstabe für Buchstabe getippt, dazu klappt die Vorschlagsliste auf (alphabetisch
+    // benachbarte Länder, wie im Spiel), am Ende wird der richtige Eintrag gewählt und ✓ erscheint.
+    const nm=C[E.id][lang]||C[E.id].de,chars=[...nm],n=chars.length;
+    const first=nm[0].toLowerCase();
+    const names=[...new Set(Object.values(C).map(c=>c[lang]||c.de))].filter(x=>x&&x[0].toLowerCase()===first).sort((p,q)=>p.localeCompare(q,lang));
+    let ti=names.indexOf(nm);if(ti<0){names.push(nm);ti=names.length-1;}
+    let lo=Math.max(0,Math.min(ti-1,names.length-3));const rows=names.slice(lo,lo+3);const hi=rows.indexOf(nm);
+    const P0=14,P1=52,step=(P1-P0)/n; // Tippen läuft von 14 % bis 52 % der Schleife
+    let css='@media (prefers-reduced-motion:no-preference){';
+    chars.forEach((ch,i)=>{const p=(P0+step*i).toFixed(1),q=(P0+step*i+1.4).toFixed(1);
+      css+='.mc'+i+'{animation:mc'+i+' 6s infinite}@keyframes mc'+i+'{0%,'+p+'%{opacity:0}'+q+'%,100%{opacity:1}}';});
+    css+='.mdd{animation:mdd 6s infinite}@keyframes mdd{0%,22%{opacity:0;transform:translateY(-4px)}28%,100%{opacity:1;transform:none}}'
+      +'.msel{animation:msel 6s infinite}@keyframes msel{0%,66%{opacity:0}70%,100%{opacity:1}}'
+      +'.mok{animation:mok 6s infinite}@keyframes mok{0%,74%{opacity:0}80%,100%{opacity:1}}}';
+    const tsp=chars.map((ch,i)=>'<tspan class="mc'+i+'">'+escapeHtml(ch)+'</tspan>').join('');
+    let dd='<g class="mdd"><rect x="50" y="92" width="180" height="54" rx="8" fill="#1a2433" stroke="#3a4a60"/>';
+    rows.forEach((r,i)=>{const y=94+i*17;
+      if(i===hi)dd+='<rect class="msel" x="53" y="'+y+'" width="174" height="16" rx="5" fill="#2f5d9a"/>';
+      dd+='<text x="62" y="'+(y+12)+'" fill="'+(i===hi?'#fff':'#9fb2c4')+'" font-size="11.5">'+escapeHtml(r)+'</text>';});
+    dd+='</g>';
+    return '<svg class="mi-stage mi-input" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true"><style>'+css+'</style><rect width="'+W+'" height="'+H+'" fill="#0e1621"/>'
+      +'<image href="data/flags/w320/'+ISO2[E.id]+'.png" x="104" y="6" width="72" height="48" preserveAspectRatio="xMidYMid meet"/>'
+      +'<rect x="50" y="60" width="180" height="28" rx="8" fill="#1a2433" stroke="#3a4a60"/>'
+      +'<text x="62" y="79" fill="#fff" font-size="14">'+tsp+'</text>'
+      +dd
+      +'<text class="mok" x="208" y="79" fill="#7be0b8" font-size="16" font-weight="700">✓</text></svg>';
   }
   await _miLoad(key==='other');
   const [x0,y0,x1,y1v]=(key==='other'&&E.riverView)||E.view,y1=y1v+(y1v-y0)*.2; // oben Platz für die Beschriftung
@@ -597,6 +618,7 @@ function renderInputPage(){
     })}
   ]);
 }
+const OTHER_HEADS={de:['Städte','Flüsse','Seen','Gebirge'],en:['Cities','Rivers','Lakes','Mountains'],es:['Ciudades','Ríos','Lagos','Montañas'],fr:['Villes','Fleuves','Lacs','Montagnes']};
 function renderOtherPage(){
   const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries,H=OTHER_HEADS[lang]||OTHER_HEADS.de;
   _showCatPage(renderOtherPage,t('catOtherTitle'),[
