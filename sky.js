@@ -62,9 +62,12 @@ async function build(w,pn,h){
   const COLS=4096,vcA=new Float32Array(COLS+1),bwA=new Float32Array(COLS+1),enA=new Float32Array(COLS+1);
   for(let i=0;i<=COLS;i++){
     const u=i/COLS;
-    vcA[i]=Math.min(0.8,Math.max(0.2,0.5+1.25*(nzB(u*2.6+1,0.5,3,2.6,u)-0.5)+0.32*(nzB(u*8+4,2.5,2,8,u)-0.5))); // große Schwünge + kleinere Knicke, ungleichmäßig
+    vcA[i]=1.9*(nzB(u*2.6+1,0.5,3,2.6,u)-0.5)+0.5*(nzB(u*8+4,2.5,2,8,u)-0.5); // Rohwert, wird unten zentriert und auf feste Spannweite gebracht
     bwA[i]=0.65+0.9*nzC(u*6+2,1.5,3,6,u);                                                                      // Breite 0.65…1.55
     const e=nzD(u*4.5+9,3.1,3,4.5,u);enA[i]=Math.min(1,Math.max(0.1,(e-0.28)*3.2));                            // Lücken: Helligkeit 0.1…1
+  }
+  {let mean=0,mx=0;for(let i=0;i<=COLS;i++)mean+=vcA[i];mean/=COLS+1;for(let i=0;i<=COLS;i++){vcA[i]-=mean;mx=Math.max(mx,Math.abs(vcA[i]));}
+   for(let i=0;i<=COLS;i++)vcA[i]=0.46+0.24*(vcA[i]/(mx||1)); // Mitte 0.46 (Horizont der Kugel), Auslenkung bis ±0.24 → 0.22…0.70
   }
   const vc=u=>vcA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],bwAt=u=>bwA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))],enAt=u=>enA[Math.min(COLS,Math.max(0,Math.round(u*COLS)))];
   const dist=(p,q)=>{const d=Math.abs(p-q)%1;return Math.min(d,1-d);};
@@ -131,6 +134,10 @@ async function build(w,pn,h){
     draw(px);if(px<14)draw(px+w);else if(px>w-14)draw(px-w);
     if((n&1023)===0)await yieldNow();
   }
+  // unteres Drittel fast reines Schwarz (Bild ist so ausgerichtet, dass die Bildmitte auf dem Horizont der Kugel liegt)
+  x.globalCompositeOperation='source-over';x.globalAlpha=1;
+  const fade=x.createLinearGradient(0,h*0.7,0,h*0.88);fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,1)');
+  x.fillStyle=fade;x.fillRect(0,h*0.7,w,h*0.3);
   await tick();
   return c.toDataURL('image/jpeg',0.92);
 }
@@ -141,13 +148,13 @@ async function build(w,pn,h){
 function layout(el){
   const r=el.getBoundingClientRect(),vw=r.width||innerWidth,vh=r.height||innerHeight;
   const surfPpd=0.49*Math.min(vw,vh)*Math.PI/180;       // Pixel je Grad am Kugelrand bei Zoom 1
-  const ppd=0.55*surfPpd,Hd=Math.round(Math.max(1.3*vh,vh+120)),Wd=Math.round(Hd*3.2);
-  geo={ppd,Hd,Wd,vh,vw};
+  const ppd=0.55*surfPpd,ppdV=0.85*surfPpd,Hd=Math.round(Math.min(Math.max(1.55*vh,vh+120),1500)),Wd=Math.round(Hd*3.2);
+  geo={ppd,ppdV,Hd,Wd,vh,vw};
 }
 function place(rot){
   if(!layer||!geo)return;
   const slack=geo.Hd-geo.vh;
-  const x=(rot?rot[0]:0)*geo.ppd,y=Math.max(-slack,Math.min(0,-slack/2-(rot?rot[1]:0)*geo.ppd));
+  const x=(rot?rot[0]:0)*geo.ppd,y=Math.max(-slack,Math.min(0,-slack/2-(rot?rot[1]:0)*geo.ppdV));
   layer.style.backgroundPosition=x.toFixed(1)+'px '+y.toFixed(1)+'px';
 }
 function ensureLayer(el){
