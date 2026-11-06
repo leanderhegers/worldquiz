@@ -1299,6 +1299,40 @@ async function removeFriend(friendUid){
   }catch(e){}
 }
 
+// Achievements im Freundesprofil: wie im eigenen Profil aufklappbare Gruppen, Hover/Klick zeigt Name, Bedingung und Datum
+function _fpAchHtml(){
+  const achs=(window._fpCur&&window._fpCur.achs)||{},isDE=typeof lang==='undefined'||lang!=='en';
+  if(typeof ACH_DEFS==='undefined'||typeof ACH_CATS==='undefined')return '';
+  let html='';
+  ACH_CATS.forEach(cat=>{
+    const items=ACH_DEFS.filter(a=>a.cat===cat.key);
+    const unlocked=items.filter(a=>achs[a.id]).length;
+    const isOpen=!!(window._fpOpen&&window._fpOpen[cat.key]);
+    html+='<div class="ach-cat'+(isOpen?' open':'')+'"><button class="ach-cat-head" onclick="fpToggleCat(\''+cat.key+'\')">'+
+      '<span>'+cat.icon+' '+escapeHtml(isDE?cat.de:cat.en)+'</span>'+
+      '<span class="ach-cat-count">'+unlocked+'/'+items.length+' <span class="ach-cat-arrow">'+(isOpen?'▲':'▼')+'</span></span></button>';
+    if(isOpen){
+      html+='<div class="ach-grid">';
+      items.forEach(a=>{
+        const done=!!achs[a.id];
+        const hidden=a.cat==='secret'&&!done; // geheime Achievements bleiben verborgen, bis man sie hat
+        const name=hidden?'???':(isDE?a.de:a.en);
+        const desc=hidden?'???':(isDE?a.desc_de:a.desc_en);
+        const date=done?new Date(achs[a.id]).toLocaleDateString(isDE?'de-DE':'en-US',{day:'2-digit',month:'short',year:'numeric'}):'';
+        html+='<div class="ach-item'+(done?' unlocked':' locked')+(a.rare&&done?' rare':'')+'" data-ach-name="'+escapeHtml(name)+'" data-ach-desc="'+escapeHtml(desc)+'"'+(done&&date?' data-ach-date="'+date+'"':'')+' tabindex="0">'+
+          '<span class="ach-icon">'+(hidden?'❔':a.icon)+'</span></div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  return html;
+}
+function fpToggleCat(key){
+  if(!window._fpOpen)window._fpOpen={};
+  window._fpOpen[key]=!window._fpOpen[key];
+  const box=document.getElementById('fp-ach');if(box)box.innerHTML=_fpAchHtml();
+}
 async function openFriendProfile(uid){
   if(!_db)return;
   const isDE=typeof lang==='undefined'||lang!=='en';
@@ -1322,22 +1356,8 @@ async function openFriendProfile(uid){
     const achTotal=typeof ACH_DEFS!=='undefined'?ACH_DEFS.length:38;
     const achPct=achTotal?Math.round((achCount/achTotal)*100):0;
 
-    let achHtml='';
-    if(typeof ACH_DEFS!=='undefined'&&typeof ACH_CATS!=='undefined'){
-      ACH_CATS.forEach(cat=>{
-        const items=ACH_DEFS.filter(a=>a.cat===cat.key);
-        const unlocked=items.filter(a=>achs[a.id]).length;
-        const catName=isDE?cat.de:cat.en;
-        let icons=items.map(a=>{
-          const done=!!achs[a.id];
-          const hidden=a.cat==='secret'&&!done; // geheime Achievements bleiben verborgen, bis man sie hat
-          const name=hidden?'???':(isDE?a.de:a.en);
-          return`<div class="ach-item${done?' unlocked':' locked'}${a.rare&&done?' rare':''}" title="${escapeHtml(name)}">
-            <span class="ach-icon">${hidden?'❔':a.icon}</span></div>`;
-        }).join('');
-        achHtml+=`<div class="ach-cat open"><div class="ach-cat-head">${cat.icon} ${escapeHtml(catName)} <span class="ach-cat-count">${unlocked}/${items.length}</span></div><div class="ach-grid">${icons}</div></div>`;
-      });
-    }
+    window._fpCur.achs=achs;window._fpOpen={milestones:true}; // Gruppen klappen wie im eigenen Profil auf und zu
+    const achHtml=`<div id="fp-ach">${_fpAchHtml()}</div>`;
 
     el.innerHTML=`<div class="pf-sticky-header">
       <div class="fp-header">${_renderAvatar(fAvatar,nm[0].toUpperCase(),52)}
