@@ -39,7 +39,7 @@ const PRESETS={
   schwarz:{label:'Schwarz',stars:.12,pow:5,glow:false,grain:1.4,bandA:.78,bandW:1.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   kontrast:{label:'Schwarz, mehr Kontrast',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   tiefschwarz:{label:'Tiefschwarz',stars:.12,pow:5,glow:false,grain:1.3,bandA:.95,bandW:1.2,gamma:2.4,halo:.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
-  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.15,bandA:.9,bandW:1.3,gamma:2.15,halo:.38,warm:[255,214,150],cold:[120,150,255],bg:['#000','#010409','#000']},
+  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.27,bandA:.9,bandW:1.3,gamma:2.0,halo:.46,warm:[255,214,150],cold:[120,150,255],bg:['#000','#01050c','#000']},
   nebel:{label:'Nebel (violett)',stars:.06,pow:5.5,glow:false,grain:.5,bandA:.66,bandW:1.5,warm:[255,170,190],cold:[110,110,230],bg:['#05030f','#0b0620','#04020c']},
   tiefblau:{label:'Tiefblau, minimal',stars:.14,pow:6,glow:false,grain:.25,bandA:.14,bandW:1.8,warm:[190,210,255],cold:[90,120,210],bg:['#030a1c','#06142e','#020612']},
   ruhig:{label:'Fast leer',stars:.05,pow:6,glow:false,grain:.2,bandA:.0,bandW:1,warm:[255,255,255],cold:[255,255,255],bg:['#02040b','#050a16','#02040b']}
@@ -80,7 +80,7 @@ async function build(w,pn,h){
   const g=document.createElement('canvas');g.width=gw;g.height=gh;
   const gx=g.getContext('2d'),img=gx.createImageData(gw,gh),d=img.data;
   for(let j=0;j<gh;j++){
-    const v=j/gh;
+    const v=j/gh,vfade=v<0.7?1:v>0.88?0:1-(v-0.7)/0.18;
     for(let i=0;i<gw;i++){
       const u=i/gw,t=v-vc(u);
       const bw=o.bandW*bwAt(u),en=enAt(u);
@@ -92,6 +92,7 @@ async function build(w,pn,h){
       lane*=Math.exp(-(t*t)/(2*0.06*0.06));
       let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(o.halo==null?1:o.halo)*(0.3+cloud))*(0.55+0.7*fine);
       val*=Math.max(0,1-lane*1.15)*en; // en = Lücken im Band
+      val*=vfade; // Leuchten blendet unten aus (nur der Dunst, Sterne laufen bis zum Bildrand weiter)
       val=Math.min(1,val*0.9);
       const warm=Math.min(1,core*bulge*1.1);
       const k=(j*gw+i)*4;
@@ -134,10 +135,6 @@ async function build(w,pn,h){
     draw(px);if(px<14)draw(px+w);else if(px>w-14)draw(px-w);
     if((n&1023)===0)await yieldNow();
   }
-  // unteres Drittel fast reines Schwarz (Bild ist so ausgerichtet, dass die Bildmitte auf dem Horizont der Kugel liegt)
-  x.globalCompositeOperation='source-over';x.globalAlpha=1;
-  const fade=x.createLinearGradient(0,h*0.7,0,h*0.88);fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,1)');
-  x.fillStyle=fade;x.fillRect(0,h*0.7,w,h*0.3);
   await tick();
   return c.toDataURL('image/jpeg',0.92);
 }
