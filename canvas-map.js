@@ -167,7 +167,7 @@ function shape(el,tag,m,alpha){
   if(live){if(!(S.liveDraw&&S.liveDraw(ctx,live))){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(live);}} // eigene schnelle Kugelprojektion, sonst d3
   else if(tag!=='path'){
     ctx.beginPath();
-    if(tag==='circle')ctx.arc(lp?lp[0]:num(el,'cx',0),lp?lp[1]:num(el,'cy',0),num(el,'r',0),0,TAU);
+    if(tag==='circle')ctx.arc(lp?lp[0]:num(el,'cx',0),lp?lp[1]:num(el,'cy',0),num(el,'r',0)*(lp&&lp[2]?lp[2]:1),0,TAU);
     else if(tag==='rect')ctx.rect(num(el,'x',0),num(el,'y',0),num(el,'width',0),num(el,'height',0));
     else if(tag==='line'){ctx.moveTo(num(el,'x1',0),num(el,'y1',0));ctx.lineTo(num(el,'x2',0),num(el,'y2',0));}
     else return;

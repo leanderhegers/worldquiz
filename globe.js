@@ -181,7 +181,11 @@ function dotPos(d){
   if(z<0.012)return null;
   return [W/2+R0*cp*Math.sin(dl)+(d.dx||0),H/2-R0*(Math.cos(pc)*Math.sin(p)-Math.sin(pc)*cp*Math.cos(dl))];
 }
-function liveCircle(el){if(el.getAttribute('fill')==='transparent')return null;return dotPos(el.__data__);} // Trefferkreise (transparent) nicht zeichnen
+function liveCircle(el){
+  if(el.getAttribute('fill')==='transparent')return null;
+  const p=dotPos(el.__data__);if(!p)return null;
+  return [p[0],p[1],(G.kBuilt||G.k)/G.k]; // Bildschirmgröße bleibt beim Zoomen gleich (r-Attribut gilt für kBuilt, die Ansicht ist mit G.k skaliert)
+} // Trefferkreise (transparent) nicht zeichnen
 // Punkte-Elemente (cx/cy/data-away) auf die aktuelle Drehung bringen, damit die Handler der Treffer-/Hover-Logik (nearestDot) stimmen
 function syncDots(){
   const sig=globeRot[0]+','+globeRot[1]+','+G.k;if(G.dotSig===sig)return;G.dotSig=sig;
@@ -211,7 +215,7 @@ function hitLive(cx,cy){
     if(this.style.display==='none')return;
     const pos=dotPos(d);if(!pos)return;
     const dd=Math.hypot(pos[0]-px,pos[1]-py);
-    if(dd<=(+this.getAttribute('r')||0)&&dd<bd){bd=dd;best=this;}
+    if(dd<=(+this.getAttribute('r')||0)*((G.kBuilt||G.k)/G.k)&&dd<bd){bd=dd;best=this;}
   });
   if(best)return best;
   // 3) Seen (nur im Seen-Quiz anklickbar)
@@ -238,6 +242,8 @@ function hitLive(cx,cy){
   });
   return best;
 }
+// Punktgröße für Zoom k setzen und merken, für welchen Zoom die r-Attribute gelten; die Live-Zeichnung skaliert davon aus mit dem aktuellen Zoom
+function dotsAt(k){if(G.dotR){G.dotR(k);G.kBuilt=k;}}
 function setLive(on){
   if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
   if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null,on?liveCircle:null);
@@ -315,7 +321,7 @@ function wheel(ev,svg,node){
     frame();
     clearTimeout(G.rebuildT);G.rebuildT=setTimeout(()=>{G.wheelLive=false;rebuild();},280);
   }else if(tolFor(k1)<G.builtTol){refine();}
-  else if(G.dotR&&!G.wheelLive){G.dotR(k1);}
+  else if(!G.wheelLive){dotsAt(k1);}
 }
 function bindOnce(parent){
   if(G.bound)return;G.bound=true;
@@ -357,8 +363,8 @@ window.Globe={
         return d3.zoomIdentity.translate(bx+dx,by+dy).scale(k);})
       .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);
         if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
-        else if(kc&&G.dotR&&!G.wheelLive)G.dotR(t.k);}})
-      .on('end',()=>{if(G.dotR)G.dotR(G.k);});
+        else if(kc&&G.dotR&&!G.wheelLive)dotsAt(t.k);}})
+      .on('end',()=>{dotsAt(G.k);});
     svg.call(zoomBehavior);svg.on('dblclick.zoom',null);
     zoomBehavior.transform&&svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(G.tx,G.ty).scale(G.k)); // internen Zustand angleichen
     svg.on('wheel.zoom',null);
@@ -371,7 +377,7 @@ window.Globe={
     bindOnce(node.parentNode);
     if(window.Sky)window.Sky.rotate(globeRot);
     this.cull();
-    if(G.dotR)G.dotR(G.k);
+    dotsAt(G.k);
     prebuild();
   },
   // Punkte auf der abgewandten Seite ausblenden (canvas-map überspringt Elemente mit data-away)
