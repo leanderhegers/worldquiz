@@ -469,3 +469,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 
 /* Drop-a-Pin Personen: lange Namen dürfen umbrechen statt abgeschnitten zu werden */
 #game-screen.pin-people #target-name{white-space:normal!important;font-size:17px!important;overflow:visible!important;text-overflow:clip!important;}
+
+/* Profil-, Freunde- und Freundesprofil-Fenster hängen oben fest: beim Wechsel zwischen Reitern
+   wächst das Fenster nur nach unten, die Reiter-Leiste bleibt unter dem Cursor. */
+#profile-modal,#friends-modal,#friend-profile-modal{align-items:flex-start;padding:max(14px,5vh) 0 14px;box-sizing:border-box;}
+#profile-modal .profile-box,#friend-profile-modal .profile-box,#friends-modal .friends-box{max-height:calc(100vh - max(14px,5vh) - 14px);}

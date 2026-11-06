@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 B';
+const BUILD_ID='2026-11-06 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -426,9 +426,23 @@ function roundLimitGroup(){
 }
 function optHomeHTML(){return langGroup()+projGroup()+colorblindGroup()+wrongHintGroup()+skipHintGroup()+roundLimitGroup();}
 function optGameHTML(){return themeGroup()+keepFoundGroup();}
-function renderOptions(){const h=$('home-opts-content');if(h)h.innerHTML=optHomeHTML();const g=$('opts-content');if(g)g.innerHTML=optGameHTML();}
-function openHomeOpts(){setTxt('home-opts-title',t('optionsLbl'));renderOptions();const m=$('home-opts-modal');if(m)m.style.display='flex';}
-function closeHomeOpts(){const m=$('home-opts-modal');if(m)m.style.display='none';}
+// Eine Optionen-Box für alles: im Hauptmenü die globalen Voreinstellungen, mitten im Spiel (Karte,
+// Regionen, Flaggen/Text-Quiz) die jeweiligen Schalter — immer im selben kleinen Fenster, es klappt
+// keine zusätzliche Zeile mehr oben auf. _optsCtx bestimmt, was das Fenster zeigt.
+let _optsCtx='home';
+function flagOptsHTML(){
+  return og(t('cfgDropdownLabel'),
+      `<button class="lb${showDropdown?' active':''}" onclick="setIqDropdown(true)">${t('cfgDropdownOn')}</button>`+
+      `<button class="lb${!showDropdown?' active':''}" onclick="setIqDropdown(false)">${t('cfgDropdownOff')}</button>`)+
+    og(t('cfgSkipHintLabel'),
+      `<button class="lb${showSkipHint?' active':''}" onclick="setIqSkipHint(true)">${t('cfgSkipHintOn')}</button>`+
+      `<button class="lb${!showSkipHint?' active':''}" onclick="setIqSkipHint(false)">${t('cfgSkipHintOff')}</button>`);
+}
+function optsModalHTML(){return _optsCtx==='game'?optGameHTML():_optsCtx==='region'?themeGroup():_optsCtx==='flag'?flagOptsHTML():optHomeHTML();}
+function renderOptions(){const h=$('home-opts-content');if(h)h.innerHTML=optsModalHTML();const g=$('opts-content');if(g)g.innerHTML=optGameHTML();}
+function openCtxOpts(ctx){_optsCtx=ctx;setTxt('home-opts-title',t('optionsLbl'));renderOptions();const m=$('home-opts-modal');if(m)m.style.display='flex';}
+function openHomeOpts(){openCtxOpts('home');}
+function closeHomeOpts(){const m=$('home-opts-modal');if(m)m.style.display='none';_optsCtx='home';}
 
 function setLang(l){lang=l;updateAllText();renderOptions();if($('custom-screen').style.display!=='none')renderCustom();persistSettings();}
 function setTheme(v){
@@ -438,8 +452,8 @@ function setTheme(v){
   if(_regGame&&$('region-screen')&&$('region-screen').style.display!=='none')_renderRegionMap(_regGame.cfg,_regGame.features);
   persistSettings();
 }
-function toggleRegionOpts(){const p=$('reg-opts-panel');if(!p)return;if(p.style.display==='none'){renderRegionOpts();p.style.display='';}else{p.style.display='none';}}
-function renderRegionOpts(){const p=$('reg-opts-panel');if(p)p.innerHTML=themeGroup();}
+function toggleRegionOpts(){openCtxOpts('region');}
+function renderRegionOpts(){renderOptions();}
 function setKeepFound(v){keepFound=v;updateColors();renderOptions();persistSettings();}
 function setWrongHint(v){showWrongHint=v;renderOptions();persistSettings();}
 function setSkipHint(v){showSkipHint=v;renderOptions();persistSettings();}
@@ -525,7 +539,7 @@ function resultBestNote(){
   const b=bestScore(key);return b?' · '+t('bestLabel')+' '+b.pct+'%':'';
 }
 function applyTheme(){const h=THEMES[theme];$('map-bg').style.background=h.bg;$('prog-bar').style.background=h.bar;d3.select('#map rect.ocean').attr('fill',h.bg);d3.select('#map path.sphere').attr('fill',h.sph).attr('stroke',h.grd);d3.select('#map path.grat').attr('stroke',h.grd);if(borderPath)borderPath.attr('stroke',h.border);if(admin1Path)admin1Path.attr('stroke',h.border);d3.select('#map path.coastline').attr('stroke',h.border);d3.select('#map g.lakes').selectAll('path').attr('fill',h.sph).attr('stroke',h.border);updateColors();}
-function toggleOpts(){optsOpen=!optsOpen;$('opts-panel').style.display=optsOpen?'block':'none';}
+function toggleOpts(){openCtxOpts('game');}
 
 function setTxt(id,v){const e=$(id);if(e)e.textContent=v;}
 function renderHome(){
@@ -1729,7 +1743,13 @@ function polyPathD(poly){
   if(!poly||poly.length<2)return'';
   return'M'+poly.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')+'Z';
 }
-function zonePathD(z){return z.rings.map(polyPathD).join('');}
+// Zone outlines are drawn as closed Catmull-Rom splines through the ring points instead of straight
+// segments, so no corner is visible at any zoom level (hit testing still uses the plain polygon).
+let _zoneLine=null; // created on first use (not at load time)
+function zonePathD(z){
+  if(!_zoneLine)_zoneLine=d3.line().curve(d3.curveCatmullRomClosed.alpha(0.5));
+  return z.rings.map(r=>r.length>=3?_zoneLine(r):'').join('');
+}
 // Which island zone owns the map point (x,y)? With overlapping zones: the one whose centre is nearest.
 function zoneIdAtPoint(x,y){
   let best=null,bd=Infinity;
@@ -2744,8 +2764,8 @@ function renderInputCfg(){
 }
 function setIqDropdown(v){showDropdown=v;renderFlagOpts();persistSettings();}
 function setIqSkipHint(v){showSkipHint=v;renderFlagOpts();persistSettings();}
-function toggleFlagOpts(){const p=$('flag-opts-panel');if(p.style.display==='none'){renderFlagOpts();p.style.display='';}else{p.style.display='none';}}
-function renderFlagOpts(){const p=$('flag-opts-panel');if(!p)return;const chip=(active,onclick,label)=>`<button class="iq-chip${active?' on':''}" onclick="${onclick}" style="font-size:11px;padding:3px 10px;">${label}</button>`;p.innerHTML=`<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;">${t('cfgDropdownLabel')}</span>${chip(showDropdown,"setIqDropdown(true)",t('cfgDropdownOn'))}${chip(!showDropdown,"setIqDropdown(false)",t('cfgDropdownOff'))}</div><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;">${t('cfgSkipHintLabel')}</span>${chip(showSkipHint,"setIqSkipHint(true)",t('cfgSkipHintOn'))}${chip(!showSkipHint,"setIqSkipHint(false)",t('cfgSkipHintOff'))}</div></div>`;}
+function toggleFlagOpts(){openCtxOpts('flag');}
+function renderFlagOpts(){renderOptions();}
 
 async function startInputQuiz(cfg){
   iqCfg={...cfg};

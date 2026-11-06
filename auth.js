@@ -737,6 +737,7 @@ function renderProfile() {
     {key:'overview', label: isDE ? 'Übersicht' : 'Overview'},
     {key:'achievements', label: 'Achievements'},
     {key:'stats', label: isDE ? 'Statistiken' : 'Statistics'},
+    {key:'profile', label: isDE ? 'Profil' : 'Profile'},
   ];
   const tabsHtml = '<div class="pf-main-tabs">' + tabs.map(t =>
     '<button class="pf-main-tab' + (t.key === _pfTab ? ' active' : '') + '" onclick="pfSwitchTab(\'' + t.key + '\')">' + t.label + '</button>'
@@ -746,6 +747,7 @@ function renderProfile() {
   if (_pfTab === 'overview') body = _renderOverviewTab(u, nm, initial, provider, providerLabel);
   else if (_pfTab === 'achievements') body = _renderAchievementsTab();
   else if (_pfTab === 'stats') body = _renderStatsTab(u, provider);
+  else if (_pfTab === 'profile') body = _renderProfileTab(u, provider);
 
   document.getElementById('profile-content').innerHTML =
     '<div class="pf-sticky-header">' +
@@ -812,15 +814,17 @@ function _renderAchievementsTab() {
       html += '<div class="ach-grid">';
       items.forEach(a => {
         const done = !!achs[a.id];
-        const name = isDE ? a.de : a.en;
-        const desc = isDE ? a.desc_de : a.desc_en;
+        // Geheime Achievements verraten vor dem Freischalten nichts: weder Name noch Beschreibung noch Symbol.
+        const hidden = a.cat === 'secret' && !done;
+        const name = hidden ? '???' : (isDE ? a.de : a.en);
+        const desc = hidden ? '???' : (isDE ? a.desc_de : a.desc_en);
         const date = done ? new Date(achs[a.id]).toLocaleDateString(isDE?'de-DE':'en-US',{day:'2-digit',month:'short',year:'numeric'}) : '';
         html += '<div class="ach-item' + (done ? ' unlocked' : ' locked') + (a.rare ? ' rare' : '') + '"' +
           ' data-ach-name="' + escapeHtml(name) + '"' +
           ' data-ach-desc="' + escapeHtml(desc) + '"' +
           (done ? ' data-ach-date="' + date + '"' : '') +
           ' tabindex="0">' +
-          '<span class="ach-icon">' + a.icon + '</span>' +
+          '<span class="ach-icon">' + (hidden ? '❔' : a.icon) + '</span>' +
           '</div>';
       });
       html += '</div>';
@@ -902,6 +906,15 @@ function _renderStatsTab(u, provider) {
     '<div class="pf-label">' + (isDE?'Schwachstellen':'Weaknesses') + '</div>' +
     _renderWeakSection(misses) +
     '</div>' +
+    '';
+}
+
+// Reiter "Profil": Kontodaten, Passwort ändern, Konto löschen (früher bei den Statistiken)
+function _renderProfileTab(u, provider) {
+  const since = u.metadata && u.metadata.creationTime ? new Date(u.metadata.creationTime).toLocaleDateString('de-DE', {day:'2-digit',month:'long',year:'numeric'}) : '—';
+  const lastPlay = _lastPlayedDate();
+  const isDE = typeof lang === 'undefined' || lang !== 'en';
+  return ""+
     '<div class="pf-section">' +
     '<div class="pf-label">' + (isDE?'Konto-Details':'Account Details') + '</div>' +
     '<div class="pf-card">' +
@@ -1284,9 +1297,10 @@ async function openFriendProfile(uid){
         const catName=isDE?cat.de:cat.en;
         let icons=items.map(a=>{
           const done=!!achs[a.id];
-          const name=isDE?a.de:a.en;
+          const hidden=a.cat==='secret'&&!done; // geheime Achievements bleiben verborgen, bis man sie hat
+          const name=hidden?'???':(isDE?a.de:a.en);
           return`<div class="ach-item${done?' unlocked':' locked'}${a.rare&&done?' rare':''}" title="${escapeHtml(name)}">
-            <span class="ach-icon">${a.icon}</span></div>`;
+            <span class="ach-icon">${hidden?'❔':a.icon}</span></div>`;
         }).join('');
         achHtml+=`<div class="ach-cat open"><div class="ach-cat-head">${cat.icon} ${escapeHtml(catName)} <span class="ach-cat-count">${unlocked}/${items.length}</span></div><div class="ach-grid">${icons}</div></div>`;
       });
