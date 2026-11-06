@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 Q';
+const BUILD_ID='2026-11-06 R';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -385,32 +385,55 @@ const MODE_INFO={
 // Vereinigtes Königreich, Spanien oder Frankreich (Land, Hauptstadt, Fluss, Flagge). Der Grundzustand jeder
 // Animation ist das Ende (Treffer), die Keyframes laufen davor ab; bei "weniger Bewegung" steht nur das Ende.
 const MI_EXAMPLE={
-  de:{id:276,view:[4.5,46.6,16.5,55.4],tap:[10.3,51.2],city:'Berlin',cityPos:[13.405,52.52],guess:[12.2,52.0],river:['Rhein','Rhine'],riverView:[3.5,46.6,12.5,53.6],riverName:'Rhein'},
-  en:{id:826,view:[-9.2,49.6,3.2,59.4],tap:[-1.8,52.9],city:'London',cityPos:[-0.13,51.51],guess:[-0.95,51.95],river:['Thames'],riverView:[-5.5,50,2.5,54],riverName:'Thames'},
-  es:{id:724,view:[-10.2,35.6,4.8,44.2],tap:[-3.5,40.2],city:'Madrid',cityPos:[-3.7,40.42],guess:[-4.5,40.9],river:['Tajo'],riverView:[-10,38,-0.5,43.4],riverName:'Tajo'},
-  fr:{id:250,view:[-5.6,41.0,9.9,51.6],tap:[2.5,46.8],city:'Paris',cityPos:[2.352,48.856],guess:[3.1,49.4],river:['Loire'],riverView:[-3.6,44.4,6.4,49],riverName:'Loire'}
+  // Je Sprache ein Heimatland mit Kartenausschnitt "view" (lon0,lat0,lon1,lat1) und je Spielart 3 Ziele, die nacheinander laufen.
+  // click: Land (id) + Tippstelle; pin: Stadt mit Position und Fehlversuch; input: Länder-IDs für Flagge; other: Fluss, See, Berg.
+  de:{view:[4.5,46.6,16.5,55.4],
+    click:[{id:276,tap:[10.3,51.2]},{region:'DE',name:'Bayern'},{id:616,tap:[15.4,52.0]}],
+    pin:[{city:'Berlin',pos:[13.405,52.52],guess:[12.2,52.0]},{city:'München',pos:[11.58,48.14],guess:[12.4,48.6]},{city:'Hamburg',pos:[9.99,53.55],guess:[10.8,53.2]}],
+    input:[{id:276},{id:40,kind:'wappen'},{id:724}],
+    other:[{type:'river',names:['Rhein','Rhine'],label:'Rhein',view:[3.5,46.6,12.5,53.6]},{type:'lake',lake:'Bodensee',view:[5.8,45.4,13,49.6]},{type:'peak',pos:[10.98,47.42],label:'Zugspitze',view:[7.3,45.2,14.6,49.4]}]},
+  en:{view:[-9.2,49.6,3.2,59.4],
+    click:[{id:826,tap:[-1.8,52.9]},{region:'US',name:'Texas',view:[-126,23,-65,50]},{id:250,tap:[1.8,50.0]}],
+    pin:[{city:'London',pos:[-0.13,51.51],guess:[-0.95,51.95]},{city:'Edinburgh',pos:[-3.19,55.95],guess:[-2.5,55.6]},{city:'Manchester',pos:[-2.24,53.48],guess:[-1.6,53.2]}],
+    input:[{id:826},{id:724,kind:'wappen'},{id:380}],
+    other:[{type:'river',names:['Thames'],label:'Thames',view:[-5.5,50,2.5,54]},{type:'lake',lake:'Lough Neagh',view:[-10.3,51.8,-2.5,56.6]},{type:'peak',pos:[-5.0,56.8],label:'Ben Nevis',view:[-9,54.4,-1.4,58.6]}]},
+  es:{view:[-10.2,35.6,4.8,44.2],
+    click:[{id:724,tap:[-3.5,40.2]},{region:'ES',name:'Andalucía'},{id:250,tap:[2.4,43.4]}],
+    pin:[{city:'Madrid',pos:[-3.7,40.42],guess:[-4.5,40.9]},{city:'Barcelona',pos:[2.17,41.39],guess:[1.5,41.7]},{city:'Sevilla',pos:[-5.98,37.39],guess:[-5.2,37.7]}],
+    input:[{id:724},{id:620,kind:'wappen'},{id:380}],
+    other:[{type:'river',names:['Tajo'],label:'Tajo',view:[-10,38,-0.5,43.4]},{type:'lake',lake:'Lago Titicaca',view:[-74,-19,-65,-13]},{type:'peak',pos:[-3.31,37.05],label:'Mulhacén',view:[-8.2,35.2,1.6,39.4]}]},
+  fr:{view:[-5.6,41.0,9.9,51.6],
+    click:[{id:250,tap:[2.5,46.8]},{region:'FR',name:'Bretagne'},{id:380,tap:[8.6,44.5]}],
+    pin:[{city:'Paris',pos:[2.352,48.856],guess:[3.1,49.4]},{city:'Marseille',pos:[5.37,43.30],guess:[4.7,43.7]},{city:'Bordeaux',pos:[-0.58,44.84],guess:[0.1,45.2]}],
+    input:[{id:250},{id:724,kind:'wappen'},{id:380}],
+    other:[{type:'river',names:['Loire'],label:'Loire',view:[-3.6,44.4,6.4,49]},{type:'lake',lake:'Lake Geneva',view:[2.8,44.3,10.2,48.5]},{type:'peak',pos:[6.87,45.83],label:'Mont Blanc',view:[3.4,43.6,10.4,47.8]}]}
 };
-let _miWorld=null,_miCountries=null,_miRivers=null,_miTok=0;
-async function _miLoad(needRivers){
+let _miWorld=null,_miCountries=null,_miRivers=null,_miLakes=null,_miRegions={},_miTok=0,_miTimer=null;
+async function _miLoad(need){
   if(!_miCountries){
     _miWorld=worldData||await fetch('data/countries-50m.json').then(r=>r.json());
     _miCountries=topojson.feature(_miWorld,_miWorld.objects.countries).features;
   }
-  if(needRivers&&!_miRivers)_miRivers=await fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json());
+  if(need==='river'&&!_miRivers)_miRivers=await fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json());
+  if(need&&need.region&&!_miRegions[need.region]){const cfg=REGION_QUIZZES[need.region],d=await fetch(cfg.url).then(r=>r.json());_miRegions[need.region]=cfg.objectKey?topojson.feature(d,d.objects[cfg.objectKey]).features:d.features;}
+  if(need==='lake'&&!_miLakes)_miLakes=await (lakesData?Promise.resolve(lakesData):fetch('data/ne_50m_lakes.geojson').then(r=>r.json()));
 }
 function _miPill(cx,y,txt,fs){
   const w=Math.max(64,18+txt.length*fs*.62);
   return '<g class="mi-label"><rect x="'+(cx-w/2).toFixed(1)+'" y="'+y+'" width="'+w.toFixed(1)+'" height="24" rx="12" fill="#101826" opacity=".92"/><text x="'+cx+'" y="'+(y+17)+'" text-anchor="middle" fill="#fff" font-size="'+fs+'" font-weight="600">'+escapeHtml(txt)+'</text></g>';
 }
 const _MI_PIN=(c)=>'<path d="M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z" fill="'+c+'" stroke="#fff" stroke-width="1.4"/><circle cx="0" cy="-15" r="3" fill="#fff"/>';
-async function modeInfoAnim(key){
-  const E=MI_EXAMPLE[lang]||MI_EXAMPLE.de,W=280,H=150;
+const _MI_CURSOR='<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+// Eine Szene (idx 0..2) der Demo einer Spielart als SVG-Text
+async function modeInfoAnim(key,idx){
+  idx=idx||0;
+  const E=MI_EXAMPLE[lang]||MI_EXAMPLE.de,W=280,H=150,S=E[key][idx];
   if(key==='input'){
     // Texteingabe: Flagge, Name wird Buchstabe für Buchstabe getippt, dazu klappt die Vorschlagsliste auf (alphabetisch
     // benachbarte Länder, wie im Spiel), am Ende wird der richtige Eintrag gewählt und ✓ erscheint.
-    const nm=C[E.id][lang]||C[E.id].de,chars=[...nm],n=chars.length;
-    const first=nm[0].toLowerCase();
-    const names=[...new Set(Object.values(C).map(c=>c[lang]||c.de))].filter(x=>x&&x[0].toLowerCase()===first).sort((p,q)=>p.localeCompare(q,lang));
+    const nm=C[S.id][lang]||C[S.id].de,chars=[...nm],n=chars.length;
+    const base=x=>x[0].normalize('NFD')[0].toLowerCase(),first=base(nm); // Ö zählt zu O, É zu E
+    const names=[...new Set(Object.values(C).map(c=>c[lang]||c.de))].filter(x=>x&&base(x)===first).sort((p,q)=>p.localeCompare(q,lang));
     let ti=names.indexOf(nm);if(ti<0){names.push(nm);ti=names.length-1;}
     let lo=Math.max(0,Math.min(ti-1,names.length-3));const rows=names.slice(lo,lo+3);const hi=rows.indexOf(nm);
     const P0=14,P1=52,step=(P1-P0)/n; // Tippen läuft von 14 % bis 52 % der Schleife
@@ -427,47 +450,64 @@ async function modeInfoAnim(key){
       dd+='<text x="62" y="'+(y+12)+'" fill="'+(i===hi?'#fff':'#9fb2c4')+'" font-size="11.5">'+escapeHtml(r)+'</text>';});
     dd+='</g>';
     return '<svg class="mi-stage mi-input" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true"><style>'+css+'</style><rect width="'+W+'" height="'+H+'" fill="#0e1621"/>'
-      +'<image href="data/flags/w320/'+ISO2[E.id]+'.png" x="104" y="6" width="72" height="48" preserveAspectRatio="xMidYMid meet"/>'
+      +(S.kind==='wappen'?'<image href="data/wappen/'+S.id+'.png" x="110" y="3" width="60" height="54" preserveAspectRatio="xMidYMid meet"/>':'<image href="data/flags/w320/'+ISO2[S.id]+'.png" x="104" y="6" width="72" height="48" preserveAspectRatio="xMidYMid meet"/>')
       +'<rect x="50" y="60" width="180" height="28" rx="8" fill="#1a2433" stroke="#3a4a60"/>'
       +'<text x="62" y="79" fill="#fff" font-size="14">'+tsp+'</text>'
       +dd
       +'<text class="mok" x="208" y="79" fill="#7be0b8" font-size="16" font-weight="700">✓</text></svg>';
   }
-  await _miLoad(key==='other');
-  const [x0,y0,x1,y1v]=(key==='other'&&E.riverView)||E.view,y1=y1v+(y1v-y0)*.2; // oben Platz für die Beschriftung
+  await _miLoad(key==='other'?S.type==='river'?'river':S.type==='lake'?'lake':'':(key==='click'&&S.region)?{region:S.region}:'');
+  const [x0,y0,x1,y1v]=S.view||E.view,y1=y1v+(y1v-y0)*.2; // oben Platz für die Beschriftung
   const proj=d3.geoMercator().fitExtent([[0,0],[W,H]],{type:'Feature',geometry:{type:'Polygon',coordinates:[[[x0,y0],[x0,y1],[x1,y1],[x1,y0],[x0,y0]]]}});
   const path=d3.geoPath(proj);if(path.digits)path.digits(1);
   const inView=f=>{const b=d3.geoBounds(f);return b[1][0]>=x0-3&&b[0][0]<=x1+3&&b[1][1]>=y0-3&&b[0][1]<=y1+3;};
   const near=_miCountries.filter(inView);
   const land=near.map(f=>'<path d="'+path(f)+'"/>').join('');
-  const tf=_miCountries.find(f=>+f.id===E.id);
   const P=ll=>proj(ll).map(v=>+v.toFixed(1));
   let inner='<rect width="'+W+'" height="'+H+'" fill="#3f86c9"/><g fill="#e0d4b4" stroke="#8a7a54" stroke-width=".7" stroke-linejoin="round">'+land+'</g>';
   let style='';
   if(key==='click'){
-    const tp=P(E.tap);
-    inner+='<path class="mi-hit" d="'+path(tf)+'" stroke="#8a7a54" stroke-width=".7"/>'+_miPill(140,8,C[E.id][lang]||C[E.id].de,13)
-      +'<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+    if(S.region){ // Region (Bundesland, Bundesstaat, Region): alle Regionen als Fläche mit Grenzen, die gesuchte wird grün
+      const cfg=REGION_QUIZZES[S.region],feats=_miRegions[S.region],tf=feats.find(f=>f.properties[cfg.nameKey]===S.name),tp=path.centroid(tf);
+      inner+='<g fill="#e0d4b4" stroke="#8a7a54" stroke-width=".5" stroke-linejoin="round">'+feats.filter(f=>f!==tf).map(f=>'<path d="'+path(f)+'"/>').join('')+'</g>'
+        +'<path class="mi-hit" d="'+path(tf)+'" stroke="#8a7a54" stroke-width=".5"/>'+_miPill(140,8,S.name,13)+_MI_CURSOR;
+      style='--cx:'+tp[0].toFixed(1)+'px;--cy:'+tp[1].toFixed(1)+'px';
+    }else{
+    const tf=_miCountries.find(f=>+f.id===S.id),tp=P(S.tap);
+    inner+='<path class="mi-hit" d="'+path(tf)+'" stroke="#8a7a54" stroke-width=".7"/>'+_miPill(140,8,C[S.id][lang]||C[S.id].de,13)+_MI_CURSOR;
     style='--cx:'+tp[0]+'px;--cy:'+tp[1]+'px';
+    }
   }else if(key==='pin'){
-    const g=P(E.guess),c=P(E.cityPos);
-    const km=Math.round(d3.geoDistance(E.guess,E.cityPos)*6371/5)*5;
-    inner+=_miPill(140,8,E.city+(lang==='fr'?' ?':'?'),13)
+    const g=P(S.guess),c=P(S.pos);
+    const km=Math.round(d3.geoDistance(S.guess,S.pos)*6371/5)*5;
+    inner+=_miPill(140,8,S.city+(lang==='fr'?' ?':'?'),13)
       +'<g class="mi-reveal"><line x1="'+g[0]+'" y1="'+g[1]+'" x2="'+c[0]+'" y2="'+c[1]+'" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><circle cx="'+c[0]+'" cy="'+c[1]+'" r="2.2" fill="#4a8a30" stroke="#fff"/><g transform="translate('+c[0]+' '+c[1]+')">'+_MI_PIN('#4a8a30')+'</g>'
       +_miPill(Math.min(W-40,Math.max(40,(g[0]+c[0])/2+(c[0]<W/2?44:-44))),Math.min(H-30,Math.max(36,(g[1]+c[1])/2+8)),'≈ '+km+' km',11)+'</g>'
       +'<g class="mi-drop"><g transform="translate('+g[0]+' '+g[1]+')">'+_MI_PIN('#e23a2a')+'</g></g>';
-  }else{
+  }else if(S.type==='river'){
     const rv=_miRivers.features.filter(inView);
-    const isT=f=>E.river.includes(f.properties.name);
+    const isT=f=>S.names.includes(f.properties.name);
     const others=rv.filter(f=>!isT(f)).map(f=>'<path d="'+path(f)+'"/>').join('');
     const tg=rv.filter(isT);
     const pts=[];
     tg.forEach(f=>f.geometry.coordinates.forEach(l=>l.forEach(p=>{const q=proj(p);if(q[0]>14&&q[0]<W-14&&q[1]>34&&q[1]<H-12)pts.push(q);})));
     const mid=pts[Math.floor(pts.length/2)]||[W/2,H/2];
     inner+='<g fill="none" stroke="#5aa9e0" stroke-width="1" stroke-linecap="round" opacity=".9">'+others+'</g>'
-      +'<path class="mi-river" d="'+tg.map(f=>path(f)).join('')+'" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'+_miPill(140,8,E.riverName,13)
-      +'<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+      +'<path class="mi-river" d="'+tg.map(f=>path(f)).join('')+'" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'+_miPill(140,8,S.label,13)+_MI_CURSOR;
     style='--cx:'+mid[0].toFixed(1)+'px;--cy:'+mid[1].toFixed(1)+'px';
+  }else if(S.type==='lake'){
+    const lk=_miLakes.features.filter(inView);
+    const t=lk.find(f=>f.properties.name===S.lake);
+    const others=lk.filter(f=>f!==t).map(f=>'<path d="'+path(f)+'"/>').join('');
+    const p=t.properties,label=p['name_'+lang]||p.name_en||p.name;
+    const ct=path.centroid(t);
+    inner+='<g fill="#4f94cf" stroke="#2f6aa0" stroke-width=".5">'+others+'</g>'
+      +'<path class="mi-lake" d="'+path(t)+'" stroke="#2f6aa0" stroke-width=".5"/>'+_miPill(140,8,label,13)+_MI_CURSOR;
+    style='--cx:'+ct[0].toFixed(1)+'px;--cy:'+ct[1].toFixed(1)+'px';
+  }else{ // Berg
+    const c=P(S.pos);
+    inner+='<circle class="mi-peak" cx="'+c[0]+'" cy="'+c[1]+'" r="4.4" stroke="#fff" stroke-width="1.4"/>'+_miPill(140,8,S.label,13)+_MI_CURSOR;
+    style='--cx:'+c[0]+'px;--cy:'+c[1]+'px';
   }
   return '<svg class="mi-stage mi-'+key+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true" style="'+style+'">'+inner+'</svg>';
 }
@@ -481,12 +521,28 @@ function openModeInfo(key){
     box.innerHTML='<div class="auth-box mode-info-box"><button class="auth-close" onclick="closeModeInfo()" aria-label="close">×</button><div id="mode-info-body"></div></div>';
     document.body.appendChild(box);
   }
-  $('mode-info-body').innerHTML=`<h2 class="mode-info-title">${meta.head()}</h2><div id="mi-slot" class="mi-stage mi-load"></div><p class="mode-info-text">${m.text}</p>`;
+  $('mode-info-body').innerHTML='<h2 class="mode-info-title">'+meta.head()+'</h2><div id="mi-wrap"></div><p class="mode-info-text">'+m.text+'</p>';
   box.style.display='flex';
-  const tok=++_miTok;
-  modeInfoAnim(key).then(svg=>{const s=$('mi-slot');if(s&&tok===_miTok)s.outerHTML=svg;}).catch(()=>{const s=$('mi-slot');if(s&&tok===_miTok)s.remove();});
+  _miRun(key,++_miTok);
 }
-function closeModeInfo(){const b=$('mode-info-modal');if(b)b.style.display='none';}
+// Spielt die 3 Szenen einer Spielart nacheinander (je 6 s), danach von vorn. Szene 1 erscheint sofort, die anderen werden im
+// Hintergrund vorbereitet. Bei "weniger Bewegung" im System bleibt es bei der ersten Szene im Endzustand.
+async function _miRun(key,tok){
+  clearInterval(_miTimer);
+  const n=(MI_EXAMPLE[lang]||MI_EXAMPLE.de)[key].length,svgs=[];
+  try{svgs[0]=await modeInfoAnim(key,0);}catch(e){return;}
+  if(tok!==_miTok||!$('mi-wrap'))return;
+  $('mi-wrap').innerHTML=svgs[0];
+  for(let i=1;i<n;i++)modeInfoAnim(key,i).then(s=>{svgs[i]=s;}).catch(()=>{});
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  let cur=0;
+  _miTimer=setInterval(()=>{
+    const box=$('mode-info-modal');
+    if(tok!==_miTok||!$('mi-wrap')||!box||box.style.display==='none'){clearInterval(_miTimer);return;}
+    for(let k=1;k<=n;k++){const nx=(cur+k)%n;if(svgs[nx]){cur=nx;$('mi-wrap').innerHTML=svgs[nx];return;}}
+  },6000);
+}
+function closeModeInfo(){_miTok++;clearInterval(_miTimer);const b=$('mode-info-modal');if(b)b.style.display='none';}
 // "Schon gezeigt"-Merker je Spielmodus: im lokalen Speicher (ohne Anmeldung) und, wenn angemeldet, zusätzlich
 // in den Konto-Einstellungen, damit die Erklärung auf einem zweiten Gerät nicht nochmal aufgeht.
 let modeInfoSeen={};

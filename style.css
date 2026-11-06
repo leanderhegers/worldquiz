@@ -523,3 +523,15 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 
 .legal-content a{color:#8cc4ff;text-decoration:underline;text-underline-offset:2px;}
 .legal-content a:hover{color:#bcdcff;}
+
+/* Info-Demo: Wrapper hält die Fläche frei, während eine Szene lädt; Szenen wechseln darin */
+#mi-wrap{aspect-ratio:280/150;margin:0 0 .8rem;border-radius:10px;overflow:hidden;background:#3f86c9;}
+#mi-wrap .mi-stage{margin:0;border-radius:0;}
+.mi-lake{fill:#4a8a30;}
+.mi-peak{fill:#4a8a30;}
+@media (prefers-reduced-motion:no-preference){
+  .mi-lake{animation:mi-lake 6s infinite;}
+  .mi-peak{animation:mi-peak 6s infinite;}
+}
+@keyframes mi-lake{0%,46%{fill:#5aa9e0;}52%,100%{fill:#4a8a30;}}
+@keyframes mi-peak{0%,46%{fill:#101826;}52%,100%{fill:#4a8a30;}}
