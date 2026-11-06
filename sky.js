@@ -39,7 +39,7 @@ const PRESETS={
   schwarz:{label:'Schwarz',stars:.12,pow:5,glow:false,grain:1.4,bandA:.78,bandW:1.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   kontrast:{label:'Schwarz, mehr Kontrast',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   tiefschwarz:{label:'Tiefschwarz',stars:.12,pow:5,glow:false,grain:1.3,bandA:.95,bandW:1.2,gamma:2.4,halo:.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
-  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.27,bandA:.9,bandW:1.3,gamma:2.0,halo:.46,warm:[255,214,150],cold:[120,150,255],bg:['#000','#01050c','#000']},
+  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.09,pow:5,glow:false,grain:1.27,bandA:.9,bandW:1.3,gamma:2.0,halo:.46,warm:[255,214,150],cold:[120,150,255],bg:['#000','#01050c','#000']},
   nebel:{label:'Nebel (violett)',stars:.06,pow:5.5,glow:false,grain:.5,bandA:.66,bandW:1.5,warm:[255,170,190],cold:[110,110,230],bg:['#05030f','#0b0620','#04020c']},
   tiefblau:{label:'Tiefblau, minimal',stars:.14,pow:6,glow:false,grain:.25,bandA:.14,bandW:1.8,warm:[190,210,255],cold:[90,120,210],bg:['#030a1c','#06142e','#020612']},
   ruhig:{label:'Fast leer',stars:.05,pow:6,glow:false,grain:.2,bandA:.0,bandW:1,warm:[255,255,255],cold:[255,255,255],bg:['#02040b','#050a16','#02040b']}
