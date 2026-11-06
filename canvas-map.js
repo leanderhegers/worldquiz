@@ -14,7 +14,7 @@ const TAU=Math.PI*2;
 const SKIP=new Set(['defs','filter','style','title','desc','clipPath','linearGradient','radialGradient']);
 const S={svg:null,canvas:null,ctx:null,hitCtx:null,mo:null,ro:null,cache:new WeakMap(),hover:null,
   lastEv:null,movePending:false,fontFamily:'sans-serif',cursor:'',
-  stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
+  liveProj:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
 const tcache=new Map();
 
 function mul(m,n){return[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];}
@@ -134,9 +134,10 @@ function paint(el,m,alpha){
   const tag=el.localName;
   if(SKIP.has(tag))return;
   const st=el.style;
-  if(st.display==='none'||el.getAttribute('display')==='none')return;
+  if(st.display==='none'||el.getAttribute('display')==='none'||el.hasAttribute('data-away'))return;
   const tr=el.getAttribute('transform');if(tr)m=mul(m,parseTransform(tr));
   if(st.opacity!=='')alpha*=+st.opacity;
+  if(tag==='rect'&&el.classList.contains('relief-under')){if(window.Relief){S.ctx.globalAlpha=alpha;window.Relief.draw(S.ctx,m,S.vp);S.ctx.globalAlpha=1;}return;}
   if(tag==='g'){for(const ch of el.children)paint(ch,m,alpha);return;}
   if(tag==='use'){
     const ref=S.svg.querySelector(el.getAttribute('href')||el.getAttribute('xlink:href')||'');if(!ref)return;
@@ -153,14 +154,17 @@ function shape(el,tag,m,alpha){
   const stroke=paintOf(el,'stroke');
   const doFill=!isNone(fill)&&tag!=='line',doStroke=!isNone(stroke);
   if(!doFill&&!doStroke)return;
-  let p=null,c=null;
+  let p=null,c=null,live=false;
   if(tag==='path'){
-    c=geom(el);p=c.p;if(!p)return;
-    const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;
-  }
+    // Live-Modus (Globus beim Drehen): Geo-Formen werden aus ihrem GeoJSON direkt mit der aktuellen Projektion gezeichnet
+    if(S.liveProj){const gd=el.__data__;if(!gd||!gd.type)return;live=true;}
+    else{c=geom(el);p=c.p;if(!p)return;
+      const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;}
+  }else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
   ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
   if(tag==='text'){text(el,m,alpha,fill,stroke);return;}
-  if(tag!=='path'){
+  if(live){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(el.__data__);}
+  else if(tag!=='path'){
     ctx.beginPath();
     if(tag==='circle')ctx.arc(num(el,'cx',0),num(el,'cy',0),num(el,'r',0),0,TAU);
     else if(tag==='rect')ctx.rect(num(el,'x',0),num(el,'y',0),num(el,'width',0),num(el,'height',0));
@@ -169,7 +173,8 @@ function shape(el,tag,m,alpha){
   }
   if(doFill){
     ctx.globalAlpha=alpha*num(el,'fill-opacity',1);ctx.fillStyle=fill;
-    if(p)ctx.fill(p);else ctx.fill();
+    const fr=el.getAttribute('fill-rule')==='evenodd'?'evenodd':'nonzero';
+    if(p)ctx.fill(p,fr);else ctx.fill(fr);
   }
   if(doStroke){
     const sw=num(el,'stroke-width',1);
@@ -213,7 +218,7 @@ function hit(el,px,py,k,pe){
   const tag=el.localName;
   if(SKIP.has(tag))return null;
   const st=el.style;
-  if(st.display==='none'||el.getAttribute('display')==='none')return null;
+  if(st.display==='none'||el.getAttribute('display')==='none'||el.hasAttribute('data-away'))return null;
   const own=st.pointerEvents||el.getAttribute('pointer-events');if(own)pe=own;
   const tr=el.getAttribute('transform');
   if(tr){const t=parseTransform(tr),it=inv(t);if(!it)return null;
@@ -335,6 +340,7 @@ window.CanvasMap={
   },
   redraw:draw,
   invalidate(){S.layerDirty=true;draw();},
+  setLive(proj){S.liveProj=proj||null;S.layerDirty=true;S.layer=null;},
   stats:S.stats
 };
 })();
