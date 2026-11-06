@@ -488,8 +488,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .mode-info-box{max-width:380px;text-align:left;}
 .mode-info-title{margin:0 0 .5rem;font-size:20px;color:#fff;padding-right:28px;}
 .mode-info-text{margin:0 0 .9rem;color:#c9d6e6;line-height:1.5;font-size:14px;}
-.mode-info-ex{padding:.7rem .85rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#e8eef6;font-size:14px;line-height:1.45;}
-.mode-info-ex-lbl{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:3px;}
 /* Beschriftungen und Chips innerhalb eines aufgeklappten Panels */
 .click-sublabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.5;margin:8px 2px 6px;}
 .click-chips{margin:0 2px 4px;}
@@ -499,8 +497,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .mi-input{background:#0e1621;}
 .mi-hit{fill:#4a8a30;}
 .mi-river{stroke:#7be0b8;stroke-width:5;}
-.mi-cursor{transform:translate(62px,113px);}
-.mi-cursor-river{transform:translate(176px,78px);}
+.mi-cursor{transform:translate(var(--cx,140px),var(--cy,75px));}
+.mi-load{aspect-ratio:280/150;}
 .mi-ripple{opacity:0;transform-box:fill-box;transform-origin:center;}
 .mi-reveal{opacity:1;}
 .mi-drop{transform:none;}
@@ -508,17 +506,15 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
   .mi-hit{animation:mi-hit 6s infinite;}
   .mi-river{animation:mi-river 6s infinite;}
   .mi-cursor{animation:mi-cur 6s infinite;}
-  .mi-cursor-river{animation:mi-cur-river 6s infinite;}
   .mi-ripple{animation:mi-rip 6s infinite;}
   .mi-reveal{animation:mi-rev 6s infinite;}
   .mi-drop{animation:mi-drop 6s infinite;}
-  .mi-typeclip{animation:mi-type 6s infinite steps(8,end);}
+  .mi-typeclip{animation:mi-type 6s infinite steps(var(--n,8),end);}
   .mi-check{animation:mi-chk 6s infinite;}
 }
 @keyframes mi-hit{0%,46%{fill:#e0d4b4;}52%,100%{fill:#4a8a30;}}
 @keyframes mi-river{0%,46%{stroke:#5aa9e0;stroke-width:3;}52%,100%{stroke:#7be0b8;stroke-width:5;}}
-@keyframes mi-cur{0%{transform:translate(215px,132px);opacity:0;}8%{opacity:1;}38%,100%{transform:translate(62px,113px);opacity:1;}96%{opacity:1;}100%{opacity:0;}}
-@keyframes mi-cur-river{0%{transform:translate(236px,128px);opacity:0;}8%{opacity:1;}38%,100%{transform:translate(176px,78px);opacity:1;}96%{opacity:1;}100%{opacity:0;}}
+@keyframes mi-cur{0%{transform:translate(calc(var(--cx) + 60px),calc(var(--cy) + 50px));opacity:0;}8%{opacity:1;}38%,100%{transform:translate(var(--cx),var(--cy));opacity:1;}96%{opacity:1;}100%{opacity:0;}}
 @keyframes mi-rip{0%,42%{opacity:0;transform:scale(1);}44%{opacity:1;transform:scale(1);}62%{opacity:0;transform:scale(2.8);}100%{opacity:0;}}
 @keyframes mi-rev{0%,40%{opacity:0;}46%,100%{opacity:1;}}
 @keyframes mi-drop{0%{transform:translateY(-70px);opacity:0;}6%{opacity:1;}30%{transform:translateY(0);}36%{transform:translateY(-6px);}42%,100%{transform:translateY(0);opacity:1;}}

@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 I';
+const BUILD_ID='2026-11-06 J';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -356,60 +356,95 @@ function _quizBackAction(){renderClickPage();}
 // Info-Fenster zu den vier Spielmodi (das "i" in der Ecke der Karten auf der Kategorie-Auswahl).
 const MODE_INFO={
   de:{
-    click:{text:'Oben erscheint ein Name. Du suchst das passende Land, die Region oder den Ort auf der Weltkarte und tippst darauf.',ex:'Oben steht „Peru“ → tippe auf Peru in Südamerika.'},
-    pin:{text:'Setze die Stecknadel so nah wie möglich an den gesuchten Ort. Je kleiner die Entfernung, desto mehr Punkte; ein Treffer im richtigen Land bringt einen Bonus.',ex:'„Wo liegt Wien?“ → tippe auf die Karte und sieh sofort, wie viele Kilometer du daneben lagst.'},
-    input:{text:'Ein Bild oder Begriff wird gezeigt, zum Beispiel eine Flagge, ein Wappen, ein Umriss oder ein Land. Du tippst die Lösung ein oder wählst sie aus den Vorschlägen.',ex:'Du siehst eine grün-weiß-rote Flagge → tippe „Italien“.'},
-    other:{text:'Hier suchst du Städte, Flüsse, Seen oder Berge. Der Name erscheint oben, du tippst das Ziel auf der Karte an.',ex:'Oben steht „Rhein“ → tippe auf den Fluss in Mitteleuropa.'},
-    anim:{click:'Peru',pin:'Wien?',km:'≈ 120 km',input:'Italien',other:'Rhein'},
-    exLbl:'Beispiel'},
+    click:{text:'Oben erscheint ein Name. Du suchst das passende Land, die Region oder den Ort auf der Weltkarte und tippst darauf.'},
+    pin:{text:'Setze die Stecknadel so nah wie möglich an den gesuchten Ort. Je kleiner die Entfernung, desto mehr Punkte; ein Treffer im richtigen Land bringt einen Bonus.'},
+    input:{text:'Ein Bild oder Begriff wird gezeigt, zum Beispiel eine Flagge, ein Wappen, ein Umriss oder ein Land. Du tippst die Lösung ein oder wählst sie aus den Vorschlägen.'},
+    other:{text:'Hier suchst du Städte, Flüsse, Seen oder Berge. Der Name erscheint oben, du tippst das Ziel auf der Karte an.'}},
   en:{
-    click:{text:'A name appears at the top. You look for the matching country, region or place on the world map and tap it.',ex:'The top says “Peru” → tap Peru in South America.'},
-    pin:{text:'Place the pin as close as you can to the place you are asked for. The smaller the distance, the more points; hitting the right country earns a bonus.',ex:'“Where is Vienna?” → tap the map and see right away how many kilometres you were off.'},
-    input:{text:'A picture or term is shown, for example a flag, a coat of arms, an outline or a country. You type the answer or pick it from the suggestions.',ex:'You see a green, white and red flag → type “Italy”.'},
-    other:{text:'Here you look for cities, rivers, lakes or mountains. The name appears at the top and you tap the target on the map.',ex:'The top says “Rhine” → tap the river in central Europe.'},
-    anim:{click:'Peru',pin:'Vienna?',km:'≈ 120 km',input:'Italy',other:'Rhine'},
-    exLbl:'Example'},
+    click:{text:'A name appears at the top. You look for the matching country, region or place on the world map and tap it.'},
+    pin:{text:'Place the pin as close as you can to the place you are asked for. The smaller the distance, the more points; hitting the right country earns a bonus.'},
+    input:{text:'A picture or term is shown, for example a flag, a coat of arms, an outline or a country. You type the answer or pick it from the suggestions.'},
+    other:{text:'Here you look for cities, rivers, lakes or mountains. The name appears at the top and you tap the target on the map.'}},
   es:{
-    click:{text:'Arriba aparece un nombre. Buscas el país, la región o el lugar correspondiente en el mapa mundial y lo tocas.',ex:'Arriba dice «Perú» → toca Perú en Sudamérica.'},
-    pin:{text:'Coloca la chincheta lo más cerca posible del lugar pedido. Cuanto menor la distancia, más puntos; acertar el país correcto da una bonificación.',ex:'«¿Dónde está Viena?» → toca el mapa y mira enseguida cuántos kilómetros te has desviado.'},
-    input:{text:'Se muestra una imagen o un término, por ejemplo una bandera, un escudo, un contorno o un país. Escribes la respuesta o la eliges de las sugerencias.',ex:'Ves una bandera verde, blanca y roja → escribe «Italia».'},
-    other:{text:'Aquí buscas ciudades, ríos, lagos o montañas. El nombre aparece arriba y tocas el objetivo en el mapa.',ex:'Arriba dice «Rin» → toca el río en Europa central.'},
-    anim:{click:'Perú',pin:'¿Viena?',km:'≈ 120 km',input:'Italia',other:'Rin'},
-    exLbl:'Ejemplo'},
+    click:{text:'Arriba aparece un nombre. Buscas el país, la región o el lugar correspondiente en el mapa mundial y lo tocas.'},
+    pin:{text:'Coloca la chincheta lo más cerca posible del lugar pedido. Cuanto menor la distancia, más puntos; acertar el país correcto da una bonificación.'},
+    input:{text:'Se muestra una imagen o un término, por ejemplo una bandera, un escudo, un contorno o un país. Escribes la respuesta o la eliges de las sugerencias.'},
+    other:{text:'Aquí buscas ciudades, ríos, lagos o montañas. El nombre aparece arriba y tocas el objetivo en el mapa.'}},
   fr:{
-    click:{text:'Un nom apparaît en haut. Tu cherches le pays, la région ou le lieu correspondant sur la carte du monde et tu le touches.',ex:'En haut : « Pérou » → touche le Pérou en Amérique du Sud.'},
-    pin:{text:'Place l’épingle le plus près possible du lieu demandé. Plus la distance est petite, plus tu gagnes de points ; viser le bon pays donne un bonus.',ex:'« Où est Vienne ? » → touche la carte et vois tout de suite combien de kilomètres tu étais à côté.'},
-    input:{text:'Une image ou un terme est affiché, par exemple un drapeau, des armoiries, un contour ou un pays. Tu tapes la réponse ou tu la choisis dans les suggestions.',ex:'Tu vois un drapeau vert, blanc et rouge → tape « Italie ».'},
-    other:{text:'Ici tu cherches des villes, des fleuves, des lacs ou des montagnes. Le nom apparaît en haut et tu touches la cible sur la carte.',ex:'En haut : « Rhin » → touche le fleuve en Europe centrale.'},
-    anim:{click:'Pérou',pin:'Vienne ?',km:'≈ 120 km',input:'Italie',other:'Rhin'},
-    exLbl:'Exemple'}
+    click:{text:'Un nom apparaît en haut. Tu cherches le pays, la région ou le lieu correspondant sur la carte du monde et tu le touches.'},
+    pin:{text:'Place l’épingle le plus près possible du lieu demandé. Plus la distance est petite, plus tu gagnes de points ; viser le bon pays donne un bonus.'},
+    input:{text:'Une image ou un terme est affiché, par exemple un drapeau, des armoiries, un contour ou un pays. Tu tapes la réponse ou tu la choisis dans les suggestions.'},
+    other:{text:'Ici tu cherches des villes, des fleuves, des lacs ou des montagnes. Le nom apparaît en haut et tu touches la cible sur la carte.'}}
 };
-// Selbstlaufende Mini-Animationen für das Info-Fenster: reines SVG + CSS (wenige KB, keine Videodatei,
-// scharf in jeder Größe, mit den Beschriftungen der gewählten Sprache). Der Grundzustand jeder Animation ist
-// das Ende (Treffer), die Keyframes laufen davor ab; bei "weniger Bewegung" im System steht nur das Ende.
-const _MI_LAND='<g fill="#e0d4b4" stroke="#8a7a54" stroke-width="1"><path d="M30,22 C52,12 80,20 86,40 C90,58 76,66 78,84 C80,104 70,132 58,140 C48,134 52,110 46,96 C40,82 18,62 30,22Z"/><path d="M150,26 C172,18 198,24 202,42 C208,62 198,80 206,100 C210,122 192,140 178,136 C166,124 170,104 160,92 C148,80 138,60 142,42Z"/><path d="M214,30 C238,22 264,32 266,50 C268,68 252,78 238,74 C222,70 208,58 214,30Z"/></g>';
-const _MI_PIN=(c)=>'<path d="M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z" fill="'+c+'" stroke="#fff" stroke-width="1.4"/><circle cx="0" cy="-15" r="3" fill="#fff"/>';
-function _miLabel(txt){return '<g class="mi-label"><rect x="85" y="8" width="110" height="24" rx="12" fill="#101826" opacity=".92"/><text x="140" y="25" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">'+escapeHtml(txt)+'</text></g>';}
-function modeInfoAnim(key,A){
-  let inner='';
-  if(key==='click'){
-    inner=_MI_LAND+'<path class="mi-hit" d="M52,100 C62,96 74,102 72,114 C70,126 60,132 54,128 C46,120 46,106 52,100Z" stroke="#8a7a54"/>'+_miLabel(A.click)
-      +'<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
-  }else if(key==='pin'){
-    inner=_MI_LAND+_miLabel(A.pin)
-      +'<g class="mi-reveal"><line x1="178" y1="78" x2="206" y2="56" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><g transform="translate(206 56)">'+_MI_PIN('#4a8a30')+'</g>'
-      +'<rect x="168" y="96" width="62" height="20" rx="10" fill="#101826" opacity=".92"/><text x="199" y="110" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">'+escapeHtml(A.km)+'</text></g>'
-      +'<g class="mi-drop"><g transform="translate(178 78)">'+_MI_PIN('#e23a2a')+'</g></g>';
-  }else if(key==='input'){
-    inner='<rect width="280" height="150" fill="#0e1621"/><g transform="translate(90 14)"><rect width="34" height="52" fill="#009246"/><rect x="34" width="33" height="52" fill="#fff"/><rect x="67" width="33" height="52" fill="#ce2b37"/></g>'
-      +'<rect x="50" y="86" width="180" height="32" rx="8" fill="#1a2433" stroke="#3a4a60"/><clipPath id="mi-type"><rect class="mi-typeclip" x="58" y="86" height="32" width="130"/></clipPath>'
-      +'<text clip-path="url(#mi-type)" x="64" y="107" fill="#fff" font-size="15">'+escapeHtml(A.input)+'</text><text class="mi-check" x="206" y="109" fill="#7be0b8" font-size="18" font-weight="700">✓</text>';
-  }else{
-    inner=_MI_LAND+'<path class="mi-river" d="M170,34 C158,52 188,60 176,78 C166,92 186,104 176,124" fill="none" stroke-linecap="round"/>'+_miLabel(A.other)
-      +'<g class="mi-cursor mi-cursor-river"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+// Selbstlaufende Mini-Animationen für das Info-Fenster: echte Karte (dieselben Länder-, Fluss- und Flaggendaten
+// wie im Spiel), reines SVG + CSS, keine Videodatei. Das Beispiel richtet sich nach der Sprache: Deutschland,
+// Vereinigtes Königreich, Spanien oder Frankreich (Land, Hauptstadt, Fluss, Flagge). Der Grundzustand jeder
+// Animation ist das Ende (Treffer), die Keyframes laufen davor ab; bei "weniger Bewegung" steht nur das Ende.
+const MI_EXAMPLE={
+  de:{id:276,view:[4.5,46.6,16.5,55.4],tap:[10.3,51.2],city:'Berlin',cityPos:[13.405,52.52],guess:[12.2,52.0],river:['Rhein','Rhine'],riverView:[3.5,46.6,12.5,53.6],riverName:'Rhein'},
+  en:{id:826,view:[-9.2,49.6,3.2,59.4],tap:[-1.8,52.9],city:'London',cityPos:[-0.13,51.51],guess:[-0.95,51.95],river:['Thames'],riverView:[-5.5,50,2.5,54],riverName:'Thames'},
+  es:{id:724,view:[-10.2,35.6,4.8,44.2],tap:[-3.5,40.2],city:'Madrid',cityPos:[-3.7,40.42],guess:[-4.5,40.9],river:['Tajo'],riverView:[-10,38,-0.5,43.4],riverName:'Tajo'},
+  fr:{id:250,view:[-5.6,41.0,9.9,51.6],tap:[2.5,46.8],city:'Paris',cityPos:[2.352,48.856],guess:[3.1,49.4],river:['Loire'],riverView:[-3.6,44.4,6.4,49],riverName:'Loire'}
+};
+let _miWorld=null,_miCountries=null,_miRivers=null,_miTok=0;
+async function _miLoad(needRivers){
+  if(!_miCountries){
+    _miWorld=worldData||await fetch('data/countries-50m.json').then(r=>r.json());
+    _miCountries=topojson.feature(_miWorld,_miWorld.objects.countries).features;
   }
-  const bg=key==='input'?'':'<rect width="280" height="150" fill="#3f86c9"/>';
-  return '<svg class="mi-stage mi-'+key+'" viewBox="0 0 280 150" role="img" aria-hidden="true">'+bg+inner+'</svg>';
+  if(needRivers&&!_miRivers)_miRivers=await fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json());
+}
+function _miPill(cx,y,txt,fs){
+  const w=Math.max(64,18+txt.length*fs*.62);
+  return '<g class="mi-label"><rect x="'+(cx-w/2).toFixed(1)+'" y="'+y+'" width="'+w.toFixed(1)+'" height="24" rx="12" fill="#101826" opacity=".92"/><text x="'+cx+'" y="'+(y+17)+'" text-anchor="middle" fill="#fff" font-size="'+fs+'" font-weight="600">'+escapeHtml(txt)+'</text></g>';
+}
+const _MI_PIN=(c)=>'<path d="M0,0 C-7,-10 -10,-16 0,-22 C10,-16 7,-10 0,0 Z" fill="'+c+'" stroke="#fff" stroke-width="1.4"/><circle cx="0" cy="-15" r="3" fill="#fff"/>';
+async function modeInfoAnim(key){
+  const E=MI_EXAMPLE[lang]||MI_EXAMPLE.de,W=280,H=150;
+  if(key==='input'){
+    const nm=C[E.id][lang]||C[E.id].de;
+    return '<svg class="mi-stage mi-input" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true" style="--n:'+nm.length+'"><rect width="'+W+'" height="'+H+'" fill="#0e1621"/>'
+      +'<image href="data/flags/w320/'+ISO2[E.id]+'.png" x="90" y="12" width="100" height="67" preserveAspectRatio="xMidYMid meet"/>'
+      +'<rect x="50" y="94" width="180" height="34" rx="8" fill="#1a2433" stroke="#3a4a60"/><clipPath id="mi-type"><rect class="mi-typeclip" x="58" y="94" height="34" width="130"/></clipPath>'
+      +'<text clip-path="url(#mi-type)" x="64" y="116" fill="#fff" font-size="15">'+escapeHtml(nm)+'</text><text class="mi-check" x="206" y="118" fill="#7be0b8" font-size="18" font-weight="700">✓</text></svg>';
+  }
+  await _miLoad(key==='other');
+  const [x0,y0,x1,y1v]=(key==='other'&&E.riverView)||E.view,y1=y1v+(y1v-y0)*.2; // oben Platz für die Beschriftung
+  const proj=d3.geoMercator().fitExtent([[0,0],[W,H]],{type:'Feature',geometry:{type:'Polygon',coordinates:[[[x0,y0],[x0,y1],[x1,y1],[x1,y0],[x0,y0]]]}});
+  const path=d3.geoPath(proj);if(path.digits)path.digits(1);
+  const inView=f=>{const b=d3.geoBounds(f);return b[1][0]>=x0-3&&b[0][0]<=x1+3&&b[1][1]>=y0-3&&b[0][1]<=y1+3;};
+  const near=_miCountries.filter(inView);
+  const land=near.map(f=>'<path d="'+path(f)+'"/>').join('');
+  const tf=_miCountries.find(f=>+f.id===E.id);
+  const P=ll=>proj(ll).map(v=>+v.toFixed(1));
+  let inner='<rect width="'+W+'" height="'+H+'" fill="#3f86c9"/><g fill="#e0d4b4" stroke="#8a7a54" stroke-width=".7" stroke-linejoin="round">'+land+'</g>';
+  let style='';
+  if(key==='click'){
+    const tp=P(E.tap);
+    inner+='<path class="mi-hit" d="'+path(tf)+'" stroke="#8a7a54" stroke-width=".7"/>'+_miPill(140,8,C[E.id][lang]||C[E.id].de,13)
+      +'<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+    style='--cx:'+tp[0]+'px;--cy:'+tp[1]+'px';
+  }else if(key==='pin'){
+    const g=P(E.guess),c=P(E.cityPos);
+    const km=Math.round(d3.geoDistance(E.guess,E.cityPos)*6371/5)*5;
+    inner+=_miPill(140,8,E.city+(lang==='fr'?' ?':'?'),13)
+      +'<g class="mi-reveal"><line x1="'+g[0]+'" y1="'+g[1]+'" x2="'+c[0]+'" y2="'+c[1]+'" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><circle cx="'+c[0]+'" cy="'+c[1]+'" r="2.2" fill="#4a8a30" stroke="#fff"/><g transform="translate('+c[0]+' '+c[1]+')">'+_MI_PIN('#4a8a30')+'</g>'
+      +_miPill(Math.min(W-40,Math.max(40,(g[0]+c[0])/2+(c[0]<W/2?44:-44))),Math.min(H-30,Math.max(36,(g[1]+c[1])/2+8)),'≈ '+km+' km',11)+'</g>'
+      +'<g class="mi-drop"><g transform="translate('+g[0]+' '+g[1]+')">'+_MI_PIN('#e23a2a')+'</g></g>';
+  }else{
+    const rv=_miRivers.features.filter(inView);
+    const isT=f=>E.river.includes(f.properties.name);
+    const others=rv.filter(f=>!isT(f)).map(f=>'<path d="'+path(f)+'"/>').join('');
+    const tg=rv.filter(isT);
+    const pts=[];
+    tg.forEach(f=>f.geometry.coordinates.forEach(l=>l.forEach(p=>{const q=proj(p);if(q[0]>14&&q[0]<W-14&&q[1]>34&&q[1]<H-12)pts.push(q);})));
+    const mid=pts[Math.floor(pts.length/2)]||[W/2,H/2];
+    inner+='<g fill="none" stroke="#5aa9e0" stroke-width="1" stroke-linecap="round" opacity=".9">'+others+'</g>'
+      +'<path class="mi-river" d="'+tg.map(f=>path(f)).join('')+'" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'+_miPill(140,8,E.riverName,13)
+      +'<g class="mi-cursor"><circle class="mi-ripple" r="9" fill="none" stroke="#fff" stroke-width="2"/><circle r="6" fill="#fff" opacity=".92"/></g>';
+    style='--cx:'+mid[0].toFixed(1)+'px;--cy:'+mid[1].toFixed(1)+'px';
+  }
+  return '<svg class="mi-stage mi-'+key+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-hidden="true" style="'+style+'">'+inner+'</svg>';
 }
 function openModeInfo(key){
   const L=MODE_INFO[lang]||MODE_INFO.de,m=L[key],meta=CATEGORY_META[key];
@@ -421,8 +456,10 @@ function openModeInfo(key){
     box.innerHTML='<div class="auth-box mode-info-box"><button class="auth-close" onclick="closeModeInfo()" aria-label="close">×</button><div id="mode-info-body"></div></div>';
     document.body.appendChild(box);
   }
-  $('mode-info-body').innerHTML=`<h2 class="mode-info-title">${meta.head()}</h2>${modeInfoAnim(key,L.anim||MODE_INFO.de.anim)}<p class="mode-info-text">${m.text}</p><div class="mode-info-ex"><span class="mode-info-ex-lbl">${L.exLbl}</span>${m.ex}</div>`;
+  $('mode-info-body').innerHTML=`<h2 class="mode-info-title">${meta.head()}</h2><div id="mi-slot" class="mi-stage mi-load"></div><p class="mode-info-text">${m.text}</p>`;
   box.style.display='flex';
+  const tok=++_miTok;
+  modeInfoAnim(key).then(svg=>{const s=$('mi-slot');if(s&&tok===_miTok)s.outerHTML=svg;}).catch(()=>{const s=$('mi-slot');if(s&&tok===_miTok)s.remove();});
 }
 function closeModeInfo(){const b=$('mode-info-modal');if(b)b.style.display='none';}
 // "Schon gezeigt"-Merker je Spielmodus: im lokalen Speicher (ohne Anmeldung) und, wenn angemeldet, zusätzlich
