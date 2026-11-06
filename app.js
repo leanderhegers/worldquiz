@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-07 C';
+const BUILD_ID='2026-11-07 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -848,7 +848,7 @@ function resultBestNote(){
   if(isBest)return ' · 🏆 '+t('newRecord');
   const b=bestScore(key);return b?' · '+t('bestLabel')+' '+b.pct+'%':'';
 }
-function mapBg(h){return projection==='globe'?'#02040a':h.bg;} // Globus: dunkler Weltraum um die Kugel
+function mapBg(h){return projection==='globe'?'#000':h.bg;} // Globus: dunkler Weltraum um die Kugel
 // Hintergrund der Karte: Farbe des Themes, beim Globus Sternenhimmel (sky.js); das Ozean-Rechteck ist dort durchsichtig
 function setMapBg(h){const el=$('map-bg');if(!el)return;el.style.backgroundColor=mapBg(h);el.style.backgroundImage='none';if(projection==='globe'&&window.Sky)window.Sky.apply(el);else if(window.Sky)window.Sky.clear();}
 function oceanFill(h){return projection==='globe'?'none':h.bg;}

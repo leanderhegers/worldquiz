@@ -39,7 +39,7 @@ const PRESETS={
   schwarz:{label:'Schwarz',stars:.12,pow:5,glow:false,grain:1.4,bandA:.78,bandW:1.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   kontrast:{label:'Schwarz, mehr Kontrast',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
   tiefschwarz:{label:'Tiefschwarz',stars:.12,pow:5,glow:false,grain:1.3,bandA:.95,bandW:1.2,gamma:2.4,halo:.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
-  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#020611','#000']},
+  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.15,bandA:.9,bandW:1.3,gamma:2.15,halo:.38,warm:[255,214,150],cold:[120,150,255],bg:['#000','#010409','#000']},
   nebel:{label:'Nebel (violett)',stars:.06,pow:5.5,glow:false,grain:.5,bandA:.66,bandW:1.5,warm:[255,170,190],cold:[110,110,230],bg:['#05030f','#0b0620','#04020c']},
   tiefblau:{label:'Tiefblau, minimal',stars:.14,pow:6,glow:false,grain:.25,bandA:.14,bandW:1.8,warm:[190,210,255],cold:[90,120,210],bg:['#030a1c','#06142e','#020612']},
   ruhig:{label:'Fast leer',stars:.05,pow:6,glow:false,grain:.2,bandA:.0,bandW:1,warm:[255,255,255],cold:[255,255,255],bg:['#02040b','#050a16','#02040b']}
@@ -76,7 +76,7 @@ async function build(w,pn,h){
   let last=performance.now();
   const yieldNow=async()=>{if(performance.now()-last>10){await tick();last=performance.now();}};
   // 1) Leuchten des Bandes in reduzierter Auflösung (1/3), danach hochskaliert
-  const gw=Math.round(w/3),gh=Math.round(h/3);
+  const gw=Math.round(w/2.5),gh=Math.round(h/2.5);
   const g=document.createElement('canvas');g.width=gw;g.height=gh;
   const gx=g.getContext('2d'),img=gx.createImageData(gw,gh),d=img.data;
   for(let j=0;j<gh;j++){
@@ -148,8 +148,8 @@ async function build(w,pn,h){
 function layout(el){
   const r=el.getBoundingClientRect(),vw=r.width||innerWidth,vh=r.height||innerHeight;
   const surfPpd=0.49*Math.min(vw,vh)*Math.PI/180;       // Pixel je Grad am Kugelrand bei Zoom 1
-  const ppd=0.55*surfPpd,Hd=Math.round(Math.min(Math.max(2*vh,vh+300),2200)),Wd=Math.round(Hd*ASPECT);
-  const ppdV=(Hd-vh)/180; // ±90° Kippen = ±halber Überstand: an den Polen erreicht der Himmel genau den Bildrand, läuft aber nie darüber hinaus
+  const ppd=0.55*surfPpd,Hd=Math.round(Math.min(Math.max(2.4*vh,vh+400),2600)),Wd=Math.round(Hd*ASPECT);
+  const ppdV=(Hd-vh)/200; // ±100° Kippen = ±halber Überstand: an den Polen (±90°) bleibt noch 5 % Reserve bis zum Bildrand, damit nie eine Kante sichtbar wird
   geo={ppd,ppdV,Hd,Wd,vh,vw};
 }
 function place(rot){
@@ -178,7 +178,7 @@ window.Sky={
     const run=async()=>{
       try{
         const coarse=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
-        url=await build(coarse?3072:4096);
+        url=await build(coarse?3072:4800);
       }catch(e){url=null;}
       building=false;
       if(url&&typeof projection!=='undefined'&&projection==='globe'){const m=document.getElementById('map-bg');if(m)window.Sky.apply(m);}
