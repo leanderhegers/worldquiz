@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-06 L';
+const BUILD_ID='2026-11-06 M';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -50,7 +50,7 @@ function buildProjection(){
     return proj.clipExtent([[-80,0],[MAP_W+80,MAP_H]]);
   }
   // Globus: Orthografische Projektion, Kugel passt mit 235 Radius in die 500 hohe Fläche (globe.js dreht sie)
-  if(projection==='globe')return d3.geoOrthographic().scale(235).translate([MAP_W/2,MAP_H/2]).rotate(globeRot).clipAngle(90).precision(0.4);
+  if(projection==='globe')return d3.geoOrthographic().scale(235).translate([MAP_W/2,MAP_H/2]).rotate(globeRot).clipAngle(90).precision(window.Globe?window.Globe.precision():0.8);
   // Equal Earth (Šavrič/Patterson/Jenny 2018): flächentreu, sieht Natural Earth ähnlich. Scale 163 füllt die
   // 960x500-Fläche etwa so wie Natural Earth bei 153 (Equal Earth ist bei gleichem Scale etwas flacher).
   if(projection==='equal')return d3.geoEqualEarth().scale(163).translate([MAP_W/2,MAP_H/2]).rotate([-8,0]);
@@ -2008,7 +2008,8 @@ function renderMap(world){
   const th=THEMES[theme],W=960,H=500;
   const proj=buildProjection();
   currentProj=proj;
-  const gpath=d3.geoPath().projection(proj);
+  let gpath=d3.geoPath().projection(proj);
+  if(projection==='globe'&&window.Globe){const raw=gpath;if(raw.digits)raw.digits(2);gpath=function(d){return window.Globe.behind(d)?'':raw(window.Globe.simplified(d));};gpath.centroid=raw.centroid;gpath.bounds=raw.bounds;gpath.area=raw.area;gpath.projection=raw.projection;}
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   const isMerc=projection==='mercator';
   // The viewBox height always stays fixed at H (matching the Mercator clip bounds in
@@ -2100,18 +2101,24 @@ function renderMap(world){
   visibleIds=new Set(countries.features.map(f=>+f.id));
   REDIRECTS.clear();
   // 304=Greenland, 10=Antarctica — non-clickable, no redirect
-  const NO_REDIRECT=new Set([304,10,540,630,850,660,92,663,652,534]); // 540=Neukaledonien, 630=Puerto Rico, 850=US Virgin Is., 660=Anguilla, 92=Brit. Virgin Is., 663=St.Martin, 652=St.Barthélemy, 534=Sint Maarten
-  // Dynamically block territories by centroid bounds (e.g. Französisch-Guayana)
-  const GEO_NO_REDIRECT=[[[-56,-50],[1,7]]]; // [lonRange, latRange]
-  countries.features.forEach(f=>{const [lo,la]=d3.geoCentroid(f);if(GEO_NO_REDIRECT.some(([[l0,l1],[a0,a1]])=>lo>=l0&&lo<=l1&&la>=a0&&la<=a1))NO_REDIRECT.add(+f.id);});
-  const kc=countries.features.filter(f=>C[+f.id]).map(f=>({id:+f.id,ctr:d3.geoCentroid(f)}));
-  countries.features.forEach(u=>{const uid=+u.id;if(C[uid])return;if(NO_REDIRECT.has(uid))return;const uc=d3.geoCentroid(u);let b=null,bd=Infinity;kc.forEach(({id,ctr})=>{const d=(uc[0]-ctr[0])**2+(uc[1]-ctr[1])**2;if(d<bd){bd=d;b=id;}});if(b!==null)REDIRECTS.set(uid,b);});
-  REDIRECTS.set(732,504); // Westsahara → Marokko
-  // Geographic overrides for specific disputed/unrecognised territories
-  countries.features.forEach(f=>{const uid=+f.id;if(uid>=0)return;const [lon,lat]=d3.geoCentroid(f);
-    if(lon>43&&lon<50&&lat>7&&lat<13)REDIRECTS.set(uid,706); // Somaliland → Somalia
-    if(lon>32&&lon<35&&lat>34&&lat<36)REDIRECTS.set(uid,196); // Nord-Zypern → Zypern
-  });
+  // Die Zuordnung (Gebiet → Land) hängt nur von den Weltdaten ab, nicht von der Projektion: einmal rechnen, danach nur
+  // zurückkopieren (die ~400 d3.geoCentroid-Aufrufe kosteten bei jedem Neuaufbau, z. B. nach dem Drehen des Globus, ~100 ms).
+  if(window._redirSnap){window._redirSnap.forEach(([k,v])=>REDIRECTS.set(k,v));}
+  else{
+    const NO_REDIRECT=new Set([304,10,540,630,850,660,92,663,652,534]); // 540=Neukaledonien, 630=Puerto Rico, 850=US Virgin Is., 660=Anguilla, 92=Brit. Virgin Is., 663=St.Martin, 652=St.Barthélemy, 534=Sint Maarten
+    // Dynamically block territories by centroid bounds (e.g. Französisch-Guayana)
+    const GEO_NO_REDIRECT=[[[-56,-50],[1,7]]]; // [lonRange, latRange]
+    countries.features.forEach(f=>{const [lo,la]=d3.geoCentroid(f);if(GEO_NO_REDIRECT.some(([[l0,l1],[a0,a1]])=>lo>=l0&&lo<=l1&&la>=a0&&la<=a1))NO_REDIRECT.add(+f.id);});
+    const kc=countries.features.filter(f=>C[+f.id]).map(f=>({id:+f.id,ctr:d3.geoCentroid(f)}));
+    countries.features.forEach(u=>{const uid=+u.id;if(C[uid])return;if(NO_REDIRECT.has(uid))return;const uc=d3.geoCentroid(u);let b=null,bd=Infinity;kc.forEach(({id,ctr})=>{const d=(uc[0]-ctr[0])**2+(uc[1]-ctr[1])**2;if(d<bd){bd=d;b=id;}});if(b!==null)REDIRECTS.set(uid,b);});
+    REDIRECTS.set(732,504); // Westsahara → Marokko
+    // Geographic overrides for specific disputed/unrecognised territories
+    countries.features.forEach(f=>{const uid=+f.id;if(uid>=0)return;const [lon,lat]=d3.geoCentroid(f);
+      if(lon>43&&lon<50&&lat>7&&lat<13)REDIRECTS.set(uid,706); // Somaliland → Somalia
+      if(lon>32&&lon<35&&lat>34&&lat<36)REDIRECTS.set(uid,196); // Nord-Zypern → Zypern
+    });
+  window._redirSnap=[...REDIRECTS];
+  }
 
   // Visually merge disputed territories into their parent country (no shared border)
   const geoms=world.objects.countries.geometries;
