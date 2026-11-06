@@ -17,7 +17,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // vereinfacht (Toleranz ~1 Bildschirmpixel, abhängig vom Zoom). Beides nur für die Live-Ansicht; beim Loslassen baut
 // renderMap() mit den vollen Daten neu.
 const INFO=new WeakMap(),SIMP=new WeakMap();
-const tolFor=k=>k>=8?0.03:k>=4?0.05:k>=2?0.09:0.15; // Toleranz in Grad; live und statisch gleich, damit beim Neuaufbau nichts umspringt
+const tolFor=k=>k>=8?0.02:k>=4?0.04:k>=2?0.07:0.12; // Toleranz in Grad; live und statisch gleich, damit beim Neuaufbau nichts umspringt
 function ptsOf(g,out){ // alle Stützpunkte einer Geometrie (jeder 6. reicht für den Radius)
   const t=g.type,c=g.coordinates;
   if(t==='Polygon'||t==='MultiLineString')c.forEach(r=>{for(let i=0;i<r.length;i+=6)out.push(r[i]);});
@@ -55,7 +55,13 @@ function dp(pts,tol,closed){
   const out=[];for(let i=0;i<n;i++)if(keep[i])out.push(pts[i]);
   return out;
 }
-function simpRing(r,tol){const o=dp(r,tol,true);return o.length>=4?o:null;}
+function simpRing(r,tol){
+  // Kleine Ringe (Inseln) bleiben unverändert: auf 4 Punkte gekürzt würden daraus flache Dreiecke/Splitter
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(let i=0;i<r.length;i++){const p=r[i];if(p[0]<x0)x0=p[0];if(p[0]>x1)x1=p[0];if(p[1]<y0)y0=p[1];if(p[1]>y1)y1=p[1];}
+  if(Math.max(x1-x0,y1-y0)<tol*14)return r.length>=4?r:null;
+  const o=dp(r,tol,true);return o.length>=4?o:null;
+}
 function simpGeom(g,tol){
   switch(g.type){
     case 'Polygon':{const rs=g.coordinates.map(r=>simpRing(r,tol)).filter(Boolean);return rs.length?{type:'Polygon',coordinates:rs}:null;}
@@ -113,36 +119,56 @@ function prep(g){
   }
   PREP.set(g,p);return p;
 }
-let TX=new Float32Array(4096),TY=new Float32Array(4096);
+let SX=new Float32Array(4096),SY=new Float32Array(4096),SZ=new Float32Array(4096);
+// Projiziert einen Ring (Fläche) in den Pfad. Sichtbar = z>=0. Beim Übergang über den Horizont wird der genaue Schnittpunkt
+// (lineare Mischung der 3D-Einheitsvektoren, auf den Rand normiert) eingefügt; verdeckte Punkte liegen auf dem Rand, größere
+// Lücken dort füllt ein Bogen. Ringe ganz auf der Rückseite entfallen.
+function ringPath(ctx,r,cL,sL,cP,sP,cx,cy){
+  const n=r.n;if(n>SX.length){SX=new Float32Array(n*2);SY=new Float32Array(n*2);SZ=new Float32Array(n*2);}
+  let vis=0;
+  for(let i=0;i<n;i++){
+    const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
+    SX[i]=r.cp[i]*ds;SY[i]=cP*r.sp[i]-sP*r.cp[i]*dc;const z=sP*r.sp[i]+cP*r.cp[i]*dc;SZ[i]=z;if(z>=0)vis++;
+  }
+  if(!vis)return;
+  let started=false,lastRim=false,lastAng=0;
+  const emit=(X,Y)=>{if(started)ctx.lineTo(X,Y);else{ctx.moveTo(X,Y);started=true;}};
+  const rim=(x,y)=>{
+    const h=Math.sqrt(x*x+y*y)||1;x/=h;y/=h;const ang=Math.atan2(y,x);
+    if(lastRim){let d=ang-lastAng;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+      const steps=Math.floor(Math.abs(d)/0.1);for(let j=1;j<=steps;j++){const a2=lastAng+d*j/(steps+1);emit(cx+R0*Math.cos(a2),cy-R0*Math.sin(a2));}}
+    emit(cx+R0*x,cy-R0*y);lastRim=true;lastAng=ang;
+  };
+  let pv=SZ[0]>=0;
+  for(let i=0;i<n;i++){
+    const x=SX[i],y=SY[i],z=SZ[i],v=z>=0;
+    if(i>0&&v!==pv){const pz=SZ[i-1],t=pz/(pz-z);rim(SX[i-1]+(x-SX[i-1])*t,SY[i-1]+(y-SY[i-1])*t);}
+    if(v){emit(cx+R0*x,cy-R0*y);lastRim=false;}else rim(x,y);
+    pv=v;
+  }
+  ctx.closePath();
+}
+// Linie (Gradnetz, Fluss, Zone): sichtbare Stücke, jeweils bis zum genauen Horizontschnitt
+function linePath(ctx,r,cL,sL,cP,sP,cx,cy){
+  let pen=false,px=0,py=0,pz=0,pv=false;
+  for(let i=0;i<r.n;i++){
+    const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
+    const x=r.cp[i]*ds,y=cP*r.sp[i]-sP*r.cp[i]*dc,z=sP*r.sp[i]+cP*r.cp[i]*dc,v=z>=0;
+    if(i>0&&v!==pv){
+      const t=pz/(pz-z);let qx=px+(x-px)*t,qy=py+(y-py)*t;const h=Math.sqrt(qx*qx+qy*qy)||1;qx/=h;qy/=h;
+      if(v){ctx.moveTo(cx+R0*qx,cy-R0*qy);pen=true;}else{ctx.lineTo(cx+R0*qx,cy-R0*qy);pen=false;}
+    }
+    if(v){const X=cx+R0*x,Y=cy-R0*y;if(pen)ctx.lineTo(X,Y);else{ctx.moveTo(X,Y);pen=true;}}
+    px=x;py=y;pz=z;pv=v;
+  }
+}
 function drawLive(ctx,g){
   if(g.type==='Sphere'){ctx.beginPath();ctx.arc(W/2,H/2,R0,0,Math.PI*2);return true;}
   const p=prep(g);if(!p)return false;
   const lc=-globeRot[0]*D2R,pc=-globeRot[1]*D2R,cL=Math.cos(lc),sL=Math.sin(lc),cP=Math.cos(pc),sP=Math.sin(pc),cx=W/2,cy=H/2;
   ctx.beginPath();
-  if(p.polys){
-    for(const poly of p.polys)for(const r of poly){
-      const n=r.n;if(n>TX.length){TX=new Float32Array(n*2);TY=new Float32Array(n*2);}
-      let vis=0;
-      for(let i=0;i<n;i++){
-        const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
-        let x=r.cp[i]*ds,y=cP*r.sp[i]-sP*r.cp[i]*dc;
-        if(sP*r.sp[i]+cP*r.cp[i]*dc>=0)vis++;else{const h=Math.sqrt(x*x+y*y)||1;x/=h;y/=h;}
-        TX[i]=cx+R0*x;TY[i]=cy-R0*y;
-      }
-      if(!vis)continue;
-      ctx.moveTo(TX[0],TY[0]);for(let i=1;i<n;i++)ctx.lineTo(TX[i],TY[i]);ctx.closePath();
-    }
-  }else{
-    for(const r of p.lines){
-      let pen=false;
-      for(let i=0;i<r.n;i++){
-        const dc=r.cl[i]*cL+r.sl[i]*sL,ds=r.sl[i]*cL-r.cl[i]*sL;
-        if(sP*r.sp[i]+cP*r.cp[i]*dc<0){pen=false;continue;}
-        const x=cx+R0*r.cp[i]*ds,y=cy-R0*(cP*r.sp[i]-sP*r.cp[i]*dc);
-        if(pen)ctx.lineTo(x,y);else{ctx.moveTo(x,y);pen=true;}
-      }
-    }
-  }
+  if(p.polys){for(const poly of p.polys)for(const r of poly)ringPath(ctx,r,cL,sL,cP,sP,cx,cy);}
+  else for(const r of p.lines)linePath(ctx,r,cL,sL,cP,sP,cx,cy);
   return true;
 }
 function setLive(on){
@@ -183,7 +209,7 @@ function refine(){
 function prebuild(){
   if(G.prebuilt)return;G.prebuilt=true;
   const items=[];d3.selectAll('#map path').each(function(d){if(d&&d.type&&!d.noSimp&&d.type!=='Sphere'&&d.type!=='FeatureCollection'&&!this.hasAttribute('data-away')&&!(d.type==='GeometryCollection'))items.push(d);});
-  const tols=[0.15,0.09,0.05,0.03];let ti=0,i=0;
+  const tols=[0.12,0.07,0.04,0.02];let ti=0,i=0;
   const step=()=>{
     const t0=performance.now();
     while(ti<tols.length&&performance.now()-t0<12){const d=items[i];const s=simplifiedFor(d,tols[ti]);if(s)prep(s);if(++i>=items.length){i=0;ti++;}}
