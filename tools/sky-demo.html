@@ -13,14 +13,15 @@
   .cap{padding:6px 9px;display:flex;flex-direction:column;background:#10151f;}
   .cap b{font-size:14px;} .cap span{color:#8fa3b8;font-size:12px;}
 </style></head><body>
-<h1>Sternenhimmel – Varianten</h1>
+<h1>Milchstraße im Fokus – schwärzerer Hintergrund</h1>
 <p>Der Himmel steht hinter der Kugel (hier nur als Platzhalter-Kugel). Welche Variante gefällt dir?</p>
 <div class="grid" id="g"></div>
 <script src="../sky.js"></script>
 <script>
-const desc={aktuell:'wie jetzt: viele Sterne, Milchstraße',dezent:'knapp ein Drittel der Sterne, kleiner, ohne Glanz',milchstrasse:'wenige Sterne, Milchstraße breit und hell',nebel:'fast keine Sterne, violetter Nebel',tiefblau:'tiefblauer Verlauf, kaum Sterne',ruhig:'fast leer, nur ein paar Sterne'};
+const only=['milchstrasse','schwarz','kontrast','tiefschwarz','schwarzblau'];
+const desc={milchstrasse:'bisher (Vergleich)',schwarz:'Grund reines Schwarz, Band wie bisher',kontrast:'Schwarz, Band klarer, weniger Dunst drumherum',tiefschwarz:'Schwarz, Band eng und hell, kaum Dunst',schwarzblau:'wie Kontrast, mit minimalem Blauton am Rand',aktuell:'wie jetzt: viele Sterne, Milchstraße',dezent:'knapp ein Drittel der Sterne, kleiner, ohne Glanz',milchstrasse:'wenige Sterne, Milchstraße breit und hell',nebel:'fast keine Sterne, violetter Nebel',tiefblau:'tiefblauer Verlauf, kaum Sterne',ruhig:'fast leer, nur ein paar Sterne'};
 const g=document.getElementById('g');
-(async()=>{for(const [k,p] of Object.entries(Sky.PRESETS)){
+(async()=>{for(const [k,p] of Object.entries(Sky.PRESETS)){if(!only.includes(k))continue;
   const url=Sky.build(900,k);
   g.insertAdjacentHTML('beforeend','<div class="tile"><div class="sky" style="background-image:url('+url+')"><div class="globe"><i style="left:22%;top:18%;width:30%;height:34%"></i><i style="left:48%;top:50%;width:24%;height:30%"></i><i style="left:12%;top:58%;width:22%;height:26%"></i></div></div><div class="cap"><b>'+p.label+'</b><span>'+(desc[k]||'')+'</span></div></div>');
   await new Promise(r=>setTimeout(r,10));}})();

@@ -35,11 +35,16 @@ const PRESETS={
   aktuell:{label:'Aktuell',stars:1,pow:4.4,glow:true,grain:1,bandA:.5,bandW:1,warm:[255,220,140],cold:[125,148,250],bg:['#01030a','#040916','#01030a']},
   dezent:{label:'Dezent',stars:.3,pow:5.4,glow:false,grain:.7,bandA:.5,bandW:1,warm:[255,220,140],cold:[125,148,250],bg:['#01030a','#040916','#01030a']},
   milchstrasse:{label:'Milchstraße im Fokus',stars:.12,pow:5,glow:false,grain:1.4,bandA:.78,bandW:1.3,warm:[255,214,150],cold:[120,150,255],bg:['#01030a','#050a18','#01030a']},
+  // Milchstraße im Fokus mit schwärzerem Hintergrund: reines Schwarz als Grund, schwache Ausläufer des Bandes (Halo) dünner/ausgeblendet
+  schwarz:{label:'Schwarz',stars:.12,pow:5,glow:false,grain:1.4,bandA:.78,bandW:1.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
+  kontrast:{label:'Schwarz, mehr Kontrast',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
+  tiefschwarz:{label:'Tiefschwarz',stars:.12,pow:5,glow:false,grain:1.3,bandA:.95,bandW:1.2,gamma:2.4,halo:.3,warm:[255,214,150],cold:[120,150,255],bg:['#000','#000','#000']},
+  schwarzblau:{label:'Schwarz mit Blauhauch',stars:.12,pow:5,glow:false,grain:1.4,bandA:.88,bandW:1.3,gamma:1.9,halo:.55,warm:[255,214,150],cold:[120,150,255],bg:['#000','#020611','#000']},
   nebel:{label:'Nebel (violett)',stars:.06,pow:5.5,glow:false,grain:.5,bandA:.66,bandW:1.5,warm:[255,170,190],cold:[110,110,230],bg:['#05030f','#0b0620','#04020c']},
   tiefblau:{label:'Tiefblau, minimal',stars:.14,pow:6,glow:false,grain:.25,bandA:.14,bandW:1.8,warm:[190,210,255],cold:[90,120,210],bg:['#030a1c','#06142e','#020612']},
   ruhig:{label:'Fast leer',stars:.05,pow:6,glow:false,grain:.2,bandA:.0,bandW:1,warm:[255,255,255],cold:[255,255,255],bg:['#02040b','#050a16','#02040b']}
 };
-let currentPreset='aktuell';
+let currentPreset='schwarzblau'; // gewählt: Schwarz, mehr Kontrast, Blauhauch
 function build(w,pn){
   const o=PRESETS[pn||currentPreset]||PRESETS.aktuell;
   const h=w,R=rng(20261106),nz=makeNoise(7),nz2=makeNoise(99);
@@ -63,12 +68,12 @@ function build(w,pn){
     const fine=nz(u*PER*4,v*30,3,PER*4,u);
     let lane=Math.max(0,nz2(u*PER*1.4+9,v*22,4,PER*1.4,u)-0.52)*3.2;
     lane*=Math.exp(-(t*t)/(2*0.06*0.06));
-    let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(0.3+cloud))*(0.55+0.7*fine);
+    let val=(core*bulge*(0.12+1.1*cloud)+halo*0.22*(o.halo==null?1:o.halo)*(0.3+cloud))*(0.55+0.7*fine);
     val*=Math.max(0,1-lane*1.15);
     val=Math.min(1,val*0.9);
     const warm=Math.min(1,core*bulge*1.1);
     const k=(j*gw+i)*4;
-    d[k]=o.cold[0]+(o.warm[0]-o.cold[0])*warm;d[k+1]=o.cold[1]+(o.warm[1]-o.cold[1])*warm;d[k+2]=o.cold[2]+(o.warm[2]-o.cold[2])*warm;d[k+3]=Math.round(255*Math.pow(val,1.45)*o.bandA);
+    d[k]=o.cold[0]+(o.warm[0]-o.cold[0])*warm;d[k+1]=o.cold[1]+(o.warm[1]-o.cold[1])*warm;d[k+2]=o.cold[2]+(o.warm[2]-o.cold[2])*warm;d[k+3]=Math.round(255*Math.pow(val,o.gamma||1.45)*o.bandA);
   }
   gx.putImageData(img,0,0);
   x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
