@@ -468,7 +468,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .click-panel .gs-grid{gap:8px;}
 
 /* Drop-a-Pin Personen: lange Namen dürfen umbrechen statt abgeschnitten zu werden */
-#game-screen.pin-people #target-name{white-space:normal!important;font-size:17px!important;overflow:visible!important;text-overflow:clip!important;}
+#game-screen.pin-people #target-name{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;}
 
 /* Profil-, Freunde- und Freundesprofil-Fenster hängen oben fest: beim Wechsel zwischen Reitern
    wächst das Fenster nur nach unten, die Reiter-Leiste bleibt unter dem Cursor. */
@@ -547,3 +547,30 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 #fill-msg button{padding:8px 18px;border-radius:9px;border:1px solid rgba(255,255,255,.25);background:#1D9E75;color:#fff;font-size:14px;cursor:pointer;}
 .fill-shake{animation:fill-shake .32s;}
 @keyframes fill-shake{0%,100%{transform:translateX(-50%);}20%{transform:translateX(calc(-50% - 7px));}40%{transform:translateX(calc(-50% + 7px));}60%{transform:translateX(calc(-50% - 4px));}80%{transform:translateX(calc(-50% + 4px));}}
+
+/* Mobil: Ziel (Land, Frage, Name) oben nie abschneiden — umbrechen und Schrift anpassen (mobile.js) */
+#target-name,#reg-target-name{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;hyphens:auto;line-height:1.18!important;}
+#iq-text{overflow-wrap:anywhere;hyphens:auto;}
+/* Bildschirmhöhe ohne Browserleisten: auf dem Handy ist 100vh höher als der sichtbare Bereich (unten fehlen sonst Statistik und Fortschritt) */
+#game-screen,#region-screen,#flag-screen{height:100vh;height:100dvh;}
+@media (max-width:560px){
+  #game-screen>div:first-child,#region-screen>div:first-child{flex-wrap:wrap;padding:.45rem .7rem!important;gap:.3rem .5rem!important;}
+  /* Ziel bekommt eine eigene, volle Zeile unter Menü-Knopf und Zähler */
+  #game-screen>div:first-child>div:nth-child(2),#region-screen>div:first-child>div:nth-child(2){order:3;flex:1 1 100%!important;}
+  #game-screen>div:first-child>div:nth-child(3),#region-screen>div:first-child>div:nth-child(3){order:2;margin-left:auto;}
+}
+
+#fill-msg:empty{display:none;}
+/* Mobil: Statistikzeile unten bleibt einzeilig lesbar (Zahl und Wort zusammen), bei Platzmangel nur kleiner/umbrechend zwischen den Gruppen */
+@media (max-width:560px){
+  #game-screen>div:last-child,#region-screen>div:last-child,#flag-screen>div:last-child{flex-wrap:wrap;gap:.15rem .85rem!important;font-size:12px!important;padding:.4rem .7rem!important;}
+  #game-screen>div:last-child>span,#region-screen>div:last-child>span,#flag-screen>div:last-child>span{white-space:nowrap;}
+}
+
+@media (max-width:560px){
+  /* Eintipp-Quizze: Menü / Optionen / Überspringen oben in einer Reihe, Frage und Zähler darunter über die volle Breite */
+  #flag-screen>div:first-child{flex-wrap:wrap;padding:.45rem .7rem!important;gap:.3rem .5rem!important;}
+  #flag-screen>div:first-child>div:nth-child(2){order:4;flex:1 1 100%!important;}
+  #flag-screen>div:first-child>#flag-opts-btn{margin-left:auto;}
+  #flag-screen>div:first-child>#flag-quiz-lbl,#flag-quiz-lbl{white-space:normal;}
+}
