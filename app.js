@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-08 B';
+const BUILD_ID='2026-11-08 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3536,11 +3536,10 @@ const REGION_QUIZZES={
     // circle happened to be on top rather than the region actually under the cursor. Prefecture
     // borders are dense enough here that the real polygons are the more accurate hit target.
     tinyHit:false,
-    // Okinawa still renders at its real (if tiny, and excluded-from-fit) position rather than a
-    // repositioned inset, so — unlike Spain's Canarias — there's no separate inset projection to
-    // frame. insetFrameNames instead just boxes wherever mainPath actually drew it, the same way
-    // it already does for Alaska on the US map.
-    insetFrameNames:['Okinawa']
+    // Okinawa liegt an seinen echten Koordinaten unterhalb der Kartenfläche (die Anpassung oben schließt es bewusst aus) und
+    // wurde deshalb abgeschnitten. Wie die Kanaren bei Spanien bekommt es einen eigenen Einschub in der freien Ecke unten links
+    // (Kyushu beginnt erst bei x≈259).
+    insets:[{match:f=>f.properties.name==='Okinawa',box:[[40,485],[200,585]]}]
   }
 };
 const REGION_QUIZ_LIST=Object.entries(REGION_QUIZZES).map(([k,v])=>({key:k,name:v.name,count:v.count}));
