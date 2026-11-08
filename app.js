@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-07 H';
+const BUILD_ID='2026-11-08 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -666,6 +666,7 @@ function renderInputPage(){
   if(INPUT_QUIZZES.some(q=>q.type==='outline')&&typeof iqEnsureOutlineGeo==='function'&&!outlineGeo)iqEnsureOutlineGeo().then(()=>{if(_catRerender===renderInputPage&&$('category-screen').style.display!=='none')renderInputPage();});
   const scopable=ty=>ty!=='language'&&ty!=='currency'&&ty!=='neighbor';
   _showCatPage(renderInputPage,t('catInputTitle'),[
+    ...(typeof fillMenuGroup==='function'?[fillMenuGroup()]:[]),
     {cls:'gs-flag',head:t('inputQuiz'),items:INPUT_QUIZZES.map(q=>{
       const base={icon:INPUT_ICONS[q.type]||'✏️',title:t(q.titleKey),sub:t(q.subKey)};
       return scopable(q.type)
@@ -810,6 +811,7 @@ function gameScoreKey(){
   // than the shared game object — same reasoning as elsewhere in the region-quiz code.
   if(_regGame)return 'region:'+_regGame.key;
   if(!game)return null;
+  if(game.fillMode)return 'fill:'+game.fillKey;
   if(game.flagMode)return game.iqCfg?iqScoreKey(game.iqCfg):null;
   if(game.pinMode)return 'pin:'+(game.difficulty||'EU');
   if(game.cityMode)return 'city:'+game.difficulty;
@@ -823,6 +825,7 @@ function gameScoreKey(){
 }
 function gameScoreValue(){
   if(_regGame)return {score:_regGame.firstTry||0,total:_regGame.total||0};
+  if(game.fillMode)return {score:Math.max(0,game.found.size-(game.hints||0)),total:game.total||0};
   if(game.flagMode)return {score:game.flagCorrect||0,total:game.flagTotal||0};
   if(game.pinMode){const isCont=['EU','AF','AS','NA','SA','OC','world','trivia','people'].includes(game.pinRegion);return {score:game.pinScore||0,total:(game.total||0)*(isCont?1050:1000)};}
   return {score:game.firstTry||0,total:game.total||0};
@@ -1155,11 +1158,11 @@ async function startGame(mode){
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
+function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(game.fillMode){if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -2260,7 +2263,7 @@ function renderMap(world){
   })();
 
   countryPaths=g.selectAll('.ct').data(renderFeatures).enter().append('path').attr('class','ct').attr('d',gpath).attr('stroke',projection==='globe'?th.border:'none').attr('stroke-width',0.8).style('vector-effect','non-scaling-stroke')
-    .on('mouseover',function(ev,d){const id=eff(+d.id);if(wrongFlashIds.has(id))return;const neededNow=game.currentGroup&&game.currentGroup.has(id);if(!game.found||!C[id]||!isActive(id)||(!neededNow&&(game.found.has(id)||(game.skippedItems&&game.skippedItems.has(id)))))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){if(game.fillMode)return;const id=eff(+d.id);if(wrongFlashIds.has(id))return;const neededNow=game.currentGroup&&game.currentGroup.has(id);if(!game.found||!C[id]||!isActive(id)||(!neededNow&&(game.found.has(id)||(game.skippedItems&&game.skippedItems.has(id)))))return;countryPaths.filter(f=>eff(+f.id)===id).attr('fill',THEMES[theme].hov);microstateDots&&microstateDots.filter(x=>x.id===id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(ev,d){countryPaths.filter(f=>eff(+f.id)===eff(+d.id)).attr('fill',f=>getColor(+f.id));microstateDots&&microstateDots.filter(x=>x.id===eff(+d.id)).attr('fill',x=>getMSColor(x.id));})
     .on('click',(ev,d)=>handleClick(+d.id));
 
@@ -2633,8 +2636,8 @@ function _availDot(id){return theme==='relief'?'#f4ecd0':_avail(id);}
 // than one question in a round (see _triviaBuildSpecs()'s comment); it simply keeps its colour when a
 // later question needs it again — it is never reset to "available" — so the colour never CHANGES as a
 // new question loads and therefore gives nothing away about which countries the new answer contains.
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if(keepFound&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){
@@ -2645,7 +2648,7 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
     const hideBorders=game.lakeMode||game.riverMode;
     if(borderPath)borderPath.style('display',hideBorders?'none':'');
     d3.select('#map path.coastline').style('display',hideBorders?'none':'');
-  }else if(game.pinMode){
+  }else if(game.pinMode||game.fillMode){
     countryPaths.attr('fill',d=>getColor(+d.id)).attr('cursor','default');
     if(microstateDots)microstateDots.attr('fill',d=>getMSColor(d.id)).attr('stroke',th.border).attr('cursor','default');
     if(borderPath)borderPath.style('display','');
@@ -2659,7 +2662,7 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   if(islandZoneVisuals){
     const hideZones=neutral||game.pinMode;
     islandZoneVisuals.style('display',hideZones?'none':'')
-      .attr('stroke',z=>{if(game.skippedItems&&game.skippedItems.has(z.id))return th.skipped;if(keepFound&&game.found&&game.found.has(z.id))return th.found;return'rgba(255,255,255,0.6)';});
+      .attr('stroke',z=>{if(game.skippedItems&&game.skippedItems.has(z.id))return th.skipped;if((keepFound||game.fillMode)&&game.found&&game.found.has(z.id))return th.found;return'rgba(255,255,255,0.6)';});
     if(islandZoneHits)islandZoneHits.style('display',hideZones?'none':'').style('cursor',z=>isActive(z.id)?'pointer':'default');
   }
   d3.selectAll('.fgui-overlay').attr('fill',(neutral||game.pinMode)?th.avail:th.dim);
@@ -2961,6 +2964,7 @@ function handleClick(rawId){
   });
 }
 function updateStats(){
+  if(game.fillMode){updateFillStats();return;} // Karte ausfüllen (fill.js)
   if(game.challengeMode){
     const g=_challenge;
     $('btn-skip').style.display='';
