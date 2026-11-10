@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-10 E';
+const BUILD_ID='2026-11-10 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -775,7 +775,7 @@ function setProjection(v){
   if(worldData&&$('game-screen')&&$('game-screen').style.display!=='none'&&game&&Object.keys(game).length){
     renderMap(worldData);
     if(game.cityMode){const z=cityZoom(game.cityFeatures);if(z)zoomTo(z[0],z[1],z[2]);}
-    else if(game.pinMode){const z=cityZoom(game.pinCities);if(z)zoomTo(z[0],z[1],z[2]);}
+    else if(game.pinMode){pinZoomNow();}
     else if(game.lakeMode||game.riverMode||game.mode==='custom'){/* Weltansicht beibehalten */}
     else if(game.mode){const g=zoomForMode(game.mode);zoomToGeo(g.lon,g.lat,g.k);}
   }
@@ -1567,7 +1567,7 @@ async function startPinGame(region,fixedCities){
   updateAllText();
   await ensureAdmin1Borders();
   if(worldData)renderMap(worldData);else await loadMap();
-  const z=cityZoom(cities);if(z)zoomTo(z[0],z[1],z[2]);
+  pinZoomNow();
   nextPin();
 }
 function pinJob(c){return (c&&(c['job_'+lang]||c.job_en))||'';}
@@ -1963,7 +1963,16 @@ function zoomTo(cx,cy,k){
   const svg=d3.select('#map');
   const W=960,H=500;
   const tx=W/2-cx*k,ty=H/2-cy*k;
-  svg.transition().duration(600).call(zoomBehavior.transform,d3.zoomIdentity.translate(tx,ty).scale(k));
+  // Ziel in den erlaubten Bereich schieben: sonst landet die Ansicht außerhalb der Karte und das erste Ziehen springt
+  let tr=d3.zoomIdentity.translate(tx,ty).scale(k);
+  try{tr=zoomBehavior.constrain()(tr,zoomBehavior.extent().call(svg.node(),svg.datum()),zoomBehavior.translateExtent());}catch(e){}
+  svg.transition().duration(600).call(zoomBehavior.transform,tr);
+}
+// Drop a Pin: Kontinent-/Welt-Runden zeigen immer den festen Spielbereich (mittig), nicht die Zufallsstädte der Runde
+function pinZoomNow(){
+  const r=game&&game.pinRegion;
+  if(['EU','AF','AS','NA','SA','OC','world','trivia','people'].includes(r)){const g=zoomForMode(['trivia','people'].includes(r)?'world':r);zoomToGeo(g.lon,g.lat,g.k);return;}
+  const z=cityZoom(game.pinCities);if(z)zoomTo(z[0],z[1],z[2]);
 }
 
 // State/province border lines for Drop-a-Pin (fades in at strong zoom, see applyDotR). Lazily
