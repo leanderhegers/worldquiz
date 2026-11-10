@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-10 C';
+const BUILD_ID='2026-11-10 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1660,7 +1660,7 @@ function handlePinClick(ev){
   const decay=(typeof PIN_DECAY!=='undefined'&&PIN_DECAY[game.pinRegion])||700;
   const maxDist=decay*5;
   let pts=dist>=maxDist?0:Math.round(1000*Math.exp(-Math.max(0,dist-20)/decay));
-  let countryBonus=false;
+  let countryBonus=false,glowFeat=null;
   const isContinent=['EU','AF','AS','NA','SA','OC','world','trivia','people'].includes(game.pinRegion);
   if(isContinent){
     // Bonus if the pin is inside the target's country — or inside the 20 km full-points circle, so a
@@ -1669,8 +1669,9 @@ function handlePinClick(ev){
     else if(countryPaths){
       const feats=countryPaths.data();
       const targetFeat=pinTargetFeature(city,feats);
-      if(targetFeat&&d3.geoContains(targetFeat,guess)){pts+=50;countryBonus=true;}
+      if(targetFeat&&d3.geoContains(targetFeat,guess)){pts+=50;countryBonus=true;glowFeat=targetFeat;}
     }
+    if(countryBonus&&!glowFeat&&countryPaths){try{glowFeat=pinTargetFeature(city,countryPaths.data());}catch(e){}}
   }
   game.pinScore=(game.pinScore||0)+pts;
   game.pinTotalDist=(game.pinTotalDist||0)+dist;
@@ -1678,6 +1679,13 @@ function handlePinClick(ev){
   const gp=currentProj([guess[0],guess[1]]),tp=currentProj([city.lon,city.lat]);
   if(pinLayer){
     pinLayer.selectAll('*').remove();
+    // Richtiges Land: leichter grüner Schein
+    if(glowFeat&&currentProj){
+      pinLayer.append('path').datum(glowFeat).attr('d',d3.geoPath().projection(currentProj))
+        .attr('class','pin-country-glow').attr('fill','rgba(79,209,139,0.16)').attr('stroke','rgba(79,209,139,0.75)')
+        .attr('stroke-width',1.6).style('vector-effect','non-scaling-stroke').style('pointer-events','none')
+        .style('filter','drop-shadow(0 0 7px rgba(79,209,139,.65))');
+    }
     // 20km Vollpunkt-Umkreis um den richtigen Standort — bei ausgedehnten Zielen deren Fläche
     if(currentProj){
       const circleGeoPath=d3.geoPath().projection(currentProj);
@@ -3309,6 +3317,9 @@ function nextFlag(){
   setTimeout(()=>inp.focus(),50);
 }
 
+// Zusätzlich akzeptierte Schreibweisen bei Länder-Antworten (normalisiert, ohne Umlaute)
+const IQ_ALT_COUNTRY={826:['grossbritannien','grossbrittanien','großbritannien','großbrittanien','great britain','gran bretana','grande-bretagne','grande bretagne','uk','gb']};
+function iqAltOk(id,v){return !!(game&&!(game.inputMode==='language'||game.inputMode==='currency'||iqAnswerCapital())&&(IQ_ALT_COUNTRY[id]||[]).some(a=>a===v||(v.length>=3&&a.startsWith(v))));}
 function handleFlagInput(val){
   const v=norm(val.trim());
   if(!v||!showDropdown){$('flag-dropdown').style.display='none';_fMatches=[];if(!v)return;return;}
@@ -3321,7 +3332,7 @@ function handleFlagInput(val){
   // further per-type existence check is needed here.
   const pool=(game&&game.flagPool)?(id=>game.flagPool.has(id)):(()=>true);
   const nameOf=id=>iqDisplayName(id);
-  _fMatches=allIds.filter(id=>pool(id)&&norm(nameOf(id)).includes(v))
+  _fMatches=allIds.filter(id=>pool(id)&&(norm(nameOf(id)).includes(v)||iqAltOk(id,v)))
     .sort((a,b)=>{
       const na=norm(nameOf(a)),nb=norm(nameOf(b));
       return (na.startsWith(v)?0:1)-(nb.startsWith(v)?0:1)||na.localeCompare(nb);
@@ -3362,7 +3373,7 @@ function submitFlag(){
   // total. flagFound already tracks "this id is done" for every input mode, so reuse it as the guard.
   if(game.flagFound&&game.flagFound.has(id))return;
   const tg=mode==='language'?LANGUAGES[id]:mode==='currency'?CURRENCIES[id]:iqAnswerCapital()?CAPITALS[id]:C[id];
-  if(val===norm(tg.de)||val===norm(tg.en)){
+  if(val===norm(tg.de)||val===norm(tg.en)||iqAltOk(id,val)){
     game.flagCorrect++;game.flagFound.add(id);
     showFlagFb('✓ '+iqDisplayName(id),'#1D9E75');
     recordCorrectForCurrent();
