@@ -25,6 +25,24 @@ function _duelEl(id){return document.getElementById(id);}
 function _duelRef(id){return _db.collection('duels').doc(id);}
 function _duelEsc(s){return typeof escapeHtml==='function'?escapeHtml(String(s)):String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function _duelModeName(m,de){return m==='pin'?(de?'Drop-a-Pin Europa':'Drop-a-Pin Europe'):m==='map'?(de?'Länder anklicken (Welt)':'Click countries (world)'):(de?'Flaggen-Quiz':'Flag quiz');}
+// Schwierigkeit (nur Flaggen und Karte): all | easy | medium | hard.
+// Flaggen: Leicht = Anfaenger+Einfach, Mittel = Mittel, Schwer = Rest (Stufen aus flagIdsForDifficulty).
+// Karte: nach Bevoelkerung in 5 Stufen (DIFFICULTY_TIERS): Leicht = 1+2, Mittel = 3+4, Schwer = 5.
+let _duelSelDiff='all';
+function _duelDiffName(df,de){return df==='easy'?(de?'Leicht':'Easy'):df==='medium'?(de?'Mittel':'Medium'):df==='hard'?(de?'Schwer':'Hard'):(de?'Alle':'All');}
+function _duelTitle(d,de){const m=_duelModeName(d.mode,de);return(d.diff&&d.diff!=='all'&&d.mode!=='pin')?m+' · '+_duelDiffName(d.diff,de):m;}
+function _duelKey(mode,diff){return mode+((diff&&diff!=='all'&&mode!=='pin')?'_'+diff:'');}
+function _duelPool(mode,diff){
+  if(mode==='pin')return getPinCities('EU').map(c=>c.name_en);
+  if(mode==='map'){
+    const T=DIFFICULTY_TIERS;
+    const ids=diff==='easy'?T[0].concat(T[1]):diff==='medium'?T[2].concat(T[3]):diff==='hard'?T[4]:Object.keys(C).map(Number);
+    return ids.filter(id=>C[id]);
+  }
+  if(diff==='easy')return flagIdsForDifficulty('beginner').concat(flagIdsForDifficulty('easy'));
+  if(diff==='medium'||diff==='hard')return flagIdsForDifficulty(diff);
+  return flagIdsForDifficulty('all');
+}
 const DUEL_ONLINE_MS=100*1000; // so jung muss lastSeen sein, damit ein Freund als online gilt
 function _duelOnline(f){return Date.now()-(f.lastSeen||0)<DUEL_ONLINE_MS;}
 
@@ -112,6 +130,7 @@ async function duelOpenPicker(preUid){
   _duelRenderPicker();
 }
 function duelPickMode(m){_duelSelMode=m;_duelRenderPicker();}
+function duelPickDiff(df){_duelSelDiff=df;_duelRenderPicker();}
 function duelToggleFriend(uid){
   if(_duelSel.has(uid))_duelSel.delete(uid);
   else if(_duelSel.size<DUEL_MAX_PLAYERS-1)_duelSel.add(uid);
@@ -132,6 +151,7 @@ function _duelRenderPicker(){
     ${card('flag','🏳️',de?'10 Flaggen, gleiche Fragen für alle':'10 flags, same questions for everyone')}
     ${card('map','🗺️',de?'10 zufällige Länder auf der Weltkarte anklicken':'Click 10 random countries on the world map')}
     ${card('pin','📍',de?'10 europäische Städte auf der Karte setzen':'Place 10 European cities on the map')}
+    ${_duelSelMode==='pin'?'':`<div class="duel-sub" style="text-align:left;margin-top:4px;">${de?'Schwierigkeit':'Difficulty'}</div><div style="display:flex;gap:6px;">${['all','easy','medium','hard'].map(df=>`<button class="duel-btn${_duelSelDiff===df?' primary':''}" style="flex:1;width:auto;margin:0;padding:8px 4px;" onclick="duelPickDiff('${df}')">${_duelDiffName(df,de)}</button>`).join('')}</div>`}
     <div class="duel-sub" style="text-align:left;margin-top:4px;">${de?`Mitspieler wählen (${_duelSel.size}/${DUEL_MAX_PLAYERS-1}, max. ${DUEL_MAX_PLAYERS} Spieler insgesamt)`:`Pick players (${_duelSel.size}/${DUEL_MAX_PLAYERS-1}, max. ${DUEL_MAX_PLAYERS} players total)`}</div>
     <div class="duel-friends">${friends}</div>
     <button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladung senden':'Send invitation'}</button>
@@ -146,12 +166,13 @@ async function duelSendInvite(){
   uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u);names[u]=(f&&f.username)||'?';});
   // Flaggen: Länder-IDs. Pin: Stadtnamen (name_en) aus dem europäischen Pool — alle lösen sie über
   // getPinCities('EU') wieder in dieselben Städte auf.
-  const pool=mode==='pin'?getPinCities('EU').map(c=>c.name_en):mode==='map'?Object.keys(C).map(Number):Object.keys(C).map(Number).filter(id=>ISO2[id]);
-  const picked=_duelDraw(mode,pool);
+  const diff=mode==='pin'?'all':(_duelSelDiff||'all');
+  const pool=_duelPool(mode,diff);
+  const picked=_duelDraw(_duelKey(mode,diff),pool);
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,...uids],host:me,names,mode,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{}
+      players:[me,...uids],host:me,names,mode,diff,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{}
     });
     _duelLobbyId=ref.id;
     clearTimeout(_duelWaitTimer);
@@ -186,7 +207,7 @@ function _duelRenderLobby(d){
     return `<div class="duel-friend"><span>${ico}</span><span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}</span><span class="duel-sub" style="font-size:12px;">${lbl}</span></div>`;
   }).join('');
   const joined=(d.players||[]).filter(u=>(d.r||{})[u]==='yes').length;
-  _duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelModeName(d.mode,de)}</h2>
+  _duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle(d,de)}</h2>
     <div class="duel-friends">${rows}</div>
     ${isHost
       ?`<div class="duel-sub">${de?'Starte, sobald alle bereit sind. Wer bis dahin nicht zugesagt hat, spielt nicht mit.':'Start when everyone is ready. Players who have not accepted will not take part.'}</div>
@@ -226,7 +247,7 @@ function _duelShowBanner(d){
   _duelBannerId=d.id;
   const host=_duelEsc((d.names||{})[d.host]||'?');
   const others=(d.players||[]).length-2;
-  b.innerHTML=`<div class="duel-banner-text">⚔️ <b>${host}</b> ${de?'fordert dich heraus:':'challenges you:'} ${_duelModeName(d.mode,de)}${others>0?(de?` (+${others} weitere)`:` (+${others} more)`):''}</div>
+  b.innerHTML=`<div class="duel-banner-text">⚔️ <b>${host}</b> ${de?'fordert dich heraus:':'challenges you:'} ${_duelTitle(d,de)}${others>0?(de?` (+${others} weitere)`:` (+${others} more)`):''}</div>
     <div class="duel-banner-btns"><button class="duel-btn primary" onclick="duelAccept('${d.id}')">${de?'Annehmen':'Accept'}</button>
     <button class="duel-btn" onclick="duelDecline('${d.id}')">${de?'Ablehnen':'Decline'}</button></div>`;
   b.style.display='flex';
@@ -266,14 +287,14 @@ async function _duelBegin(d){
   const me=_duelMe();
   const mode=d.mode==='pin'?'pin':d.mode==='map'?'map':'flag';
   _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},finished:false};
-  if(d.host!==me)_duelRecentAdd(mode,d.q||[],mode==='pin'?getPinCities('EU').length:mode==='map'?Object.keys(C).length:Object.keys(C).filter(id=>ISO2[id]).length);
+  if(d.host!==me)_duelRecentAdd(_duelKey(mode,d.diff),d.q||[],_duelPool(mode,d.diff).length);
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
   const de=_duelDE(),isPin=mode==='pin';
   const queue=isPin?[]:d.q.map(id=>({type:mode==='map'?'country':'flag',id}));
   const cities=isPin?d.q.map(n=>getPinCities('EU').find(c=>c.name_en===n)).filter(Boolean):[];
   const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelEsc(_duelCur.names[u]||'?')).join(', ');
-  const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelModeName(mode,de)}</h2>
+  const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff},de)}</h2>
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
   // Karten-Modus braucht die geladene Weltkarte, Flaggen ihre Bilder — beides läuft während des Countdowns.
