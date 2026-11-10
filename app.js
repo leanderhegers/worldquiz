@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-10 B';
+const BUILD_ID='2026-11-10 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -862,7 +862,7 @@ function toggleOpts(){openCtxOpts('game');}
 function setTxt(id,v){const e=$(id);if(e)e.textContent=v;}
 function renderHome(){
   setTxt('home-title',t('homeTitle'));setTxt('home-sub',t('homeSub'));
-  setTxt('home-play',t('playBtn'));setTxt('home-random-btn',t('randomChallengeBtn'));setTxt('home-daily-btn',t('dailyChallengeBtn'));setTxt('home-duel-btn','⚔️ '+({en:'Challenge friends',es:'Desafiar a amigos',fr:'Défier des amis'}[lang]||'Freunde herausfordern'));setTxt('home-options-btn','⚙ '+t('optionsLbl'));
+  setTxt('home-play',t('playBtn'));setTxt('home-random-btn',t('randomChallengeBtn'));setTxt('home-daily-btn',t('dailyChallengeBtn'));setTxt('home-duel-btn','⚔️ '+({es:'Multijugador',fr:'Multijoueur'}[lang]||'Multiplayer'));setTxt('home-options-btn','⚙ '+t('optionsLbl'));
   const dailyBtn=$('home-daily-btn');if(dailyBtn)dailyBtn.title=window._authUser?'':t('dailyLoginRequired');
   setTxt('home-opts-title',t('optionsLbl'));
   setTxt('build-stamp','Build '+BUILD_ID);
