@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-10 D';
+const BUILD_ID='2026-11-10 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3318,8 +3318,8 @@ function nextFlag(){
 }
 
 // Zusätzlich akzeptierte Schreibweisen bei Länder-Antworten (normalisiert, ohne Umlaute)
-const IQ_ALT_COUNTRY={826:['grossbritannien','grossbrittanien','großbritannien','großbrittanien','great britain','gran bretana','grande-bretagne','grande bretagne','uk','gb']};
-function iqAltOk(id,v){return !!(game&&!(game.inputMode==='language'||game.inputMode==='currency'||iqAnswerCapital())&&(IQ_ALT_COUNTRY[id]||[]).some(a=>a===v||(v.length>=3&&a.startsWith(v))));}
+const IQ_ALT_COUNTRY={826:{de:['grossbritannien','grossbrittanien','großbritannien','großbrittanien'],en:['great britain','uk','gb'],es:['gran bretana'],fr:['grande-bretagne','grande bretagne']}};
+function iqAltOk(id,v){return !!(game&&!(game.inputMode==='language'||game.inputMode==='currency'||iqAnswerCapital())&&((IQ_ALT_COUNTRY[id]||{})[lang]||[]).includes(v));}
 function handleFlagInput(val){
   const v=norm(val.trim());
   if(!v||!showDropdown){$('flag-dropdown').style.display='none';_fMatches=[];if(!v)return;return;}
@@ -3332,7 +3332,7 @@ function handleFlagInput(val){
   // further per-type existence check is needed here.
   const pool=(game&&game.flagPool)?(id=>game.flagPool.has(id)):(()=>true);
   const nameOf=id=>iqDisplayName(id);
-  _fMatches=allIds.filter(id=>pool(id)&&(norm(nameOf(id)).includes(v)||iqAltOk(id,v)))
+  _fMatches=allIds.filter(id=>pool(id)&&norm(nameOf(id)).includes(v))
     .sort((a,b)=>{
       const na=norm(nameOf(a)),nb=norm(nameOf(b));
       return (na.startsWith(v)?0:1)-(nb.startsWith(v)?0:1)||na.localeCompare(nb);
