@@ -164,8 +164,20 @@ async function duelSendInvite(){
 }
 
 // ── Lobby (Einladender sieht Antworten, Eingeladene warten auf den Start) ──
+// Karte bzw. Flaggenbilder schon in der Lobby laden: Auf einem langsamen Gerät/Netz dauerte sonst der
+// Countdown + Download erst nach dem Start (beim Einladenden ist beides meist schon im Cache).
+let _duelPrefetched=null;
+function _duelPrefetch(d){
+  if(!d||_duelPrefetched===d.id)return;
+  _duelPrefetched=d.id;
+  try{
+    if(d.mode==='map'){if(!worldData)loadMap().catch(()=>{});}
+    else if(d.mode==='flag'&&typeof _preloadChallengeImages==='function')_preloadChallengeImages((d.q||[]).map(id=>({type:'flag',id})));
+  }catch(e){}
+}
 function _duelRenderLobby(d){
   if(!d)return;
+  _duelPrefetch(d);
   const me=_duelMe(),de=_duelDE(),isHost=d.host===me;
   const rows=(d.players||[]).map(u=>{
     const st=(d.r||{})[u];

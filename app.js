@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-08 D';
+const BUILD_ID='2026-11-10 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2637,8 +2637,8 @@ function _availDot(id){return theme==='relief'?'#f4ecd0':_avail(id);}
 // than one question in a round (see _triviaBuildSpecs()'s comment); it simply keeps its colour when a
 // later question needs it again — it is never reset to "available" — so the colour never CHANGES as a
 // new question loads and therefore gives nothing away about which countries the new answer contains.
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
+function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){
@@ -2961,7 +2961,7 @@ function handleClick(rawId){
     flashKey:eff(rawId),
     flash:()=>flashWrong(rawId),
     repaint:updateColors,
-    keepOnFound:keepFound
+    keepOnFound:keepFound||!!game.challengeMode // Challenge/Duell: Treffer immer grün zeigen, auch bei "Grün bleibt: aus"
   });
 }
 function updateStats(){
