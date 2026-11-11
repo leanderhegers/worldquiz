@@ -300,20 +300,28 @@ function wheel(ev,svg,node){
   if(Math.abs(k1-k0)<1e-6||!currentProj||!G.apply)return;
   const inv=node.getScreenCTM().inverse();
   const ux=inv.a*ev.clientX+inv.c*ev.clientY+inv.e,uy=inv.b*ev.clientX+inv.d*ev.clientY+inv.f;
-  const px=(ux-G.tx)/k0,py=(uy-G.ty)/k0;
-  const ll=currentProj.invert([px,py]);
-  const onGlobe=ll&&isFinite(ll[0])&&isFinite(ll[1])&&Math.hypot(px-W/2,py-H/2)<R0*0.985;
-  let rotated=false,p2=[px,py];
-  if(onGlobe&&k1>k0){
-    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.8,Math.log2(k1/k0)*1.2);
-    const nc=d3.geoInterpolate(c0,ll)(step);
-    globeRot=[-nc[0],clamp(-nc[1],-90,90)];currentProj.rotate(globeRot);
-    const q=currentProj(ll);if(q&&isFinite(q[0])){p2=q;rotated=true;}
-  }
-  // Wie bei Google Maps: die Kugel bleibt immer in der Bildmitte, nur die Drehung folgt dem Cursor
+  const rotated=rotToward(ux,uy,k0,k1);
   const [tx,ty]=G.centred(k1);
   G.apply(k1,tx,ty);
   svg.property('__zoom',d3.zoomIdentity.translate(tx,ty).scale(k1)); // d3-Zoom (Pinch) kennt den neuen Stand
+  afterRotate(rotated,k1);
+}
+// Dreht die Kugel beim Hineinzoomen zum Zeigepunkt (Cursor oder Mitte der zwei Finger); Kugel selbst bleibt zentriert
+function rotToward(ux,uy,k0,k1){
+  if(!currentProj||k1<=k0)return false;
+  const px=(ux-G.tx)/k0,py=(uy-G.ty)/k0;
+  const ll=currentProj.invert([px,py]);
+  const onGlobe=ll&&isFinite(ll[0])&&isFinite(ll[1])&&Math.hypot(px-W/2,py-H/2)<R0*0.985;
+  let rotated=false;
+  if(onGlobe){
+    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.8,Math.log2(k1/k0)*1.2);
+    const nc=d3.geoInterpolate(c0,ll)(step);
+    globeRot=[-nc[0],clamp(-nc[1],-90,90)];currentProj.rotate(globeRot);
+    rotated=true;
+  }
+  return rotated;
+}
+function afterRotate(rotated,k1){
   if(rotated){
     if(!G.wheelLive){setLive(true);G.wheelLive=true;}
     if(window.Sky)window.Sky.rotate(globeRot);
@@ -359,7 +367,13 @@ window.Globe={
       .constrain(t=>{ // Versatz zur zentrierten Lage höchstens (k-1)*Radius: bei k=1 genau zentriert
         const k=t.k,[bx,by]=centred(k); // immer zentriert (Google-Maps-Verhalten)
         return d3.zoomIdentity.translate(bx,by).scale(k);})
-      .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);
+      .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;
+        // Zwei-Finger-Zoom: Kugel bleibt zentriert, dreht sich aber zur Mitte der Finger
+        const se=ev.sourceEvent,tc=se&&se.touches;
+        if(kc&&t.k>G.k&&tc&&tc.length>=2){const mx=(tc[0].clientX+tc[1].clientX)/2,my=(tc[0].clientY+tc[1].clientY)/2,inv=node.getScreenCTM().inverse();
+          const ux=inv.a*mx+inv.c*my+inv.e,uy=inv.b*mx+inv.d*my+inv.f;
+          const rot=rotToward(ux,uy,G.k,t.k);G.apply(t.k,t.x,t.y);afterRotate(rot,t.k);return;}
+        G.apply(t.k,t.x,t.y);
         if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
         else if(kc&&G.dotR&&!G.wheelLive)dotsAt(t.k);}})
       .on('end',()=>{dotsAt(G.k);});
