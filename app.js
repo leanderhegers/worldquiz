@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-11 B';
+const BUILD_ID='2026-11-11 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2105,6 +2105,9 @@ function zoneIdAtPoint(x,y){
   return best;
 }
 
+// topojson.feature liefert bei jedem Aufruf neue Objekte: dann gingen alle Zwischenspeicher des Globus (Vereinfachung, Mittelpunkte) verloren und jeder Neuaufbau rechnete alles neu
+const _topoMemo=new WeakMap();
+function _topoCached(world,key){let m=_topoMemo.get(world);if(!m){m={};_topoMemo.set(world,m);}return m[key]||(m[key]=topojson.feature(world,world.objects[key]));}
 let _mapKind=null; // welches Spiel die aktuelle Karte aufgebaut hat: country | pin | city | river | lake | mountain | range
 function renderMap(world){
   _mapKind=game&&game.pinMode?'pin':game&&game.cityMode?'city':game&&game.riverMode?'river':game&&game.lakeMode?'lake':game&&game.mountainMode?'mountain':game&&game.rangeMode?'range':'country';
@@ -2168,14 +2171,14 @@ function renderMap(world){
   // (Rechteck minus Landfläche, gerade-ungerade gefüllt), die die grobe Küste der Kacheln genau abschneidet.
   if(theme==='relief'){
     g.append('rect').attr('class','relief-under').attr('x',-80).attr('y',0).attr('width',W+160).attr('height',H).attr('fill','none').attr('pointer-events','none');
-    const landF=topojson.feature(world,world.objects.land);
+    const landF=_topoCached(world,'land');
     if(projection==='globe'){const lg=landF.type==='Feature'?landF.geometry:{type:'GeometryCollection',geometries:landF.features.map(f=>f.geometry)};
       g.append('path').attr('class','ocean-mask').datum({type:'GeometryCollection',geometries:[{type:'Sphere'},lg]}).attr('d',gpath).attr('fill',th.bg).attr('fill-rule','evenodd').attr('stroke','none').attr('pointer-events','none');}
     else g.append('path').attr('class','ocean-mask').attr('d','M-80,-2H'+(W+80)+'V'+(H+2)+'H-80Z'+(gpath(landF)||'')).attr('fill',th.bg).attr('fill-rule','evenodd').attr('stroke','none').attr('pointer-events','none');
     if(window.Relief)window.Relief.init();
     addGrat();
   }
-  const countries=topojson.feature(world,world.objects.countries);
+  const countries=_topoCached(world,'countries');
 
   // Island zones: clickable outlines around scattered island nations. The shapes are precomputed
   // (tools/build-island-zones.js → data/island-zones.json, lon/lat rings) and only projected here.
@@ -2422,7 +2425,7 @@ function renderMap(world){
   // Island zone visuals — dashed hull outline above country fills, pointer-events off
   function izStroke(z){if(game.skippedItems&&game.skippedItems.has(z.id))return th.skipped;if(game.found&&game.found.has(z.id))return th.found;return'rgba(255,255,255,0.6)';}
   islandZoneVisuals=g.append('g').attr('class','iz-vis').selectAll('path').data(zoneHulls).enter().append('path')
-    .attr('d',z=>zonePathD(z))
+    .attr('d',z=>projection==='globe'?(d3.geoPath(proj)(z.geometry)||''):zonePathD(z))
     .attr('fill','none').attr('stroke',izStroke).attr('stroke-opacity',0.55)
     .attr('stroke-dasharray','5 4').style('vector-effect','non-scaling-stroke').attr('stroke-width',1.5)
     .style('pointer-events','none');

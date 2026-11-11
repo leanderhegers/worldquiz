@@ -253,7 +253,9 @@ function frame(){ // eine Zeichnung pro Animationsbild
   if(G.raf)return;
   G.raf=requestAnimationFrame(()=>{G.raf=0;if(window.Sky)window.Sky.rotate(globeRot);if(window.CanvasMap)window.CanvasMap.invalidate();});
 }
+let _touchN=0;
 function rebuild(){
+  if(_touchN>0){clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,200);return;} // Finger liegen noch: nicht mitten in der Geste neu aufbauen (Ruckler)
   setLive(false);
   if(typeof renderMap==='function'&&worldData)renderMap(worldData);
 }
@@ -307,14 +309,15 @@ function wheel(ev,svg,node){
   afterRotate(rotated,k1);
 }
 // Dreht die Kugel beim Hineinzoomen zum Zeigepunkt (Cursor oder Mitte der zwei Finger); Kugel selbst bleibt zentriert
-function rotToward(ux,uy,k0,k1){
+function rotToward(ux,uy,k0,k1,gain){
+  gain=gain||1;
   if(!currentProj||k1<=k0)return false;
   const px=(ux-G.tx)/k0,py=(uy-G.ty)/k0;
   const ll=currentProj.invert([px,py]);
   const onGlobe=ll&&isFinite(ll[0])&&isFinite(ll[1])&&Math.hypot(px-W/2,py-H/2)<R0*0.985;
   let rotated=false;
   if(onGlobe){
-    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.8,Math.log2(k1/k0)*1.2);
+    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.6*gain,Math.log2(k1/k0)*0.9*gain);
     const nc=d3.geoInterpolate(c0,ll)(step);
     globeRot=[-nc[0],clamp(-nc[1],-90,90)];currentProj.rotate(globeRot);
     rotated=true;
@@ -333,6 +336,9 @@ function afterRotate(rotated,k1){
 function bindOnce(parent){
   if(G.bound)return;G.bound=true;
   window.addEventListener('pointermove',onMove);
+  window.addEventListener('touchstart',e=>{_touchN=e.touches.length;},{passive:true});
+  window.addEventListener('touchend',e=>{_touchN=e.touches.length;},{passive:true});
+  window.addEventListener('touchcancel',()=>{_touchN=0;},{passive:true});
   window.addEventListener('pointerup',onUp);
   window.addEventListener('pointercancel',onUp);
   // Ein Klick direkt nach dem Ziehen darf kein Land anklicken
@@ -372,7 +378,7 @@ window.Globe={
         const se=ev.sourceEvent,tc=se&&se.touches;
         if(kc&&t.k>G.k&&tc&&tc.length>=2){const mx=(tc[0].clientX+tc[1].clientX)/2,my=(tc[0].clientY+tc[1].clientY)/2,inv=node.getScreenCTM().inverse();
           const ux=inv.a*mx+inv.c*my+inv.e,uy=inv.b*mx+inv.d*my+inv.f;
-          const rot=rotToward(ux,uy,G.k,t.k);G.apply(t.k,t.x,t.y);afterRotate(rot,t.k);return;}
+          const rot=rotToward(ux,uy,G.k,t.k,0.45);G.apply(t.k,t.x,t.y);afterRotate(rot,t.k);return;}
         G.apply(t.k,t.x,t.y);
         if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
         else if(kc&&G.dotR&&!G.wheelLive)dotsAt(t.k);}})
