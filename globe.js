@@ -305,15 +305,13 @@ function wheel(ev,svg,node){
   const onGlobe=ll&&isFinite(ll[0])&&isFinite(ll[1])&&Math.hypot(px-W/2,py-H/2)<R0*0.985;
   let rotated=false,p2=[px,py];
   if(onGlobe&&k1>k0){
-    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.6,Math.log2(k1/k0)*0.9);
+    const c0=[-globeRot[0],-globeRot[1]],step=Math.min(0.8,Math.log2(k1/k0)*1.2);
     const nc=d3.geoInterpolate(c0,ll)(step);
     globeRot=[-nc[0],clamp(-nc[1],-90,90)];currentProj.rotate(globeRot);
     const q=currentProj(ll);if(q&&isFinite(q[0])){p2=q;rotated=true;}
   }
-  let tx=ux-p2[0]*k1,ty=uy-p2[1]*k1;
-  const bx=W/2*(1-k1),by=H/2*(1-k1),lim=(k1-1)*R0;let dx=tx-bx,dyy=ty-by;const l=Math.hypot(dx,dyy);
-  if(l>lim){dx*=lim/(l||1);dyy*=lim/(l||1);}
-  tx=bx+dx;ty=by+dyy;
+  // Wie bei Google Maps: die Kugel bleibt immer in der Bildmitte, nur die Drehung folgt dem Cursor
+  const [tx,ty]=G.centred(k1);
   G.apply(k1,tx,ty);
   svg.property('__zoom',d3.zoomIdentity.translate(tx,ty).scale(k1)); // d3-Zoom (Pinch) kennt den neuen Stand
   if(rotated){
@@ -359,9 +357,8 @@ window.Globe={
     zoomBehavior=d3.zoom().scaleExtent([1,12])
       .filter(ev=>ev.touches&&ev.touches.length>1) // Mausrad macht on('wheel.globe') unten
       .constrain(t=>{ // Versatz zur zentrierten Lage höchstens (k-1)*Radius: bei k=1 genau zentriert
-        const k=t.k,[bx,by]=centred(k),lim=(k-1)*R0;let dx=t.x-bx,dy=t.y-by;const l=Math.hypot(dx,dy);
-        if(l>lim){dx*=lim/(l||1);dy*=lim/(l||1);}
-        return d3.zoomIdentity.translate(bx+dx,by+dy).scale(k);})
+        const k=t.k,[bx,by]=centred(k); // immer zentriert (Google-Maps-Verhalten)
+        return d3.zoomIdentity.translate(bx,by).scale(k);})
       .on('zoom',ev=>{const t=ev.transform;if(Math.abs(t.k-G.k)>1e-4||Math.abs(t.x-G.tx)>0.01||Math.abs(t.y-G.ty)>0.01){const kc=Math.abs(t.k-G.k)>1e-4;G.apply(t.k,t.x,t.y);
         if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
         else if(kc&&G.dotR&&!G.wheelLive)dotsAt(t.k);}})
