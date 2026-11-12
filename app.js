@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 B';
+const BUILD_ID='2026-11-12 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1844,7 +1844,7 @@ async function startTriviaGame(){
   const metrics=[
     {sorted:sortFor(pop),dirs:['most','least'],singleQ:_popQuestionText,multiQ:_popMultiQuestionText},
     {sorted:sortFor(area),dirs:['most','least'],singleQ:_areaQuestionText,multiQ:_areaMultiQuestionText},
-    {sorted:sortFor(happyD),dirs:['most','least'],singleQ:_happyQuestionText,multiQ:_happyMultiQuestionText},
+    {sorted:sortFor(happyD),dirs:['most'],singleQ:_happyQuestionText,multiQ:_happyMultiQuestionText},
     {sorted:sortFor(exportsD),dirs:['most','least'],singleQ:_exportQuestionText,multiQ:_exportMultiQuestionText},
     {sorted:sortFor(heritageD),dirs:['most'],singleQ:_heritageQuestionText,multiQ:_heritageMultiQuestionText}
   ];
