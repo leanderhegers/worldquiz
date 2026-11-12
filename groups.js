@@ -77,7 +77,7 @@ const Q=[
 const NUM=[
  ['pop100','numbers','Über 100 Mio. Einwohner','Countries with more than 100 million people','Países con más de 100 millones de habitantes','Pays de plus de 100 millions d’habitants',(p)=>p>1e8],
  ['pop50','numbers','50 bis 100 Mio. Einwohner','Countries with 50 to 100 million people','Países con 50 a 100 millones de habitantes','Pays de 50 à 100 millions d’habitants',(p)=>p>5e7&&p<=1e8],
- ['pop1','numbers','300.000 bis 1 Mio. Einwohner','Countries with 300,000 to 1 million people','Países con 300.000 a 1 millón de habitantes','Pays de 300 000 à 1 million d’habitants',(p)=>p>=3e5&&p<1e6],
+ ['pop1','numbers','100.000 bis 1 Mio. Einwohner','Countries with 100,000 to 1 million people','Países con 100.000 a 1 millón de habitantes','Pays de 100 000 à 1 million d’habitants',(p)=>p>=1e5&&p<1e6],
  ['pop100k','numbers','Unter 100.000 Einwohner','Countries with fewer than 100,000 people','Países con menos de 100.000 habitantes','Pays de moins de 100 000 habitants',(p)=>p<1e5]
 ];
 window.GROUP_CATS=CATS;window.GROUP_Q=Q;window.GROUP_NUM=NUM;
