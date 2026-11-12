@@ -14,7 +14,7 @@ const TAU=Math.PI*2;
 const SKIP=new Set(['defs','filter','style','title','desc','clipPath','linearGradient','radialGradient']);
 const S={svg:null,canvas:null,ctx:null,hitCtx:null,mo:null,ro:null,cache:new WeakMap(),hover:null,
   lastEv:null,movePending:false,fontFamily:'sans-serif',cursor:'',
-  liveProj:null,liveGeom:null,liveDraw:null,liveHit:null,liveCircle:null,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
+  liveProj:null,liveGeom:null,liveDraw:null,liveHit:null,liveCircle:null,livePin:null,inPin:false,stats:{draws:0,lastMs:0,avgMs:0,maxMs:0}};
 const tcache=new Map();
 
 function mul(m,n){return[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];}
@@ -230,6 +230,11 @@ function paint(el,m,alpha){
   if(SKIP.has(tag))return;
   const st=el.style;
   if(st.display==='none'||el.getAttribute('display')==='none'||(el.hasAttribute('data-away')&&!(S.liveProj&&tag==='circle')))return;
+  if(tag==='g'&&S.liveProj&&S.livePin&&el.classList.contains('pin-mark')){ // Globus live: Nadel an der aktuellen Position der Kugel
+    const pos=S.livePin(el.__data__);if(!pos)return;
+    const s0=parseTransform(el.getAttribute('transform')||'')[0]||1,s=s0*pos[2];
+    S.inPin=true;const mm=mul(m,[s,0,0,s,pos[0],pos[1]]);for(const ch of el.children)paint(ch,mm,alpha);S.inPin=false;return;
+  }
   const tr=el.getAttribute('transform');if(tr)m=mul(m,parseTransform(tr));
   if(st.opacity!=='')alpha*=+st.opacity;
   if(tag==='rect'&&el.classList.contains('relief-under')){if(window.Relief){S.ctx.globalAlpha=alpha;window.Relief.draw(S.ctx,m,S.vp);S.ctx.globalAlpha=1;}return;}
@@ -252,13 +257,13 @@ function shape(el,tag,m,alpha){
   let p=null,c=null,live=false,lp=null;
   if(tag==='path'){
     // Live-Modus (Globus beim Drehen): Geo-Formen werden aus ihrem GeoJSON direkt mit der aktuellen Projektion gezeichnet
-    if(S.liveProj){const gd=el.__data__;if(!gd||!gd.type)return;live=S.liveGeom?S.liveGeom(gd):gd;if(!live)return;}
+    if(S.liveProj&&!S.inPin){const gd=el.__data__;if(!gd||!gd.type)return;live=S.liveGeom?S.liveGeom(gd):gd;if(!live)return;}
     else{c=geom(el);p=c.p;if(!p)return;
       const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;
       if(S.lodOn){const lv=lodLevel(Math.sqrt(det(m)));
         if(lv>=0){if(c.lod===undefined)lodRequest(c,el.getAttribute('d'));else if(c.lod&&c.lod[lv])p=c.lod[lv];}}}
-  }else if(S.liveProj&&tag==='circle'&&S.liveCircle){lp=S.liveCircle(el);if(!lp)return;}
-  else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
+  }else if(S.liveProj&&!S.inPin&&tag==='circle'&&S.liveCircle){lp=S.liveCircle(el);if(!lp)return;}
+  else if(S.liveProj&&!S.inPin&&!(tag==='rect'&&el.classList.contains('ocean')))return;
   ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
   if(tag==='text'){text(el,m,alpha,fill,stroke);return;}
   if(live){if(!(S.liveDraw&&S.liveDraw(ctx,live))){ctx.beginPath();d3.geoPath(S.liveProj,ctx)(live);}} // eigene schnelle Kugelprojektion, sonst d3
@@ -441,7 +446,7 @@ window.CanvasMap={
   },
   redraw:draw,
   invalidate(){S.layerDirty=true;draw();},
-  setLive(proj,geomFn,drawFn,hitFn,circleFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.liveHit=hitFn||null;S.liveCircle=circleFn||null;S.layerDirty=true;S.layer=null;},
+  setLive(proj,geomFn,drawFn,hitFn,circleFn,pinFn){S.livePin=pinFn||null;S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.liveHit=hitFn||null;S.liveCircle=circleFn||null;S.layerDirty=true;S.layer=null;},
   // Pfad schon vor dem ersten Zeichnen zerlegen (Leerlauf-Vorbereitung auf der Startseite)
   warm(d){if(d&&!byStr.has(d)){if(byStr.size>2500)byStr.clear();byStr.set(d,{p:new Path2D(d),bbox:undefined,lod:buildLod(d)});}},
   // Detailstufen ein/aus (zum Vergleichen in der Leistungsprüfung)

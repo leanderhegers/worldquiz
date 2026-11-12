@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 A';
+const BUILD_ID='2026-11-12 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1550,7 +1550,8 @@ function haversine(lon1,lat1,lon2,lat2){const R=6371,rad=Math.PI/180;const dLat=
 // the scale is height/MAP_H — width/960 is only right at one aspect ratio and made pins, labels and
 // the 20 km circle several times too big on a portrait phone.
 function projPx(px){const svg=d3.select('#map').node();if(!svg)return px;const r=svg.getBoundingClientRect();const sc=(projection==='globe'?Math.min(r.width,r.height)/480:projection==='mercator'?r.height/MAP_H:Math.min(r.width/MAP_W,r.height/MAP_H))||1;const k=(d3.zoomTransform(svg).k)||1;return px/sc/k;}
-function addPin(layer,pt,color){
+function addPin(layer,pt,color,ll){
+  if(ll){pt.lon=ll[0];pt.lat=ll[1];} // Ort auf der Kugel: der Globus zeichnet die Nadel damit auch beim Drehen/Zoomen live mit
   const s=projPx(1);
   // .pin-mark + datum: applyDotR() re-scales these on every zoom step, so the pin stays the same
   // size on screen (22 px tall) at any zoom level and on any device, not just at placement time.
@@ -1705,8 +1706,8 @@ function handlePinClick(ev){
     const lineEnd=city.poly?(areaNear?currentProj(areaNear):null):tp;
     if(lineEnd)pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',lineEnd[0]).attr('y2',lineEnd[1])
       .attr('stroke',THEMES[theme].border).attr('stroke-width',1.2).attr('stroke-dasharray','4,3').style('vector-effect','non-scaling-stroke');
-    addPin(pinLayer,gp,'#e23a2a');      // Schätzung (rot)
-    addPin(pinLayer,tp,THEMES[theme].found); // tatsächlich (grün)
+    addPin(pinLayer,gp,'#e23a2a',guess);      // Schätzung (rot)
+    addPin(pinLayer,tp,THEMES[theme].found,[city.lon,city.lat]); // tatsächlich (grün)
   }
   showFeedback(t('pinFb')(Math.round(dist),pts)+(countryBonus?' (+50 🎯)':''),THEMES[theme].found);
   updateStats();

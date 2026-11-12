@@ -241,6 +241,12 @@ function liveCircle(el){
   const p=dotPos(el.__data__);if(!p)return null;
   return [p[0],p[1],(G.kBuilt||G.k)/G.k]; // Bildschirmgröße bleibt beim Zoomen gleich (r-Attribut gilt für kBuilt, die Ansicht ist mit G.k skaliert)
 } // Trefferkreise (transparent) nicht zeichnen
+// Nadel (Drop a Pin) beim Live-Zeichnen: Position aus Länge/Breite, Größe bleibt in Bildschirmpixeln
+function livePin(d){
+  if(!d||d.lon===undefined)return null;
+  const p=dotPos(d);if(!p)return null;
+  return [p[0],p[1],(G.kBuilt||G.k)/G.k];
+}
 // Punkte-Elemente (cx/cy/data-away) auf die aktuelle Drehung bringen, damit die Handler der Treffer-/Hover-Logik (nearestDot) stimmen
 function syncDots(){
   const sig=globeRot[0]+','+globeRot[1]+','+G.k;if(G.dotSig===sig)return;G.dotSig=sig;
@@ -301,7 +307,7 @@ function hitLive(cx,cy){
 function dotsAt(k){if(G.dotR){G.dotR(k);G.kBuilt=k;}}
 function setLive(on){
   if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
-  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null,on?liveCircle:null);
+  if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null,on?liveCircle:null,on?livePin:null);
   if(window.Relief)window.Relief.live=!!on;
 }
 function frame(){ // eine Zeichnung pro Animationsbild
