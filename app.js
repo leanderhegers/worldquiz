@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 R';
+const BUILD_ID='2026-11-12 S';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -93,7 +93,7 @@ function zoomToGeo(lon,lat,k){if(projection==='globe'&&window.Globe){window.Glob
 // and terrain both moved off their original hue (a lighter blue, and a dark green too close to
 // terrain's own land fill), while neon's magenta border already fit that theme's glow aesthetic
 // and stayed.
-const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#0a2a52',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#ff2a6d',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#000',mtn:'#7a5230'},relief:{bg:'#4d8fc2',sph:'#4d8fc2',grd:'rgba(255,255,255,0.34)',avail:'#cfd8a0',found:'rgba(24,150,60,0.72)',dim:'rgba(40,50,70,0.5)',hov:'rgba(255,255,255,0.4)',wrong:'rgba(200,40,25,0.74)',skipped:'rgba(230,130,10,0.74)',bar:'#2e8a4a',dot:'rgba(0,0,0,0.85)',border:'#4a3b2a',mtn:'#6b4a2a'}};
+const THEMES={atlas:{bg:'#3a80b8',sph:'#4a90cc',grd:'#2a70a8',avail:'#e0d4b4',found:'#4a8a30',dim:'#a8c4d8',hov:'#ccc0a0',wrong:'#c03820',skipped:'#d97c1a',bar:'#4a8a30',dot:'rgba(0,0,0,0.85)',border:'#0a2a52',mtn:'#8c6239'},neon:{bg:'#0a0420',sph:'#0e0838',grd:'#2a1550',avail:'#4a2a6a',found:'#05d9e8',dim:'#1a0e30',hov:'#a66bff',wrong:'#ff1f4f',skipped:'#ff8a00',bar:'#05d9e8',dot:'rgba(5,217,232,0.9)',border:'#c030e0',mtn:'#e8b923'},terrain:{bg:'#2878a8',sph:'#3088b8',grd:'#1e6898',avail:'#6a9a58',found:'#2e7d20',dim:'#8ab0c8',hov:'#e8dca0',wrong:'#c03820',skipped:'#d97c1a',bar:'#2e7d20',dot:'rgba(0,0,0,0.85)',border:'#000',mtn:'#7a5230'},relief:{bg:'#4d8fc2',sph:'#4d8fc2',grd:'rgba(255,255,255,0.34)',avail:'#cfd8a0',found:'rgba(24,150,60,0.72)',dim:'rgba(40,50,70,0.5)',hov:'rgba(255,255,255,0.4)',wrong:'rgba(200,40,25,0.74)',skipped:'rgba(230,130,10,0.74)',bar:'#2e8a4a',dot:'rgba(0,0,0,0.85)',border:'#4a3b2a',mtn:'#6b4a2a'}};
 const CONT_KEYS=['EU','AF','AS','NA','SA','OC'];
 const THEME_DOT={atlas:'#b0a080',neon:'#ff2a6d',terrain:'#6a9a58',relief:'#b9a070'};
 // Colorblind Mode is a toggle in the global options (home screen), not a 4th Design — it's
@@ -2724,6 +2724,7 @@ function renderMap(world){
   // both are required to avoid corrupting d3-zoom's touch-gesture bookkeeping (see history:
   // this previously made the *next* pan gesture unresponsive for a few seconds on iOS).
   zoomBehavior=d3.zoom().scaleExtent([1,maxZoom()]).translateExtent(txExt)
+    .clickDistance(COARSE?10:4) // ein Klick mit kleinem Zittern der Maus/des Fingers (bis 4 bzw. 10 px) zählt weiter als Klick, nicht als Verschieben
     .on('start',()=>{
       // Pointer-events is deliberately NOT touched here. 'start' fires on every mousedown,
       // before it's known whether the gesture becomes a drag or stays a plain click — disabling
@@ -3880,7 +3881,7 @@ function _renderRegionMap(cfg,features){
       .on('click',click);
   }
 
-  const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).on('zoom',ev=>{
+  const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).clickDistance(COARSE?10:4).on('zoom',ev=>{
     g.attr('transform',ev.transform);
   });
   svg.call(zoom);
