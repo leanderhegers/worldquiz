@@ -387,7 +387,15 @@ function onMove(ev){
   S.lastEv=ev;
   if(!S.movePending){S.movePending=true;requestAnimationFrame(()=>{S.movePending=false;if(S.lastEv)setHover(hitTest(S.lastEv.clientX,S.lastEv.clientY),S.lastEv);});}
 }
-function onClick(ev){const t=hitTest(ev.clientX,ev.clientY);if(t)fire(t,'click',ev);}
+// Ein Klick gilt dem Ort, an dem gedrückt wurde: Beim schnellen Klicken verschiebt leichtes Zittern der Hand die Karte um ein paar
+// Pixel (d3-zoom wertet es als Ziehen), und beim Loslassen läge das Ziel schon unter einem Nachbarland (schmale Länder wie Chile).
+function onDown(ev){S.down={x:ev.clientX,y:ev.clientY,t:performance.now(),target:hitTest(ev.clientX,ev.clientY)};}
+function onClick(ev){
+  let t=null;const d=S.down;S.down=null;
+  if(d&&performance.now()-d.t<1500&&Math.hypot(ev.clientX-d.x,ev.clientY-d.y)<=14)t=d.target; // Klick (kein echtes Ziehen): Ziel von beim Drücken
+  else t=hitTest(ev.clientX,ev.clientY);
+  if(t)fire(t,'click',ev);
+}
 function onLeave(ev){setHover(null,ev);}
 
 // ── lifecycle ──
@@ -436,6 +444,7 @@ function init(svg){
   S.ro=new ResizeObserver(()=>draw());S.ro.observe(svg);
   svg.addEventListener('mousemove',onMove);
   svg.addEventListener('mouseleave',onLeave);
+  svg.addEventListener('pointerdown',onDown,true);svg.addEventListener('mousedown',onDown,true);
   svg.addEventListener('click',onClick);
 }
 window.CanvasMap={
