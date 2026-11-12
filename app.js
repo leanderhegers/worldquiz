@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 J';
+const BUILD_ID='2026-11-12 K';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -580,7 +580,7 @@ function renderClickPage(){
     {icon:'🌐',title:t('optWorld'),sub:t('optWorldSub'),onclick:"startGame('world')"},
     {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'continents',renderPanel:_continentsPanel},
     {icon:'📊',title:t('optDifficulty'),sub:t('difficultySub'),panel:'difficulty',renderPanel:_difficultyPanel},
-    {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),onclick:'startTriviaGame()'},
+    {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),panel:'trivia',renderPanel:triviaMenuPanel},
     {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
   ];
   const regionCards=REGION_QUIZ_LIST.map(r=>gsCard("startRegionQuiz('"+r.key+"')",r.name[lang],r.count+' '+t('regions'),'region:'+r.key)).join('');
@@ -820,7 +820,7 @@ function gameScoreKey(){
   if(game.lakeMode)return 'lake:'+game.difficulty;
   if(game.mountainMode)return 'mountain:'+game.difficulty;
   if(game.rangeMode)return 'range:'+game.difficulty;
-  if(game.triviaMode)return 'trivia:world';
+  if(game.triviaMode)return 'trivia:'+(game.triviaCat&&game.triviaCat!=='all'?game.triviaCat:'world');
   if(game.mode&&game.mode!=='custom')return 'map:'+game.mode;
   return null;
 }
@@ -1159,7 +1159,7 @@ async function startGame(mode){
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
+function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame(game.triviaCat);else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
@@ -1841,7 +1841,9 @@ const TRIVIA_GROUP_QUESTIONS=5; // so viele Ländergruppen-Fragen (EU, NATO, Geb
 const TRIVIA_SINGLE_PER_SIDE=2; // individual rank questions per metric+direction
 const TRIVIA_SINGLE_MAX_RANK=8; // single-question ranks never go deeper than this — "Platz 17" is too obscure to guess
 const TRIVIA_GROUP_MIN=3,TRIVIA_GROUP_MAX=5; // "top N" question size — matches "the 3/4/5 countries with..."
-async function startTriviaGame(){
+// cat: 'all' (Mischung), 'ranks' (nur Ranglisten-Fragen) oder eine Kategorie aus groups.js (history, politics, mountains, geo, special, numbers)
+async function startTriviaGame(cat){
+  cat=cat||'all';
   if(!worldData)await loadMap();
   const [pop,exportsD,happyD,heritageD]=await Promise.all([_loadPopData(),_loadExportsData(),_loadHappinessData(),_loadHeritageData()]);
   const area=_computeAreaData();
@@ -1859,9 +1861,13 @@ async function startTriviaGame(){
     specs=specs.concat(_triviaBuildSpecs(m.sorted,dir,m.singleQ,m.multiQ,TRIVIA_SINGLE_PER_SIDE,groupN,TRIVIA_SINGLE_MAX_RANK));
   }));
   // Ländergruppen (groups.js) daruntermischen
-  specs=specs.concat(shuffle(groupTriviaItems(pop,null)).slice(0,TRIVIA_GROUP_QUESTIONS).map(i=>({ids:i.ids.slice(),q:i.title+' (0/'+i.ids.length+')',base:i.title,n:i.ids.length})));
+  if(cat==='all')specs=specs.concat(shuffle(groupTriviaItems(pop,null)).slice(0,TRIVIA_GROUP_QUESTIONS).map(i=>({ids:i.ids.slice(),q:i.title+' (0/'+i.ids.length+')',base:i.title,n:i.ids.length})));
+  if(cat!=='all'&&cat!=='ranks'){ // nur Ländergruppen dieser Kategorie
+    specs=shuffle(groupTriviaItems(pop,null).filter(i=>i.cat===cat)).map(i=>({ids:i.ids.slice(),q:i.title+' (0/'+i.ids.length+')',base:i.title,n:i.ids.length}));
+    if(!allTargets)specs=specs.slice(0,quizRoundLimit);
+  }
   const shuffled=shuffle(specs);
-  game={mode:'trivia',triviaMode:true,
+  game={mode:'trivia',triviaMode:true,triviaCat:cat,
     queue:shuffled,current:null,currentGroup:null,
     found:new Set(),correct:0,wrong:0,firstTry:0,questionsCompleted:0,
     total:shuffled.length,wrongOnCurrent:false,skipped:0};
@@ -1892,6 +1898,17 @@ function groupTriviaItems(pop,area){
     if(ids.length>=3&&ids.length<=45)items.push({key:r[0],cat:r[1],ids,title:r[li]});
   });
   return items;
+}
+// Trivia-Menü: Mischung, Ranglisten und die Ländergruppen-Kategorien (groups.js)
+function triviaMenuPanel(){
+  const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+  const nq=c=>(window.GROUP_Q||[]).filter(r=>r[1]===c).length+(window.GROUP_NUM||[]).filter(r=>r[1]===c).length;
+  const unit=['Fragen','questions','preguntas','questions'][li];
+  const cards=[
+    gsCard("startTriviaGame()",['Alles gemischt','Everything mixed','Todo mezclado','Tout mélangé'][li],['Ranglisten und Ländergruppen','Rankings and country groups','Clasificaciones y grupos de países','Classements et groupes de pays'][li],'trivia:world'),
+    gsCard("startTriviaGame('ranks')",'🏆 '+['Rekorde & Ranglisten','Records & rankings','Récords y clasificaciones','Records et classements'][li],['Einwohner, Fläche, Glück, Export, Welterbe','Population, area, happiness, exports, heritage','Población, superficie, felicidad, exportaciones, patrimonio','Population, superficie, bonheur, exportations, patrimoine'][li],'trivia:ranks')
+  ].concat((window.GROUP_CATS||[]).map(c=>gsCard("startTriviaGame('"+c.key+"')",c.icon+' '+c.t[li],nq(c.key)+' '+unit+' · '+c.s[li],'trivia:'+c.key)));
+  return _cardsPanel(cards,'gs-grid-pin');
 }
 // ── DIFFICULTY TIERS (all 197 countries, split into 5 by population) ──
 // Precomputed once from data/population.json (sorted descending, cut into 5 equal-ish slices —
