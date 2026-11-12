@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 I';
+const BUILD_ID='2026-11-12 J';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2508,7 +2508,10 @@ function renderMap(world){
   }
 
   // Suppress the dot for any nation that now has a zone outline (the zone replaces the dot).
+  // Länder mit Inselzone bekommen nie einen Punkt – auch nicht, wenn ihre Zone gerade nicht gezeichnet wird (Rückseite des Globus,
+  // anderes Quiz): sonst erscheinen dort manchmal kleine Kreise statt der Umrandung
   const zonedIds=new Set(zoneHulls.map(z=>z.id));
+  if(islandZoneData&&islandZoneData.zones)ISLAND_ZONES.forEach(z=>{if(islandZoneData.zones.some(q=>q.id===z.id))zonedIds.add(z.id);});
   const activeDots=MICROSTATES.filter(m=>isActive(m.id)&&!zonedIds.has(m.id));
   // Visual dots are drawn once per wrap tile as real circles (≈36×3 — trivially cheap) rather
   // than riding along in the <use> clones, so that resizing them on zoom never dirties the
