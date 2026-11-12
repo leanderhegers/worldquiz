@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 O';
+const BUILD_ID='2026-11-12 P';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2543,9 +2543,11 @@ function renderMap(world){
   microstateHit=dynG.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
-    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const t0=nearestDot(ev,microstateHit)||d,cid=msUnderDot(ev,t0);if(cid!==t0.id){ // Zeiger liegt auf einem echten Land unter dem Trefferkreis (Katar neben Bahrain)
+        if(!wrongFlashIds.has(cid)&&C[cid]&&isActive(cid)&&game.found&&!game.found.has(cid)&&!(game.skippedItems&&game.skippedItems.has(cid)))countryPaths.filter(f=>eff(+f.id)===cid).attr('fill',THEMES[theme].hov);return;}
+      const t=t0;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(){microstateDots.attr('fill',x=>getMSColor(x.id));countryPaths&&countryPaths.attr('fill',f=>getColor(+f.id));})
-    .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(t.id);});
+    .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(msUnderDot(ev,t));});
 
   // Island zone visuals — dashed hull outline above country fills, pointer-events off
   function izStroke(z){if(game.skippedItems&&game.skippedItems.has(z.id))return th.skipped;if(game.found&&game.found.has(z.id))return th.found;return'rgba(255,255,255,0.6)';}
@@ -2630,6 +2632,21 @@ function renderMap(world){
   function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(maxZoom()));}
   function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
   function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/_sc/zoomK;}
+  // Der große Trefferkreis eines Mikrostaats (Handy: 22 px) darf ein echtes Nachbarland nicht verschlucken: liegt der Zeiger weiter
+  // als der sichtbare Punkt vom Mittelpunkt entfernt und innerhalb der Fläche eines anderen Landes, zählt dieses Land (Katar/Bahrain,
+  // VAE, Kuwait). Gibt die Land-ID zurück, auf die der Klick gehört.
+  function msUnderDot(ev,t){
+    try{
+      if(projection==='globe'||!currentProj||!currentProj.invert)return t.id;
+      const p=d3.pointer(ev,g.node()),c=proj([t.lon,t.lat]),k=d3.zoomTransform(svg.node()).k||1;
+      if(Math.hypot(p[0]-c[0],p[1]-c[1])<=(DOT_R*0.55)/_sc/k)return t.id;
+      const ll=proj.invert(p);if(!ll||!isFinite(ll[0]))return t.id;
+      const f=renderFeatures.find(x=>_pinInside(x,ll));
+      if(!f)return t.id;
+      const id=eff(+f.id);
+      return(C[id]&&!MS_IDS.has(id)&&isActive(id))?id:t.id;
+    }catch(e){return t.id;}
+  }
   // Among a hit-circle selection, return the datum whose centre is nearest the pointer (nearest-wins on overlap)
   function nearestDot(ev,sel){
     const p=d3.pointer(ev,g.node());let best=null,bestD=Infinity;
