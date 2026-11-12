@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 T';
+const BUILD_ID='2026-11-12 U';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1590,6 +1590,7 @@ function nextPin(){
   if(!game.queue||game.queue.length===0){showPinResult();return;}
   game.current=game.queue.shift();
   if(pinLayer)pinLayer.selectAll('*').remove();
+  game._pinRes=null;
   $('target-name').textContent=cityDisplayName(game.pinCities[game.current]);
   const _gs=$('game-screen');if(_gs)_gs.classList.toggle('pin-people',game.pinRegion==='people'); // long person names may wrap
   if(game.pinRegion==='people'){const fl=$('find-label');if(fl)fl.textContent=pinFindLabel();}
@@ -1657,6 +1658,39 @@ function pinAreaFeature(poly){
   return {type:'Polygon',coordinates:[ring.concat([ring[0]])]};
 }
 // Regionen mit +50 Länderbonus. Trivia bewusst nicht: dort ist ein Ort gesucht (Bauwerk, Naturwunder …), das Land gäbe die Antwort halb vor.
+// Ergebnis einer Runde (Nadeln, Entfernungslinie, Umkreis, grüner Länder-Schein) in die Nadel-Ebene zeichnen. Wird nach dem Klick und nach
+// jedem Neuaufbau der Karte (Fenstergröße, Design, Globus nach dem Drehen/Zoomen) aufgerufen – sonst wären die Nadeln danach weg.
+function drawPinResult(res){
+  if(!pinLayer||!currentProj||!res)return;
+  const {guess,city,glowFeat,areaNear}=res;
+  const gp=currentProj([guess[0],guess[1]]),tp=currentProj([city.lon,city.lat]);
+  {
+      pinLayer.selectAll('*').remove();
+      // Richtiges Land: leichter grüner Schein
+      if(glowFeat&&currentProj){
+        pinLayer.append('path').datum(glowFeat).attr('d',d3.geoPath().projection(currentProj))
+          .attr('class','pin-country-glow').attr('fill','rgba(79,209,139,0.16)').attr('stroke','rgba(79,209,139,0.75)')
+          .attr('stroke-width',1.6).style('vector-effect','non-scaling-stroke').style('pointer-events','none')
+          .style('filter','drop-shadow(0 0 7px rgba(79,209,139,.65))');
+      }
+      // 20km Vollpunkt-Umkreis um den richtigen Standort — bei ausgedehnten Zielen deren Fläche
+      if(currentProj){
+        const circleGeoPath=d3.geoPath().projection(currentProj);
+        const circleFeature=city.poly?pinAreaFeature(city.poly):d3.geoCircle().center([city.lon,city.lat]).radius(20/111.32)();
+        pinLayer.append('path').datum(circleFeature).attr('d',circleGeoPath)
+          .attr('fill','rgba(29,158,117,0.12)').attr('stroke',THEMES[theme].found)
+          .attr('stroke-width',1.2).attr('stroke-dasharray','5,3')
+          .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
+      }
+      // Line to the target — for an area, to its nearest edge point (none if the pin is inside it)
+      const lineEnd=city.poly?(areaNear?currentProj(areaNear):null):tp;
+      if(lineEnd)pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',lineEnd[0]).attr('y2',lineEnd[1])
+        .attr('stroke',THEMES[theme].border).attr('stroke-width',1.2).attr('stroke-dasharray','4,3').style('vector-effect','non-scaling-stroke');
+      addPin(pinLayer,gp,'#e23a2a',guess);      // Schätzung (rot)
+      addPin(pinLayer,tp,THEMES[theme].found,[city.lon,city.lat]); // tatsächlich (grün)
+  
+  }
+}
 const PIN_BONUS_REGIONS=['EU','AF','AS','NA','SA','OC','world','people'];
 function handlePinClick(ev){
   if(!canClick||!game||!game.pinMode||game.current===null||game.current===undefined)return;
@@ -1687,36 +1721,12 @@ function handlePinClick(ev){
   game.pinScore=(game.pinScore||0)+pts;
   game.pinTotalDist=(game.pinTotalDist||0)+dist;
   game.pinRound=(game.pinRound||0)+1;
-  const gp=currentProj([guess[0],guess[1]]),tp=currentProj([city.lon,city.lat]);
-  if(pinLayer){
-    pinLayer.selectAll('*').remove();
-    // Richtiges Land: leichter grüner Schein
-    if(glowFeat&&currentProj){
-      pinLayer.append('path').datum(glowFeat).attr('d',d3.geoPath().projection(currentProj))
-        .attr('class','pin-country-glow').attr('fill','rgba(79,209,139,0.16)').attr('stroke','rgba(79,209,139,0.75)')
-        .attr('stroke-width',1.6).style('vector-effect','non-scaling-stroke').style('pointer-events','none')
-        .style('filter','drop-shadow(0 0 7px rgba(79,209,139,.65))');
-    }
-    // 20km Vollpunkt-Umkreis um den richtigen Standort — bei ausgedehnten Zielen deren Fläche
-    if(currentProj){
-      const circleGeoPath=d3.geoPath().projection(currentProj);
-      const circleFeature=city.poly?pinAreaFeature(city.poly):d3.geoCircle().center([city.lon,city.lat]).radius(20/111.32)();
-      pinLayer.append('path').datum(circleFeature).attr('d',circleGeoPath)
-        .attr('fill','rgba(29,158,117,0.12)').attr('stroke',THEMES[theme].found)
-        .attr('stroke-width',1.2).attr('stroke-dasharray','5,3')
-        .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
-    }
-    // Line to the target — for an area, to its nearest edge point (none if the pin is inside it)
-    const lineEnd=city.poly?(areaNear?currentProj(areaNear):null):tp;
-    if(lineEnd)pinLayer.append('line').attr('x1',gp[0]).attr('y1',gp[1]).attr('x2',lineEnd[0]).attr('y2',lineEnd[1])
-      .attr('stroke',THEMES[theme].border).attr('stroke-width',1.2).attr('stroke-dasharray','4,3').style('vector-effect','non-scaling-stroke');
-    addPin(pinLayer,gp,'#e23a2a',guess);      // Schätzung (rot)
-    addPin(pinLayer,tp,THEMES[theme].found,[city.lon,city.lat]); // tatsächlich (grün)
-  }
+  game._pinRes={guess,city,glowFeat,areaNear}; // für den Neuaufbau der Karte (drawPinResult)
+  drawPinResult(game._pinRes);
   showFeedback(t('pinFb')(Math.round(dist),pts)+(countryBonus?' (+50 🎯)':''),THEMES[theme].found);
   updateStats();
   if(game.pinDuel&&typeof duelPinProgress==='function')duelPinProgress();
-  setTimeout(nextPin,2300);
+  {const g=game;setTimeout(()=>{if(game===g)nextPin();},2300);} // nur im selben Spiel weiterschalten
 }
 function showPinResult(){
   if(!game.total){back();return;}
@@ -2772,6 +2782,7 @@ function renderMap(world){
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
   else{svg.on('pointerdown.globe',null);svg.on('wheel.globe',null);} // Globus-Handler dürfen in den anderen Projektionen nicht weiterleben (sonst springt Mercator beim Scrollen zum Globus)
   setMapBg(th);updateColors();
+  if(game&&game.pinMode&&game._pinRes&&pinLayer){drawPinResult(game._pinRes);applyDotR(d3.zoomTransform(svg.node()).k||1);} // Nadeln überleben den Neuaufbau
   // "?canvas" variant: the SVG tree above becomes an invisible scene graph drawn by canvas-map.js.
   if(window.CANVAS_MAP&&window.CanvasMap)CanvasMap.attach(svg.node());
 }
