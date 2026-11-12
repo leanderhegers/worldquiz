@@ -18,7 +18,21 @@ const FT={
   fr:{head:'Remplir la carte',world:'Monde',worldSub:'Tape tous les pays',conts:'Continents',contsSub:'Un continent après l’autre',ph:'Tape un pays …',hint:'Indice',giveup:'Abandonner',time:'Temps',found:'trouvés',hints:'Indices',misses:'Erreurs',rem:'restants',
     again:'Déjà trouvé',unknown:'Aucun pays trouvé',notHere:'Pas sur cette carte',hintMsg:(l,n)=>'💡 Un pays qui commence par '+l+' … ('+n+' lettres)',doneTitle:'Carte complétée !',giveTitle:'Abandon',sum:(f,t,p)=>f+' sur '+t+' pays ('+p+' %)',sum2:(tm,h,m)=>'Temps '+tm+' · '+h+(h===1?' indice':' indices')+' · '+m+' manquants',show:'Résultat',lbl:'Remplir la carte'}
 };
+// Texte für die Varianten Hauptstädte und Zeitrennen
+const FT2={
+  de:{capHead:'Hauptstädte ausfüllen',capSub:'Hauptstädte eintippen',capPh:'Hauptstadt eingeben …',capHint:(l,n)=>'💡 Eine Hauptstadt mit '+l+' … ('+n+' Buchstaben)',capLbl:'Hauptstädte',
+    raceHead:'Zeitrennen',raceSub:'60 Sekunden – so viele Länder wie möglich',raceLbl:'Zeitrennen',timeUp:'Zeit abgelaufen!',left:'Rest'},
+  en:{capHead:'Fill in the capitals',capSub:'Type in the capitals',capPh:'Type a capital …',capHint:(l,n)=>'💡 A capital starting with '+l+' … ('+n+' letters)',capLbl:'Capitals',
+    raceHead:'Time race',raceSub:'60 seconds – as many countries as you can',raceLbl:'Time race',timeUp:'Time is up!',left:'Left'},
+  es:{capHead:'Rellenar con capitales',capSub:'Escribe las capitales',capPh:'Escribe una capital …',capHint:(l,n)=>'💡 Una capital que empieza por '+l+' … ('+n+' letras)',capLbl:'Capitales',
+    raceHead:'Carrera contrarreloj',raceSub:'60 segundos – tantos países como puedas',raceLbl:'Contrarreloj',timeUp:'¡Se acabó el tiempo!',left:'Resto'},
+  fr:{capHead:'Remplir avec les capitales',capSub:'Tape les capitales',capPh:'Tape une capitale …',capHint:(l,n)=>'💡 Une capitale qui commence par '+l+' … ('+n+' lettres)',capLbl:'Capitales',
+    raceHead:'Course contre la montre',raceSub:'60 secondes – autant de pays que possible',raceLbl:'Contre la montre',timeUp:'Temps écoulé !',left:'Reste'}
+};
+const FX2=()=>FT2[typeof lang!=='undefined'&&FT2[lang]?lang:'de'];
 const FX=()=>FT[typeof lang!=='undefined'&&FT[lang]?lang:'de'];
+const RACE_MS=60000;
+const capOf=id=>(typeof CAPITALS!=='undefined'&&CAPITALS[id])?(CAPITALS[id][typeof lang!=='undefined'?lang:'de']||CAPITALS[id].de):'';
 // Häufige Varianten (nach norm()): Zahl = Länder-ID wie in countries.js
 const ALIAS={
   840:['usa','us','amerika','vereinigte staaten','vereinigte staaten von amerika','united states of america','etats unis','estados unidos'],
@@ -30,12 +44,17 @@ const ALIAS={
   410:['sudkorea','south korea','corea del sur','coree du sud'],408:['nordkorea','north korea','corea del norte','coree du nord'],
   158:['taiwan'],804:['ukraine']
 };
-let nameMap=null; // norm(name) → [ids]
+let nameMap=null,capMap=null; // norm(name) → [ids]
+const curMap=()=>game.fillCap?capMap:nameMap;
 function buildNames(){
   nameMap=new Map();
   const add=(n,id)=>{if(!n)return;const k=norm(String(n).trim());if(!k)return;const a=nameMap.get(k);if(a){if(!a.includes(id))a.push(id);}else nameMap.set(k,[id]);};
   for(const id of Object.keys(C).map(Number)){const c=C[id];['de','en','es','fr'].forEach(l=>add(c[l],id));}
   for(const [id,list] of Object.entries(ALIAS)){if(C[+id])list.forEach(n=>add(n,+id));}
+  // Hauptstädte (4 Sprachen); mehrere Länder können denselben Namen haben (z. B. Luxemburg) – dann zählt das erste noch offene
+  capMap=new Map();
+  const addc=(n,id)=>{if(!n)return;const k=norm(String(n).trim());if(!k)return;const a=capMap.get(k);if(a){if(!a.includes(id))a.push(id);}else capMap.set(k,[id]);};
+  if(typeof CAPITALS!=='undefined')for(const id of Object.keys(CAPITALS).map(Number)){const c=CAPITALS[id];['de','en','es','fr'].forEach(l=>addc(c[l],id));}
 }
 function dist(a,b,max){ // Editierabstand mit Abbruch
   if(Math.abs(a.length-b.length)>max)return max+1;
@@ -51,7 +70,7 @@ function dist(a,b,max){ // Editierabstand mit Abbruch
 function lookup(text,fuzzy){
   const s=norm(text.trim());if(!s)return null;
   const targets=new Set(game.ids);
-  const exact=nameMap.get(s);
+  const map=curMap(),exact=map.get(s);
   if(exact){
     const open=exact.find(id=>targets.has(id)&&!game.found.has(id));
     if(open!=null)return{id:open};
@@ -60,7 +79,7 @@ function lookup(text,fuzzy){
   }
   if(!fuzzy||s.length<5)return null;
   const tol=s.length>=9?2:1;let best=null,bd=tol+1,tie=false;
-  for(const [k,ids] of nameMap){
+  for(const [k,ids] of map){
     if(k.length<5)continue;const d=dist(s,k,tol);if(d>tol)continue;
     const cand=ids.find(id=>targets.has(id));if(cand==null)continue;
     if(d<bd){bd=d;best=cand;tie=false;}else if(d===bd&&cand!==best)tie=true;
@@ -70,7 +89,7 @@ function lookup(text,fuzzy){
 }
 // Gibt es einen noch offenen, längeren Namen, der mit dem Text beginnt (Niger → Nigeria)?
 function hasLongerOpen(s){
-  for(const [k,ids] of nameMap){if(k.length>s.length&&k.startsWith(s)&&ids.some(id=>game.ids.includes(id)&&!game.found.has(id)))return true;}
+  for(const [k,ids] of curMap()){if(k.length>s.length&&k.startsWith(s)&&ids.some(id=>game.ids.includes(id)&&!game.found.has(id)))return true;}
   return false;
 }
 const fmt=ms=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');};
@@ -96,7 +115,7 @@ function revealOnGlobe(id){ // am Globus zum gefundenen Land drehen, falls es au
 function accept(id){
   game.found.add(id);game.correct++;
   flash(id);revealOnGlobe(id);
-  msg('✓ '+cn(id),'#4fd18b');
+  msg('✓ '+(game.fillCap?capOf(id)+' – '+cn(id):cn(id)),'#4fd18b');
   const inp=document.getElementById('fill-input');if(inp)inp.value='';
   updateStats();
   if(game.found.size>=game.total)finish(true);
@@ -108,7 +127,7 @@ function submit(fuzzy){
   const r=lookup(v,fuzzy);
   if(r&&r.id!=null)return void accept(r.id);
   if(!fuzzy)return; // beim Tippen nur sichere Treffer; Meldungen erst bei Enter
-  if(r&&r.again!=null){msg(FX().again+': '+cn(r.again),'#e0b84a');inp.select();shake();return;}
+  if(r&&r.again!=null){msg(FX().again+': '+(game.fillCap?capOf(r.again):cn(r.again)),'#e0b84a');inp.select();shake();return;}
   if(r&&r.off){msg(FX().notHere,'#e0b84a');inp.select();shake();return;}
   game.fillWrong=(game.fillWrong||0)+1;msg(FX().unknown,'#ff7a6a');inp.select();shake();updateStats();
 }
@@ -124,17 +143,19 @@ function onInput(){
 function hint(){
   if(!game||!game.fillMode||game.fillDone)return;
   const open=game.ids.filter(id=>!game.found.has(id));if(!open.length)return;
-  const id=open[Math.floor(Math.random()*open.length)],n=cn(id);
+  const id=open[Math.floor(Math.random()*open.length)],n=game.fillCap?capOf(id):cn(id);
   game.hints=(game.hints||0)+1;
-  msg(FX().hintMsg(n[0].toUpperCase(),[...n].length),'#ffd166');updateStats();
+  msg((game.fillCap?FX2().capHint:FX().hintMsg)(n[0].toUpperCase(),[...n].length),'#ffd166');updateStats();
   const inp=document.getElementById('fill-input');if(inp)inp.focus();
 }
 function updateFillStats(){
   const X=FX(),found=game.found.size,tot=game.total||1;
-  $('find-label').textContent=X.lbl+' · '+(game.fillKey==='world'?X.world:((MODES&&MODES[game.fillKey]&&MODES[game.fillKey][lang])||game.fillKey));
+  const X2=FX2(),area=game.fillArea||game.fillKey,areaName=area==='world'?X.world:((MODES&&MODES[area]&&MODES[area][lang])||area);
+  $('find-label').textContent=(game.fillCap?X2.capLbl:game.fillRace?X2.raceLbl:X.lbl)+' · '+areaName;
   $('target-name').textContent=found+' / '+tot;
   $('btn-skip').style.display=game.fillDone?'none':'';$('btn-skip').textContent=X.giveup;
-  $('score-disp').textContent=fmt((game.fillEnd||Date.now())-game.fillStart);$('found-label').textContent=X.time;
+  const el=(game.fillEnd||Date.now())-game.fillStart;
+  $('score-disp').textContent=game.fillRace?fmt(Math.max(0,RACE_MS-el)):fmt(el);$('found-label').textContent=game.fillRace?X2.left:X.time;
   $('stat-c').textContent=found;$('lbl-c').textContent=X.found;
   $('stat-w').textContent=game.hints||0;$('lbl-w').textContent=X.hints;
   $('stat-s').textContent=game.fillWrong||0;$('lbl-s').textContent=X.misses;
@@ -158,7 +179,7 @@ function ensureBox(){
   b.style.display='';
   b.querySelector('.fill-row').style.display=''; // nach "Aufgeben" war die Eingabezeile ausgeblendet
   const m=b.querySelector('#fill-msg');m.textContent='';m.style.opacity=0;
-  b.querySelector('#fill-input').placeholder=FX().ph;
+  b.querySelector('#fill-input').placeholder=game.fillCap?FX2().capPh:FX().ph;
   const hb=b.querySelector('#fill-hint');hb.textContent='💡';hb.title=FX().hint;
 }
 function finish(complete){
@@ -172,7 +193,7 @@ function finish(complete){
   if(b){
     b.querySelector('.fill-row').style.display='none';
     const m=b.querySelector('#fill-msg');m.style.opacity=1;m.style.color='#fff';
-    m.innerHTML='<div class="fill-done">'+(complete?'🏆 '+X.doneTitle:'🏳️ '+X.giveTitle)+'</div><button type="button" id="fill-res">'+X.show+'</button>';
+    m.innerHTML='<div class="fill-done">'+(complete?'🏆 '+X.doneTitle:game.fillRace&&game.fillEnd-game.fillStart>=RACE_MS-50?'⏱️ '+FX2().timeUp:'🏳️ '+X.giveTitle)+'</div><button type="button" id="fill-res">'+X.show+'</button>';
     m.querySelector('#fill-res').addEventListener('click',showResult);
   }
   if(complete)setTimeout(()=>{if(game&&game.fillMode&&game.fillDone)showResult();},1400);
@@ -188,18 +209,20 @@ function showResult(){
   showScreen('result-screen');
   $('res-btn-back').textContent=t('back');
   $('res-emoji').textContent=miss===0?'🏆':p>=80?'🎉':p>=50?'👍':'📚';
-  $('res-title').textContent=miss===0?X.doneTitle:X.giveTitle;
+  $('res-title').textContent=miss===0?X.doneTitle:game.fillRace?FX2().timeUp:X.giveTitle;
   $('res-l1').textContent=X.sum(found,tot,p);
   $('res-l2').textContent=X.sum2(fmt((game.fillEnd||Date.now())-game.fillStart),game.hints||0,miss)+note;
   $('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');$('btn-share').textContent=t('shareBtn');
   if(typeof checkAchievements==='function')checkAchievements();
 }
-async function startFillGame(key){
+// key: 'world' | 'EU' …  (Länder eintippen) · 'cap:world' | 'cap:EU' …  (Hauptstädte) · 'race:world'  (Zeitrennen, 60 s)
+async function startFillGame(fullKey){
   if(!nameMap)buildNames();
   stopTimer();
   lastMode='fill';canClick=false;optsOpen=false;
-  const all=Object.keys(C).map(Number).filter(id=>key==='world'||C[id].c===key);
-  game={mode:'fill:'+key,fillMode:true,fillKey:key,activeContinents:key==='world'?null:new Set([key]),found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
+  const m=/^(cap|race):(.+)$/.exec(fullKey),variant=m?m[1]:'',key=m?m[2]:fullKey;
+  const all=Object.keys(C).map(Number).filter(id=>(key==='world'||C[id].c===key)&&(variant!=='cap'||(typeof CAPITALS!=='undefined'&&CAPITALS[id])));
+  game={mode:'fill:'+fullKey,fillMode:true,fillKey:fullKey,fillArea:key,fillCap:variant==='cap',fillRace:variant==='race',activeContinents:key==='world'?null:new Set([key]),found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
   showScreen('game-screen');$('opts-panel').style.display='none';
   updateAllText();await loadMap();
   game.ids=all.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]);game.total=game.ids.length;
@@ -207,7 +230,9 @@ async function startFillGame(key){
   $('btn-skip').setAttribute('onclick','fillGiveUp()');
   ensureBox();game.fillStart=Date.now();
   clearFeedback&&clearFeedback();updateColors();updateStats();msg('');
-  timer=setInterval(()=>{if(game&&game.fillMode&&!game.fillDone)updateFillStats();},500);
+  timer=setInterval(()=>{if(!game||!game.fillMode||game.fillDone)return;
+    if(game.fillRace&&Date.now()-game.fillStart>=RACE_MS){finish(false);game.fillEnd=game.fillStart+RACE_MS;updateFillStats();return;}
+    updateFillStats();},game.fillRace?200:500);
   const inp=document.getElementById('fill-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
 }
 function fillGiveUp(){if(game&&game.fillMode&&!game.fillDone)finish(false);}
@@ -222,6 +247,9 @@ function fillMenuGroup(){
   const conts=['EU','AS','AF','NA','SA','OC'];
   return {cls:'gs-flag',head:X.head,items:[
     {icon:'🌐',title:X.world,sub:X.worldSub+' · '+n('world'),onclick:"startFillGame('world')"},
+    {icon:'⏱️',title:FX2().raceHead,sub:FX2().raceSub,onclick:"startFillGame('race:world')"},
+    {icon:'🏛️',title:FX2().capHead,sub:FX2().capSub,panel:'fill-caps',
+      renderPanel:()=>_cardsPanel(['world'].concat(conts).map(k=>gsCard("startFillGame('cap:"+k+"')",k==='world'?X.world:((MODES[k]&&MODES[k][lang])||k),n(k)+' '+(lang==='de'?'Hauptstädte':lang==='es'?'capitales':lang==='fr'?'capitales':'capitals'),'fill:cap:'+k)),'gs-grid-pin')},
     {icon:'🗺️',title:X.conts,sub:conts.map(k=>(MODES[k]&&MODES[k][lang])||k).join(', '),panel:'fill-conts',
       renderPanel:()=>_cardsPanel(conts.map(k=>gsCard("startFillGame('"+k+"')",(MODES[k]&&MODES[k][lang])||k,n(k)+' '+(lang==='de'?'Länder':lang==='es'?'países':lang==='fr'?'pays':'countries'),'fill:'+k)),'gs-grid-pin')}
   ]};
