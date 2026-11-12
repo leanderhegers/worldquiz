@@ -14,18 +14,22 @@ const CATS=[
 ];
 const Q=[
  // ── Geschichte & Kultur ──
- ['roman','history','Römisches Reich','Roman Empire','Países que pertenecieron al Imperio romano (máxima extensión)','Pays ayant appartenu à l’Empire romain (extension maximale)','it fr es pt gb be nl lu ch at de hu si hr ba rs me mk al xk bg ro gr tr cy sy lb il jo eg ly tn dz ma mt'],
+['roman','history','Römisches Reich in Europa','Roman Empire in Europe','Imperio romano en Europa','Empire romain en Europe','it fr es pt gb be nl lu ch at de hu si hr ba rs me mk al xk bg ro gr'],
+['roman2','history','Römisches Reich rund ums Mittelmeer','Roman Empire around the Mediterranean','Imperio romano alrededor del Mediterráneo','Empire romain autour de la Méditerranée','tr cy sy lb il jo eg ly tn dz ma mt'],
  ['silk','history','Seidenstraße','Silk Road','Países de la Ruta de la Seda','Pays de la route de la soie','cn kz kg tj uz tm af ir iq sy tr pk in ge az am'],
  ['ottoman','history','Osmanisches Reich','Ottoman Empire','Países que pertenecieron al Imperio otomano','Pays ayant appartenu à l’Empire ottoman','tr gr bg rs ba me al mk xk hu ro sy lb il jo iq eg ly tn dz sa ye kw cy'],
  ['ussr','history','Sowjetunion','Former Soviet Union','Antigua Unión Soviética','Ancienne Union soviétique','ru ua by md ee lv lt ge am az kz uz tm kg tj'],
  ['yugoslavia','history','Jugoslawien','Former Yugoslavia','Antigua Yugoslavia','Ancienne Yougoslavie','si hr ba rs me mk xk'],
  ['warsaw','history','Warschauer Pakt (Gründung)','Founding states of the Warsaw Pact (1955)','Estados fundadores del Pacto de Varsovia (1955)','États fondateurs du pacte de Varsovie (1955)','al bg cz sk hu pl ro ru de'],
- ['british','history','Britische Kolonien','Former British colonies (selection)','Antiguas colonias británicas (selección)','Anciennes colonies britanniques (sélection)','us ca au nz in pk bd lk mm my sg za ng gh ke tz ug zm zw bw mw sl gm jm bs bb tt gy bz fj cy mt ie sd ss ls sz mu sc'],
- ['french','history','Französische Kolonien','Former French colonies (selection)','Antiguas colonias francesas (selección)','Anciennes colonies françaises (sélection)','dz ma tn sn ml ne td bf ci gn bj tg cm cf cg ga mg dj km mr vn la kh lb sy ht vu'],
+['british','history','Britische Kolonien in Afrika','British colonies in Africa','Colonias británicas en África','Colonies britanniques en Afrique','za ng gh ke tz ug zm zw bw mw sl gm sd ss ls sz mu sc'],
+['british2','history','Britische Kolonien in Asien, Amerika und Ozeanien','British colonies in Asia, the Americas and Oceania','Colonias británicas en Asia, América y Oceanía','Colonies britanniques en Asie, Amérique et Océanie','us ca au nz in pk bd lk mm my sg jm bs bb tt gy bz fj'],
+['french','history','Französische Kolonien in Afrika','French colonies in Africa','Colonias francesas en África','Colonies françaises en Afrique','dz ma tn sn ml ne td bf ci gn bj tg cm cf cg ga mg dj km mr'],
+['french2','history','Französische Kolonien in Asien und Amerika','French colonies in Asia and the Americas','Colonias francesas en Asia y América','Colonies françaises en Asie et en Amérique','vn la kh lb sy ht vu'],
  ['spanish','history','Amtssprache Spanisch','Countries with Spanish as an official language','Países con el español como idioma oficial','Pays dont l’espagnol est langue officielle','es mx gt hn sv ni cr pa co ve ec pe bo py uy ar cl cu do gq'],
  ['portuguese','history','Amtssprache Portugiesisch','Countries with Portuguese as an official language','Países con el portugués como idioma oficial','Pays dont le portugais est langue officielle','pt br ao mz cv gw st tl gq'],
  ['arabic','history','Amtssprache Arabisch','Countries with Arabic as an official language','Países con el árabe como idioma oficial','Pays dont l’arabe est langue officielle','sa ye om ae qa bh kw iq sy jo lb ps eg ly tn dz ma sd mr so dj km td'],
- ['french_lang','history','Amtssprache Französisch','Countries with French as an official language (selection)','Países con el francés como idioma oficial (selección)','Pays dont le français est langue officielle (sélection)','fr be lu ch mc ca ht cd cg ga cm cf td ne ml bf ci gn sn bj tg mg dj km rw bi sc vu'],
+['french_lang','history','Amtssprache Französisch in Afrika','French as an official language in Africa','Francés como idioma oficial en África','Français langue officielle en Afrique','cd cg ga cm cf td ne ml bf ci gn sn bj tg mg dj km rw bi sc gq'],
+['french_lang2','history','Amtssprache Französisch außerhalb Afrikas','French as an official language outside Africa','Francés como idioma oficial fuera de África','Français langue officielle hors d’Afrique','fr be lu ch mc ca ht vu'],
  // ── Politik & Bündnisse ──
  ['eu','politics','EU-Staaten','EU members','Todos los Estados de la UE','Tous les États membres de l’UE','at be bg hr cy cz dk ee fi fr de gr hu ie it lv lt lu mt nl pl pt ro sk si es se'],
  ['euro','politics','Euro-Länder','Countries using the euro (EU)','Países que usan el euro (UE)','Pays utilisant l’euro (UE)','at be bg hr cy ee fi fr de gr ie it lv lt lu mt nl pt sk si es'],
@@ -55,8 +59,12 @@ const Q=[
  ['drakensberg','geo','Länder an den Drakensbergen','Countries in the Drakensberg','Países con parte de los Drakensberg','Pays avec une part du Drakensberg','za ls sz'],
  ['sahara','geo','Länder an der Sahara','Countries in the Sahara','Países con parte del Sáhara','Pays avec une part du Sahara','dz eg ly mr ml ne td sd ma tn eh'],
  // ── Besonderheiten ──
- ['left','special','Linksverkehr','Left-hand traffic','Países con circulación por la izquierda','Pays où l’on roule à gauche','gb ie mt cy in pk bd lk np bt mv th id jp my sg bn tl au nz pg fj ki ws to sb tv nr za zw zm mz bw na sz ls ke tz ug mw mu sc sr gy jm bs bb tt ag dm gd lc vc kn'],
- ['monarchy','special','Monarchien','Monarchies','Países con monarquía','Pays avec une monarchie','gb es no se dk nl be lu li mc ad jp th kh my bn bt jo sa om qa kw bh ae ma ls sz au nz ca pg sb tv jm bs bz ag gd lc vc kn to'],
+['left','special','Linksverkehr in Asien und Ozeanien','Left-hand traffic in Asia and Oceania','Circulación por la izquierda en Asia y Oceanía','Conduite à gauche en Asie et en Océanie','in pk bd lk np bt mv th id jp my sg bn tl au nz pg fj ki ws to sb tv nr'],
+['left2','special','Linksverkehr in Afrika','Left-hand traffic in Africa','Circulación por la izquierda en África','Conduite à gauche en Afrique','za zw zm mz bw na sz ls ke tz ug mw mu sc'],
+['left3','special','Linksverkehr in Europa, Karibik und Südamerika','Left-hand traffic in Europe, the Caribbean and South America','Circulación por la izquierda en Europa, el Caribe y Sudamérica','Conduite à gauche en Europe, aux Caraïbes et en Amérique du Sud','gb ie mt cy sr gy jm bs bb tt ag dm gd lc vc kn'],
+['monarchy','special','Monarchien in Europa','Monarchies in Europe','Monarquías en Europa','Monarchies en Europe','gb es no se dk nl be lu li mc ad'],
+['monarchy2','special','Monarchien in Asien','Monarchies in Asia','Monarquías en Asia','Monarchies en Asie','jp th kh my bn bt jo sa om qa kw bh ae'],
+['monarchy3','special','Länder mit britischem Monarchen als Staatsoberhaupt','Countries with the British monarch as head of state','Países con el monarca británico como jefe de Estado','Pays dont le monarque britannique est chef de l’État','au nz ca pg sb tv jm bs bz ag gd lc vc kn'],
  ['flag_cross','special','Kreuz in der Flagge','Countries with a cross on the flag','Países con una cruz en la bandera','Pays avec une croix sur le drapeau','gb dk no se fi is ch ge gr mt to dm'],
  ['flag_crescent','special','Halbmond in der Flagge','Countries with a crescent on the flag','Países con una media luna en la bandera','Pays avec un croissant sur le drapeau','tr tn dz pk mr ly uz tm my sg mv km az'],
  ['flag_redwhite','special','Flagge nur in Rot und Weiß','Countries whose flag is only red and white','Países con bandera solo roja y blanca','Pays dont le drapeau est uniquement rouge et blanc','pl id mc at ca jp sg ch tn pe lv ge tr dk mt bh qa'],
@@ -69,7 +77,7 @@ const Q=[
 const NUM=[
  ['pop100','numbers','Über 100 Mio. Einwohner','Countries with more than 100 million people','Países con más de 100 millones de habitantes','Pays de plus de 100 millions d’habitants',(p)=>p>1e8],
  ['pop50','numbers','50 bis 100 Mio. Einwohner','Countries with 50 to 100 million people','Países con 50 a 100 millones de habitantes','Pays de 50 à 100 millions d’habitants',(p)=>p>5e7&&p<=1e8],
- ['pop1','numbers','Unter 1 Mio. Einwohner','Countries with fewer than 1 million people','Países con menos de 1 millón de habitantes','Pays de moins d’un million d’habitants',(p)=>p<1e6],
+ ['pop1','numbers','300.000 bis 1 Mio. Einwohner','Countries with 300,000 to 1 million people','Países con 300.000 a 1 millón de habitantes','Pays de 300 000 à 1 million d’habitants',(p)=>p>=3e5&&p<1e6],
  ['pop100k','numbers','Unter 100.000 Einwohner','Countries with fewer than 100,000 people','Países con menos de 100.000 habitantes','Pays de moins de 100 000 habitants',(p)=>p<1e5]
 ];
 window.GROUP_CATS=CATS;window.GROUP_Q=Q;window.GROUP_NUM=NUM;
