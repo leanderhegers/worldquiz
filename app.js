@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 L';
+const BUILD_ID='2026-11-12 M';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1884,7 +1884,8 @@ async function startTriviaGame(cat){
 // Sie werden unter die Rang-Fragen des Trivia-Quiz gemischt (game.currentGroup: alle Länder der Gruppe anklicken).
 let _iso2Rev=null;
 // Gibt es das Land auf der Karte? visibleIds wird erst beim ersten Kartenaufbau gefüllt – bis dahin zählen alle Länder
-const GROUP_MAX_SIZE=32; // größere Gruppen sind zum Anklicken zu viel: lieber in Teilgruppen aufteilen (groups.js)
+const GROUP_MAX_SIZE=25; // größere Gruppen sind zum Anklicken zu viel: lieber in Teilgruppen aufteilen (groups.js)
+const GROUP_BIG_OK=new Set(['eu']); // Ausnahme: die EU bleibt als Ganzes (27)
 const _onMap=id=>!visibleIds||!visibleIds.size||visibleIds.has(id)||MS_IDS.has(id);
 function _groupIds(codes){
   if(!_iso2Rev){_iso2Rev={};Object.keys(ISO2).forEach(id=>{_iso2Rev[ISO2[id]]=+id;});}
@@ -1892,7 +1893,7 @@ function _groupIds(codes){
 }
 function groupTriviaItems(pop,area){
   const li=Math.max(0,['de','en','es','fr'].indexOf(lang))+2,items=[];
-  (window.GROUP_Q||[]).forEach(r=>{const ids=_groupIds(r[6]);if(ids.length>=2&&ids.length<=GROUP_MAX_SIZE)items.push({key:r[0],cat:r[1],ids,title:r[li]});});
+  (window.GROUP_Q||[]).forEach(r=>{const ids=_groupIds(r[6]);if(ids.length>=2&&(ids.length<=GROUP_MAX_SIZE||GROUP_BIG_OK.has(r[0])))items.push({key:r[0],cat:r[1],ids,title:r[li]});});
   (window.GROUP_NUM||[]).forEach(r=>{
     const f=r[6],ids=Object.keys(C).map(Number).filter(id=>_onMap(id)&&pop[id]!=null&&f(pop[id],area?area[id]:null,id));
     if(ids.length>=3&&ids.length<=45)items.push({key:r[0],cat:r[1],ids,title:r[li]});

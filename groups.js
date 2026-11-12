@@ -32,10 +32,14 @@ const Q=[
 ['french_lang','history','Amtssprache Französisch in Afrika','French as an official language in Africa','Francés como idioma oficial en África','Français langue officielle en Afrique','cd cg ga cm cf td ne ml bf ci gn sn bj tg mg dj km rw bi sc gq'],
 ['french_lang2','history','Amtssprache Französisch außerhalb Afrikas','French as an official language outside Africa','Francés como idioma oficial fuera de África','Français langue officielle hors d’Afrique','fr be lu ch mc ca ht vu'],
  // ── Politik & Bündnisse ──
+ ['dach','politics','DACH-Länder','DACH countries','Países DACH','Pays DACH','de at ch'],
  ['eu','politics','EU-Staaten','EU members','Todos los Estados de la UE','Tous les États membres de l’UE','at be bg hr cy cz dk ee fi fr de gr hu ie it lv lt lu mt nl pl pt ro sk si es se'],
  ['euro','politics','Euro-Länder','Countries using the euro (EU)','Países que usan el euro (UE)','Pays utilisant l’euro (UE)','at be bg hr cy ee fi fr de gr ie it lv lt lu mt nl pt sk si es'],
- ['schengen','politics','Schengen-Raum','Countries of the Schengen Area','Países del espacio Schengen','Pays de l’espace Schengen','at be bg hr cz dk ee fi fr de gr hu it lv lt lu mt nl pl pt ro sk si es se is li no ch'],
- ['nato','politics','NATO-Mitglieder','NATO members','Miembros de la OTAN','Membres de l’OTAN','al be bg ca hr cz dk ee fi fr de gr hu is it lv lt lu me nl mk no pl pt ro sk si es se tr gb us'],
+ ['schengen','politics','Schengen: Westen und Süden','Schengen: west and south','Schengen: oeste y sur','Schengen : ouest et sud','fr es pt it mt gr be nl lu de at ch li'],
+ ['schengen2','politics','Schengen: Norden und Osten','Schengen: north and east','Schengen: norte y este','Schengen : nord et est','dk se fi no is ee lv lt pl cz sk hu si hr bg ro'],
+ ['nato','politics','NATO: Gründer 1949','NATO: founding members 1949','OTAN: miembros fundadores 1949','OTAN : membres fondateurs 1949','be ca dk fr is it lu nl no pt gb us'],
+ ['nato2','politics','NATO: Beitritt 1952 bis 1999','NATO: joined 1952 to 1999','OTAN: ingreso de 1952 a 1999','OTAN : adhésion de 1952 à 1999','gr tr de es cz hu pl'],
+ ['nato3','politics','NATO: Beitritt seit 2004','NATO: joined since 2004','OTAN: ingreso desde 2004','OTAN : adhésion depuis 2004','bg ee lv lt ro sk si al hr me mk fi se'],
  ['g7','politics','G7-Staaten','G7 countries','Países del G7','Pays du G7','ca fr de it jp gb us'],
  ['g20','politics','G20-Staaten','G20 countries (without the EU and African Union)','Países del G20 (sin la UE ni la Unión Africana)','Pays du G20 (sans l’UE ni l’Union africaine)','ar au br ca cn fr de in id it jp kr mx ru sa za tr gb us'],
  ['brics','politics','BRICS-Mitglieder','BRICS members','Miembros de los BRICS','Membres des BRICS','br ru in cn za eg et ir ae id'],
@@ -121,7 +125,8 @@ const NUM=[
  ['pop200','numbers','Über 200 Mio. Einwohner','Over 200 million people','Más de 200 millones de habitantes','Plus de 200 millions d’habitants',(p)=>p>2e8],
  ['pop100','numbers','Über 100 Mio. Einwohner','Countries with more than 100 million people','Países con más de 100 millones de habitantes','Pays de plus de 100 millions d’habitants',(p)=>p>1e8],
  ['pop50','numbers','50 bis 100 Mio. Einwohner','Countries with 50 to 100 million people','Países con 50 a 100 millones de habitantes','Pays de 50 à 100 millions d’habitants',(p)=>p>5e7&&p<=1e8],
- ['pop1','numbers','100.000 bis 1 Mio. Einwohner','Countries with 100,000 to 1 million people','Países con 100.000 a 1 millón de habitantes','Pays de 100 000 à 1 million d’habitants',(p)=>p>=1e5&&p<1e6],
+ ['pop1','numbers','100.000 bis 400.000 Einwohner','100,000 to 400,000 people','100.000 a 400.000 habitantes','100 000 à 400 000 habitants',(p)=>p>=1e5&&p<4e5],
+ ['pop1b','numbers','400.000 bis 1 Mio. Einwohner','400,000 to 1 million people','400.000 a 1 millón de habitantes','400 000 à 1 million d’habitants',(p)=>p>=4e5&&p<1e6],
  ['pop100k','numbers','Unter 100.000 Einwohner','Countries with fewer than 100,000 people','Países con menos de 100.000 habitantes','Pays de moins de 100 000 habitants',(p)=>p<1e5]
 ];
 window.GROUP_CATS=CATS;window.GROUP_Q=Q;window.GROUP_NUM=NUM;
