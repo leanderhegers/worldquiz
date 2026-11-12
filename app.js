@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 E';
+const BUILD_ID='2026-11-12 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -581,7 +581,6 @@ function renderClickPage(){
     {icon:'🗺️',title:t('optContinents'),sub:t('continentsSub'),panel:'continents',renderPanel:_continentsPanel},
     {icon:'📊',title:t('optDifficulty'),sub:t('difficultySub'),panel:'difficulty',renderPanel:_difficultyPanel},
     {icon:'💡',title:t('optTrivia'),sub:t('triviaSub'),onclick:'startTriviaGame()'},
-    {icon:'🧩',title:['Alle … anklicken','Click them all','Haz clic en todos','Cliquez-les tous'][Math.max(0,['de','en','es','fr'].indexOf(lang))],sub:['EU, NATO, Gebirge, Linksverkehr …','EU, NATO, mountains, left-hand traffic …','UE, OTAN, montañas, conducción por la izquierda …','UE, OTAN, montagnes, conduite à gauche …'][Math.max(0,['de','en','es','fr'].indexOf(lang))],panel:'groups',renderPanel:groupMenuPanel},
     {icon:'⚙️',title:t('optCustom'),sub:t('optCustomSub'),onclick:'openCustom()'}
   ];
   const regionCards=REGION_QUIZ_LIST.map(r=>gsCard("startRegionQuiz('"+r.key+"')",r.name[lang],r.count+' '+t('regions'),'region:'+r.key)).join('');
@@ -821,7 +820,7 @@ function gameScoreKey(){
   if(game.lakeMode)return 'lake:'+game.difficulty;
   if(game.mountainMode)return 'mountain:'+game.difficulty;
   if(game.rangeMode)return 'range:'+game.difficulty;
-  if(game.triviaMode)return game.groupKey?'tgroup:'+game.groupKey:'trivia:world';
+  if(game.triviaMode)return 'trivia:world';
   if(game.mode&&game.mode!=='custom')return 'map:'+game.mode;
   return null;
 }
@@ -1136,7 +1135,7 @@ function startCustom(){
   $('target-name').textContent='';showFeedback(t('load'),'#888');
   updateAllText();
   loadMap().then(()=>{
-    game.queue=game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]);
+    game.queue=game.queue.filter(id=>_onMap(id)&&C[id]);
     game.total=game.queue.length;
     if(customConts.size===1){const c=[...customConts][0];if(ZOOMS[c]){const g=zoomForMode(c);zoomToGeo(g.lon,g.lat,g.k);}}
     else if(customConts.size<6){zoomTo(480,250,1.2);}
@@ -1154,13 +1153,13 @@ async function startGame(mode){
   showScreen('game-screen');$('opts-panel').style.display='none';
   $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
-  game.queue=learnSortIds(game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]),'country:','map:'+mode).slice(0,allTargets?Infinity:quizRoundLimit);
+  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','map:'+mode).slice(0,allTargets?Infinity:quizRoundLimit);
   game.total=game.queue.length;
   const g=zoomForMode(mode);
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)(game.groupKey?startGroupTrivia(game.groupKey):startTriviaGame());else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
+function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame();else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
@@ -1834,6 +1833,7 @@ function _triviaBuildSpecs(sorted,dir,singleQ,multiQ,singleCount,groupN,maxRank)
   if(group.length)specs.push({ids:group,q:multiQ(group.length,dir)});
   return specs;
 }
+const TRIVIA_GROUP_QUESTIONS=5; // so viele Ländergruppen-Fragen (EU, NATO, Gebirge …) kommen je Trivia-Runde dazu
 const TRIVIA_SINGLE_PER_SIDE=2; // individual rank questions per metric+direction
 const TRIVIA_SINGLE_MAX_RANK=8; // single-question ranks never go deeper than this — "Platz 17" is too obscure to guess
 const TRIVIA_GROUP_MIN=3,TRIVIA_GROUP_MAX=5; // "top N" question size — matches "the 3/4/5 countries with..."
@@ -1854,6 +1854,8 @@ async function startTriviaGame(){
     const groupN=TRIVIA_GROUP_MIN+Math.floor(Math.random()*(TRIVIA_GROUP_MAX-TRIVIA_GROUP_MIN+1));
     specs=specs.concat(_triviaBuildSpecs(m.sorted,dir,m.singleQ,m.multiQ,TRIVIA_SINGLE_PER_SIDE,groupN,TRIVIA_SINGLE_MAX_RANK));
   }));
+  // Ländergruppen (groups.js) daruntermischen
+  specs=specs.concat(shuffle(groupTriviaItems(pop,null)).slice(0,TRIVIA_GROUP_QUESTIONS).map(i=>({ids:i.ids.slice(),q:i.title+' ('+i.ids.length+')'})));
   const shuffled=shuffle(specs);
   game={mode:'trivia',triviaMode:true,
     queue:shuffled,current:null,currentGroup:null,
@@ -1868,49 +1870,23 @@ async function startTriviaGame(){
   nextCountry();
 }
 
-// ── "Alle … anklicken": Trivia mit festen Ländergruppen (groups.js) ──
-// cat: Kategorie-Schlüssel (history, politics, geo, special, numbers) oder 'all'. Läuft im normalen Trivia-Modus
-// (game.triviaMode + game.currentGroup): jede Frage nennt eine Gruppe, alle Länder der Gruppe sind anzuklicken.
+// ── Trivia-Fragen mit festen Ländergruppen (groups.js): EU, NATO, Gebirge, Linksverkehr … ──
+// Sie werden unter die Rang-Fragen des Trivia-Quiz gemischt (game.currentGroup: alle Länder der Gruppe anklicken).
 let _iso2Rev=null;
+// Gibt es das Land auf der Karte? visibleIds wird erst beim ersten Kartenaufbau gefüllt – bis dahin zählen alle Länder
+const _onMap=id=>!visibleIds||!visibleIds.size||visibleIds.has(id)||MS_IDS.has(id);
 function _groupIds(codes){
   if(!_iso2Rev){_iso2Rev={};Object.keys(ISO2).forEach(id=>{_iso2Rev[ISO2[id]]=+id;});}
-  return codes.split(' ').map(c=>_iso2Rev[c]).filter(id=>id&&C[id]&&(visibleIds.has(id)||MS_IDS.has(id)));
+  return codes.split(' ').map(c=>_iso2Rev[c]).filter(id=>id&&C[id]&&_onMap(id));
 }
 function groupTriviaItems(pop,area){
   const li=Math.max(0,['de','en','es','fr'].indexOf(lang))+2,items=[];
   (window.GROUP_Q||[]).forEach(r=>{const ids=_groupIds(r[6]);if(ids.length>=2)items.push({key:r[0],cat:r[1],ids,title:r[li]});});
   (window.GROUP_NUM||[]).forEach(r=>{
-    const f=r[6],ids=Object.keys(C).map(Number).filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&pop[id]!=null&&f(pop[id],area?area[id]:null,id));
+    const f=r[6],ids=Object.keys(C).map(Number).filter(id=>_onMap(id)&&pop[id]!=null&&f(pop[id],area?area[id]:null,id));
     if(ids.length>=3&&ids.length<=45)items.push({key:r[0],cat:r[1],ids,title:r[li]});
   });
   return items;
-}
-async function startGroupTrivia(cat){
-  cat=cat||'all';
-  if(!worldData)await loadMap();
-  const pop=await _loadPopData(),area=_computeAreaData();
-  const pool=groupTriviaItems(pop,area).filter(i=>cat==='all'||i.cat===cat);
-  if(!pool.length)return;
-  const queue=shuffle(pool).slice(0,allTargets?Infinity:quizRoundLimit).map(i=>({ids:i.ids.slice(),q:i.title+' ('+i.ids.length+')'}));
-  game={mode:'trivia',triviaMode:true,groupKey:cat,
-    queue,current:null,currentGroup:null,
-    found:new Set(),correct:0,wrong:0,firstTry:0,questionsCompleted:0,
-    total:queue.length,wrongOnCurrent:false,skipped:0};
-  lastMode='trivia';canClick=true;optsOpen=false;
-  showScreen('game-screen');$('opts-panel').style.display='none';
-  $('target-name').textContent='';showFeedback(t('load'),'#888');
-  updateAllText();
-  renderMap(worldData);
-  const g=zoomForMode('world');zoomToGeo(g.lon,g.lat,g.k);
-  nextCountry();
-}
-function groupMenuPanel(){
-  const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
-  const nq=c=>(window.GROUP_Q||[]).filter(r=>c==='all'||r[1]===c).length+(window.GROUP_NUM||[]).filter(r=>c==='all'||r[1]===c).length;
-  const unit=['Fragen','questions','preguntas','questions'][li];
-  const cards=[gsCard("startGroupTrivia('all')",['Alles gemischt','Everything mixed','Todo mezclado','Tout mélangé'][li],nq('all')+' '+unit,'tgroup:all')]
-    .concat((window.GROUP_CATS||[]).map(c=>gsCard("startGroupTrivia('"+c.key+"')",c.icon+' '+c.t[li],c.s[li],'tgroup:'+c.key)));
-  return _cardsPanel(cards,'gs-grid-pin');
 }
 // ── DIFFICULTY TIERS (all 197 countries, split into 5 by population) ──
 // Precomputed once from data/population.json (sorted descending, cut into 5 equal-ish slices —
@@ -1934,7 +1910,7 @@ async function startDifficultyGame(tier){
   showScreen('game-screen');$('opts-panel').style.display='none';
   $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
-  game.queue=learnSortIds(game.queue.filter(id=>(visibleIds.has(id)||MS_IDS.has(id))&&C[id]),'country:','diff:'+tier).slice(0,allTargets?Infinity:quizRoundLimit);
+  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','diff:'+tier).slice(0,allTargets?Infinity:quizRoundLimit);
   game.total=game.queue.length;
   // Population tiers scatter countries across the whole globe rather than one region, so the
   // world framing (not a continent zoom) is the only one that makes sense here.
