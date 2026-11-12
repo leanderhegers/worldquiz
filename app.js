@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 N';
+const BUILD_ID='2026-11-12 O';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2228,6 +2228,8 @@ function prewarmMap(){
   };
   idle(()=>{go();});
 }
+// Größter Zoom: bei Drop a Pin deutlich höher (Handy: genaues Setzen der Nadel braucht viel Vergrößerung)
+function maxZoom(){const pin=typeof game!=='undefined'&&game&&game.pinMode;return pin?(COARSE?120:60):(COARSE?50:20);}
 let _mapKind=null; // welches Spiel die aktuelle Karte aufgebaut hat: country | pin | city | river | lake | mountain | range
 function renderMap(world){
   _mapKind=game&&game.pinMode?'pin':game&&game.cityMode?'city':game&&game.riverMode?'river':game&&game.lakeMode?'lake':game&&game.mountainMode?'mountain':game&&game.rangeMode?'range':'country';
@@ -2625,7 +2627,7 @@ function renderMap(world){
   // whichever axis needs the *smaller* scale to fit entirely inside the container.
   function computeSc(){const r=svg.node().getBoundingClientRect();if(projection==='globe')return(Math.min(r.width,r.height)/480)||1;return(isMerc?r.height/MAP_H:Math.min(r.width/MAP_W,r.height/MAP_H))||1;}
   let _sc=computeSc();
-  function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(COARSE?50:20));}
+  function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(maxZoom()));}
   function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
   function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/_sc/zoomK;}
   // Among a hit-circle selection, return the datum whose centre is nearest the pointer (nearest-wins on overlap)
@@ -2657,7 +2659,7 @@ function renderMap(world){
       // k) because COARSE devices allow much deeper zoom (50 vs 20) — the lines should only
       // appear near the *top* of whatever range this device has, not at some fixed absolute k
       // that's barely zoomed in at all on touch.
-      const maxK=COARSE?50:20;
+      const maxK=maxZoom();
       const ADMIN1_FADE_START=maxK*0.6,ADMIN1_FADE_END=maxK*0.85;
       // display:none takes this path out of the paint pipeline entirely — below the fade
       // threshold (the vast majority of any zoom gesture) applyDotR does nothing to it at all,
@@ -2721,7 +2723,7 @@ function renderMap(world){
   // fresh task (setTimeout 0) so it never executes from inside d3-zoom's own event dispatch —
   // both are required to avoid corrupting d3-zoom's touch-gesture bookkeeping (see history:
   // this previously made the *next* pan gesture unresponsive for a few seconds on iOS).
-  zoomBehavior=d3.zoom().scaleExtent([1,COARSE?50:20]).translateExtent(txExt)
+  zoomBehavior=d3.zoom().scaleExtent([1,maxZoom()]).translateExtent(txExt)
     .on('start',()=>{
       // Pointer-events is deliberately NOT touched here. 'start' fires on every mousedown,
       // before it's known whether the gesture becomes a drag or stays a plain click — disabling

@@ -11,6 +11,7 @@
 const W=960,H=500,R0=235;
 const G={k:1,tx:null,ty:null,drag:null,suppressUntil:0,apply:null,dotR:null,fly:null,bound:false};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const gmax=()=>(typeof game!=='undefined'&&game&&game.pinMode)?40:12; // Drop a Pin: mehr Zoom erlaubt
 
 // ── Live-Zeichnen beschleunigen ──
 // Beim Drehen werden (1) Formen auf der Rückseite gar nicht erst berechnet und (2) die Umrisse mit Douglas-Peucker
@@ -359,7 +360,7 @@ function wheel(ev,svg,node){
   if(typeof projection==='undefined'||projection!=='globe')return; // nur im Globus-Modus zuständig
   ev.preventDefault();
   const dy=ev.deltaY*(ev.deltaMode===1?15:ev.deltaMode===2?300:1);
-  const f=Math.pow(2,-dy*0.0022),k0=G.k,k1=clamp(k0*f,1,12);
+  const f=Math.pow(2,-dy*0.0022),k0=G.k,k1=clamp(k0*f,1,gmax());
   if(Math.abs(k1-k0)<1e-6||!currentProj||!G.apply)return;
   const inv=node.getScreenCTM().inverse();
   const ux=inv.a*ev.clientX+inv.c*ev.clientY+inv.e,uy=inv.b*ev.clientX+inv.d*ev.clientY+inv.f;
@@ -434,10 +435,10 @@ window.Globe={
       G.k=k;G.tx=tx;G.ty=ty;
       wrapG.attr('transform','translate('+tx.toFixed(3)+','+ty.toFixed(3)+') scale('+k+')');
     };
-    G.k=clamp(G.k,1,12);G.builtTol=tolFor(G.k);G.cullK=G.k; // cullK: für diesen Zoom ist der Kartenbaum auf den Bildausschnitt beschnitten
+    G.k=clamp(G.k,1,gmax());G.builtTol=tolFor(G.k);G.cullK=G.k; // cullK: für diesen Zoom ist der Kartenbaum auf den Bildausschnitt beschnitten
     if(G.tx==null){[G.tx,G.ty]=centred(G.k);}
     G.apply(G.k,G.tx,G.ty);
-    zoomBehavior=d3.zoom().scaleExtent([1,12])
+    zoomBehavior=d3.zoom().scaleExtent([1,gmax()])
       .filter(ev=>ev.touches&&ev.touches.length>1) // Mausrad macht on('wheel.globe') unten
       .constrain(t=>{ // Versatz zur zentrierten Lage höchstens (k-1)*Radius: bei k=1 genau zentriert
         const k=t.k,[bx,by]=centred(k); // immer zentriert (Google-Maps-Verhalten)
