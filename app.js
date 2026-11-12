@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 P';
+const BUILD_ID='2026-11-12 R';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1217,9 +1217,9 @@ function skip(){
   if(game.challengeMode){game.wrongOnCurrent=true;_challenge.skipped=(_challenge.skipped||0)+1;nextCountry();return;}
   game.skipped=(game.skipped||0)+1; // one skip, even for a multi-country question — see currentGroup below
   if(!game.skippedItems)game.skippedItems=new Set();
-  if(game.triviaMode){ // Trivia: die Lösung nur kurz zeigen, dann wieder freigeben
-    game.skippedItems.clear();clearTimeout(game._skipT);const g=game;
-    game._skipT=setTimeout(()=>{if(game===g&&g.skippedItems&&g.skippedItems.size){g.skippedItems.clear();updateColors();}},1800);
+  if(game.triviaMode){ // Trivia: die Lösung nur kurz zeigen, dann wieder freigeben; bereits gefundene Länder bleiben dabei grün markiert
+    game.skippedItems.clear();clearTimeout(game._skipT);const g=game,keep=[...game.found];g._holdFound=true;
+    game._skipT=setTimeout(()=>{if(game!==g)return;g._holdFound=false;keep.forEach(i=>g.found.delete(i));if(g.skippedItems)g.skippedItems.clear();updateColors();},1800);
   }
   if(game.currentGroup){
     game.currentGroup.forEach(id=>game.skippedItems.add(id));
@@ -2543,11 +2543,9 @@ function renderMap(world){
   microstateHit=dynG.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
-    .on('mouseover',function(ev,d){const t0=nearestDot(ev,microstateHit)||d,cid=msUnderDot(ev,t0);if(cid!==t0.id){ // Zeiger liegt auf einem echten Land unter dem Trefferkreis (Katar neben Bahrain)
-        if(!wrongFlashIds.has(cid)&&C[cid]&&isActive(cid)&&game.found&&!game.found.has(cid)&&!(game.skippedItems&&game.skippedItems.has(cid)))countryPaths.filter(f=>eff(+f.id)===cid).attr('fill',THEMES[theme].hov);return;}
-      const t=t0;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(){microstateDots.attr('fill',x=>getMSColor(x.id));countryPaths&&countryPaths.attr('fill',f=>getColor(+f.id));})
-    .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(msUnderDot(ev,t));});
+    .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(t.id);});
 
   // Island zone visuals — dashed hull outline above country fills, pointer-events off
   function izStroke(z){if(game.skippedItems&&game.skippedItems.has(z.id))return th.skipped;if(game.found&&game.found.has(z.id))return th.found;return'rgba(255,255,255,0.6)';}
@@ -2632,21 +2630,6 @@ function renderMap(world){
   function dotGrow(k){return 1+0.5*Math.min(1,Math.log(Math.max(1,k))/Math.log(maxZoom()));}
   function dotR(zoomK=1){return DOT_R*dotGrow(zoomK)/_sc/zoomK;}
   function hitR(zoomK=1){return HIT_R*dotGrow(zoomK)/_sc/zoomK;}
-  // Der große Trefferkreis eines Mikrostaats (Handy: 22 px) darf ein echtes Nachbarland nicht verschlucken: liegt der Zeiger weiter
-  // als der sichtbare Punkt vom Mittelpunkt entfernt und innerhalb der Fläche eines anderen Landes, zählt dieses Land (Katar/Bahrain,
-  // VAE, Kuwait). Gibt die Land-ID zurück, auf die der Klick gehört.
-  function msUnderDot(ev,t){
-    try{
-      if(projection==='globe'||!currentProj||!currentProj.invert)return t.id;
-      const p=d3.pointer(ev,g.node()),c=proj([t.lon,t.lat]),k=d3.zoomTransform(svg.node()).k||1;
-      if(Math.hypot(p[0]-c[0],p[1]-c[1])<=(DOT_R*0.55)/_sc/k)return t.id;
-      const ll=proj.invert(p);if(!ll||!isFinite(ll[0]))return t.id;
-      const f=renderFeatures.find(x=>_pinInside(x,ll));
-      if(!f)return t.id;
-      const id=eff(+f.id);
-      return(C[id]&&!MS_IDS.has(id)&&isActive(id))?id:t.id;
-    }catch(e){return t.id;}
-  }
   // Among a hit-circle selection, return the datum whose centre is nearest the pointer (nearest-wins on overlap)
   function nearestDot(ev,sel){
     const p=d3.pointer(ev,g.node());let best=null,bestD=Infinity;
@@ -3074,7 +3057,7 @@ function _queueEntryResolved(entry){
 function nextCountry(){
   if(game.challengeMode){advanceChallenge();return;}
   canClick=true;
-  if(game.triviaMode&&game.found)game.found.clear(); // Trivia: nichts bleibt markiert (dasselbe Land kann in mehreren Fragen vorkommen)
+  if(game.triviaMode&&game.found&&!game._holdFound)game.found.clear(); // Trivia: nichts bleibt markiert (dasselbe Land kann in mehreren Fragen vorkommen)
   if(game.queue&&game.found){while(game.queue.length&&_queueEntryResolved(game.queue[0]))game.queue.shift();}
   if(!game.queue||game.queue.length===0){showResult();return;}
   const entry=game.queue.shift();
@@ -4030,5 +4013,25 @@ function regionBack(){
 
 renderHome();updateAllText();showScreen('home-screen');
 setTimeout(prewarmMap,1500); // Kartendaten und Pfade im Leerlauf vorbereiten: erster Spielstart ohne Stocken
+// Neue Version erkennen: Wer die Seite lange offen lässt, spielt sonst mit altem Code. Beim Zurückkehren zum Tab (und alle 30 Minuten)
+// wird app.js ungepuffert geholt und die BUILD_ID verglichen; bei Abweichung erscheint ein Hinweis zum Neuladen (nie automatisch mitten im Spiel).
+let _updShown=false;
+async function checkForUpdate(forceId){
+  if(_updShown)return;
+  try{
+    let remote=forceId;
+    if(!remote){const r=await fetch('app.js?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;const m=/const BUILD_ID='([^']+)'/.exec((await r.text()).slice(0,400));remote=m&&m[1];}
+    if(!remote||remote===BUILD_ID)return;
+    _updShown=true;
+    const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99998;background:#1D9E75;color:#fff;padding:10px 14px;border-radius:12px;font:14px system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.45);display:flex;gap:12px;align-items:center;max-width:92vw';
+    b.innerHTML='<span>'+['Neue Version verfügbar','New version available','Nueva versión disponible','Nouvelle version disponible'][li]+'</span><button style="padding:6px 12px;border-radius:8px;border:0;background:#fff;color:#0b5c44;font-weight:600;cursor:pointer">'+['Neu laden','Reload','Recargar','Recharger'][li]+'</button>';
+    b.querySelector('button').onclick=()=>location.reload();
+    document.body.appendChild(b);
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});
+if(typeof location!=='undefined'&&/^https?:/.test(location.protocol||''))setInterval(checkForUpdate,30*60*1000); // nur im Browser (sonst hielte der Timer die Tests am Leben)
 // Leistungsprüfung (perf.js) nur auf Wunsch laden: Seite mit ?perf öffnen
 if(/[?&]perf(?:[&=]|$)/.test(location.search)){const _ps=document.createElement('script');_ps.src='perf.js';document.head.appendChild(_ps);}
