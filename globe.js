@@ -28,7 +28,7 @@ function ptsOf(g,out){ // alle Stützpunkte einer Geometrie (jeder 6. reicht fü
 function info(d){
   let i=INFO.get(d);if(i)return i;
   const g=d.type==='Feature'?d.geometry:d;
-  if(!g||d.type==='Sphere'||g.type==='GeometryCollection'||g.type==='MultiLineString'&&!d.id){i={r:Math.PI};}  // Netze/Kugel: überall
+  if(!g||d.type==='Sphere'||g.type==='GeometryCollection'||g.type==='MultiLineString'&&d.type!=='Feature'){i={r:Math.PI};}  // Netze/Kugel: überall
   else{const c=d3.geoCentroid(d),p=[];ptsOf(g,p);let r=0;for(const q of p){const dd=d3.geoDistance(c,q);if(dd>r)r=dd;}i={c,r};}
   INFO.set(d,i);return i;
 }
@@ -53,6 +53,22 @@ function dp(pts,tol,closed){
     if(m>=0){keep[m]=1;st.push([a,m],[m,b]);}
   }
   const out=[];for(let i=0;i<n;i++)if(keep[i])out.push(pts[i]);
+  return densify(out);
+}
+// Lange Stücke (z. B. der 49. Breitengrad zwischen USA und Kanada: in Länge/Breite gerade, also nach dem Vereinfachen nur
+// zwei Punkte) in Schritten von höchstens 3° unterteilen. Die schnelle Kugelprojektion verbindet Stützpunkte gerade – ohne
+// Zwischenpunkte würde aus dem Breitenkreis eine Sehne. Sprünge über die Datumsgrenze (>=180°) bleiben unangetastet.
+const MAXSEG=3;
+function densify(pts){
+  let need=false;
+  for(let i=1;i<pts.length;i++){const dx=Math.abs(pts[i][0]-pts[i-1][0]),dy=Math.abs(pts[i][1]-pts[i-1][1]);if((dx>MAXSEG||dy>MAXSEG)&&dx<180){need=true;break;}}
+  if(!need)return pts;
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1],b=pts[i],dx=b[0]-a[0],dy=b[1]-a[1],m=Math.max(Math.abs(dx),Math.abs(dy));
+    if(m>MAXSEG&&Math.abs(dx)<180){const n=Math.ceil(m/MAXSEG);for(let j=1;j<n;j++)out.push([a[0]+dx*j/n,a[1]+dy*j/n]);}
+    out.push(b);
+  }
   return out;
 }
 function simpRing(r,tol){
@@ -72,11 +88,44 @@ function simpGeom(g,tol){
     default:return g;
   }
 }
-// Für canvas-map: liefert die zu zeichnende Geometrie oder null (= nicht zeichnen, Rückseite)
+// Halber Öffnungswinkel des sichtbaren Kugelausschnitts beim Zoom k (die Kugel steht immer in der Bildmitte): bei Zoom 1 die
+// ganze Vorderseite (90°), hineingezoomt nur noch ein kleiner Kegel. G.visR = halbe Bilddiagonale in Karteneinheiten bei Zoom 1.
+function updateVis(){
+  const node=document.getElementById('map');if(!node)return;
+  const r=node.getBoundingClientRect(),sc=(Math.min(r.width,r.height)/480)||1;
+  G.visR=Math.hypot(r.width,r.height)/2/sc;
+}
+function coneFor(k){
+  const rv=(G.visR||400)/(k||1);
+  return rv>=R0?Math.PI/2:Math.asin(rv/R0)+0.04; // +0.04 rad Reserve
+}
+// true = Form liegt ganz außerhalb des sichtbaren Ausschnitts (Rückseite oder neben dem Bild)
+function hidden(i,k){
+  if(!i.c)return false;
+  return d3.geoDistance(i.c,[-globeRot[0],-globeRot[1]])>Math.min(Math.PI/2,coneFor(k))+i.r+0.03;
+}
+// Für canvas-map: liefert die zu zeichnende Geometrie oder null (= nicht zeichnen)
 function liveGeom(d){
-  const i=info(d);
-  if(i.c){const c=[-globeRot[0],-globeRot[1]];if(d3.geoDistance(i.c,c)>Math.PI/2+i.r+0.03)return null;}
+  if(hidden(info(d),G.k))return null;
   return simplifiedFor(d,tolFor(G.k)); // Toleranz folgt dem aktuellen Zoom (auch mitten im Hineinzoomen)
+}
+// ── Pfadtext für den Neuaufbau: dieselbe schnelle Projektion wie beim Live-Zeichnen ──
+// Vorher rechnete d3.geoPath die Pfade des Kartenbaums (Drehung, Kreisbeschnitt, Kurvenunterteilung): 60–120 ms je Neuaufbau –
+// das war das kurze Einfrieren nach jedem Drehen/Zoomen. Jetzt ~5–10× schneller, und weil es exakt dieselbe Rechnung ist wie
+// beim Live-Zeichnen, springt beim Umschalten nichts mehr um.
+const f2=v=>Math.round(v*100)/100;
+const SC={s:'',moveTo(x,y){this.s+='M'+f2(x)+','+f2(y);},lineTo(x,y){this.s+='L'+f2(x)+','+f2(y);},closePath(){this.s+='Z';}};
+function pathString(d){
+  if(!d||d.type==='Sphere')return undefined; // Kugelumriss: d3
+  if(hidden(info(d),G.k))return '';
+  const g=simplifiedFor(d,tolFor(G.k));if(!g)return '';
+  const p=prep(g);if(!p)return undefined;    // unbekannte Geometrie: d3
+  const lc=-globeRot[0]*D2R,pc=-globeRot[1]*D2R,cL=Math.cos(lc),sL=Math.sin(lc),cP=Math.cos(pc),sP=Math.sin(pc),cx=W/2,cy=H/2;
+  SC.s='';
+  if(p.sphere){for(let a=0;a<120;a++){const t=a/120*2*Math.PI;(a?SC.lineTo:SC.moveTo).call(SC,cx+R0*Math.cos(t),cy+R0*Math.sin(t));}SC.closePath();} // Kugelscheibe als Vieleck (nur M/L/Z: canvas-map liest daraus die Ausdehnung)
+  if(p.polys){for(const poly of p.polys)for(const r of poly)ringPath(SC,r,cL,sL,cP,sP,cx,cy);}
+  else if(p.lines)for(const r of p.lines)linePath(SC,r,cL,sL,cP,sP,cx,cy);
+  return SC.s;
 }
 function simplifiedFor(d,tol){
   if(d.type==='Sphere'||d.type==='FeatureCollection'||d.noSimp||!tol)return d;
@@ -116,6 +165,11 @@ function prep(g){
     else if(geom.type==='MultiPolygon')p={polys:geom.coordinates.map(poly=>poly.map(ringArr))};
     else if(geom.type==='LineString')p={lines:[ringArr(geom.coordinates)]};
     else if(geom.type==='MultiLineString')p={lines:geom.coordinates.map(ringArr)};
+    else if(geom.type==='GeometryCollection'){ // Kugel + Flächen (Meer-Maske im Relief-Theme)
+      const polys=[];let sphere=false,ok=true;
+      for(const x of geom.geometries){if(!x)continue;if(x.type==='Sphere')sphere=true;else if(x.type==='Polygon')polys.push(x.coordinates.map(ringArr));else if(x.type==='MultiPolygon')x.coordinates.forEach(pl=>polys.push(pl.map(ringArr)));else ok=false;}
+      if(ok)p={polys,sphere};
+    }
   }
   PREP.set(g,p);return p;
 }
@@ -167,6 +221,7 @@ function drawLive(ctx,g){
   const p=prep(g);if(!p)return false;
   const lc=-globeRot[0]*D2R,pc=-globeRot[1]*D2R,cL=Math.cos(lc),sL=Math.sin(lc),cP=Math.cos(pc),sP=Math.sin(pc),cx=W/2,cy=H/2;
   ctx.beginPath();
+  if(p.sphere){ctx.moveTo(cx+R0,cy);ctx.arc(cx,cy,R0,0,Math.PI*2);ctx.closePath();}
   if(p.polys){for(const poly of p.polys)for(const r of poly)ringPath(ctx,r,cL,sL,cP,sP,cx,cy);}
   else for(const r of p.lines)linePath(ctx,r,cL,sL,cP,sP,cx,cy);
   return true;
@@ -330,7 +385,7 @@ function afterRotate(rotated,k1){
     if(window.Sky)window.Sky.rotate(globeRot);
     frame();
     clearTimeout(G.rebuildT);G.rebuildT=setTimeout(()=>{G.wheelLive=false;rebuild();},280);
-  }else if(tolFor(k1)<G.builtTol){refine();}
+  }else if(tolFor(k1)<G.builtTol||k1<(G.cullK||1)-1e-4){refine();}
   else if(!G.wheelLive){dotsAt(k1);}
 }
 function bindOnce(parent){
@@ -339,6 +394,12 @@ function bindOnce(parent){
   window.addEventListener('touchstart',e=>{_touchN=e.touches.length;},{passive:true});
   window.addEventListener('touchend',e=>{_touchN=e.touches.length;},{passive:true});
   window.addEventListener('touchcancel',()=>{_touchN=0;},{passive:true});
+  // Fenster größer/gedreht: der Ausschnitt ändert sich → Kartenbaum neu beschneiden
+  window.addEventListener('resize',()=>{
+    if(typeof projection==='undefined'||projection!=='globe')return;
+    const gs=document.getElementById('game-screen');if(!gs||gs.style.display==='none'||typeof game==='undefined'||!game||!Object.keys(game).length)return;
+    updateVis();clearTimeout(G.rebuildT);G.rebuildT=setTimeout(rebuild,250);
+  });
   window.addEventListener('pointerup',onUp);
   window.addEventListener('pointercancel',onUp);
   // Ein Klick direkt nach dem Ziehen darf kein Land anklicken
@@ -350,12 +411,14 @@ window.Globe={
   simplifiedTol(d,tol){return simplifiedFor(d,tol);},
   precision(){const k=G.k;return k>=8?0.3:k>=4?0.5:k>=2?0.8:1.2;}, // gröbere Kurvenunterteilung ist beim Herauszoomen unsichtbar, spart Rechenzeit
   simplified(d){return simplifiedFor(d,tolFor(G.k))||d;},
-  behind(d){const i=info(d);return !!(i.c&&d3.geoDistance(i.c,[-globeRot[0],-globeRot[1]])>Math.PI/2+i.r+0.03);},
+  behind(d){return hidden(info(d),G.k);},
+  pathString,
+  _test:{densify,dp}, // nur für test/perf.test.js
   get k(){return G.k;},
   // Wird von renderMap() nach dem Aufbau des Kartenbaums aufgerufen (nur im Globus-Modus)
   install(svg,wrapG,applyDotR){
     const node=svg.node(),cx=W/2,cy=H/2;
-    G.dotR=applyDotR;
+    G.dotR=applyDotR;updateVis();
     // Ansicht = translate(tx,ty) scale(k). Zoom richtet sich nach dem Cursor/den Fingern (wie bei den flachen Karten);
     // die Verschiebung ist so begrenzt, dass die Kugel beim Herauszoomen wieder in die Mitte zurückkehrt.
     const centred=k=>[cx*(1-k),cy*(1-k)];
@@ -365,7 +428,7 @@ window.Globe={
       G.k=k;G.tx=tx;G.ty=ty;
       wrapG.attr('transform','translate('+tx.toFixed(3)+','+ty.toFixed(3)+') scale('+k+')');
     };
-    G.k=clamp(G.k,1,12);G.builtTol=tolFor(G.k);
+    G.k=clamp(G.k,1,12);G.builtTol=tolFor(G.k);G.cullK=G.k; // cullK: für diesen Zoom ist der Kartenbaum auf den Bildausschnitt beschnitten
     if(G.tx==null){[G.tx,G.ty]=centred(G.k);}
     G.apply(G.k,G.tx,G.ty);
     zoomBehavior=d3.zoom().scaleExtent([1,12])
@@ -380,7 +443,7 @@ window.Globe={
           const ux=inv.a*mx+inv.c*my+inv.e,uy=inv.b*mx+inv.d*my+inv.f;
           const rot=rotToward(ux,uy,G.k,t.k,0.45);G.apply(t.k,t.x,t.y);afterRotate(rot,t.k);return;}
         G.apply(t.k,t.x,t.y);
-        if(kc&&tolFor(t.k)<G.builtTol)refine(); // weiter hineingezoomt: Konturen feiner (live, danach Neuaufbau)
+        if(kc&&(tolFor(t.k)<G.builtTol||t.k<(G.cullK||1)-1e-4))refine(); // weiter hineingezoomt: Konturen feiner; herausgezoomt: größerer Ausschnitt (live, danach Neuaufbau)
         else if(kc&&G.dotR&&!G.wheelLive)dotsAt(t.k);}})
       .on('end',()=>{dotsAt(G.k);});
     svg.call(zoomBehavior);svg.on('dblclick.zoom',null);
@@ -403,7 +466,7 @@ window.Globe={
     const c=[-globeRot[0],-globeRot[1]];
     d3.selectAll('#map .dyn circle').each(function(d){
       let ll=null;
-      if(d&&d.lon!==undefined)ll=[d.lon,d.lat];else if(d&&d.geometry)ll=d3.geoCentroid(d);
+      if(d&&d.lon!==undefined)ll=[d.lon,d.lat];else if(d&&d.geometry)ll=info(d).c;
       if(!ll)return;
       if(d3.geoDistance(ll,c)>1.5)this.setAttribute('data-away','1');else this.removeAttribute('data-away');
     });

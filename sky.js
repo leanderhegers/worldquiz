@@ -48,7 +48,7 @@ let currentPreset='schwarzblau'; // gewählt: Schwarz, mehr Kontrast, Blauhauch
 const tick=()=>new Promise(r=>setTimeout(r,0));
 // Breites Panorama (Seitenverhältnis 2.4:1, nahtlos umlaufend). Läuft in Scheiben von ~10 ms mit Pausen dazwischen, damit das Spiel
 // beim Erzeugen nicht ruckelt. Gibt ein Promise mit der JPEG-Daten-URL zurück.
-async function build(w,pn,h){
+async function build(w,pn,h,asBlob){
   const o=PRESETS[pn||currentPreset]||PRESETS.aktuell;
   h=h||Math.round(w/ASPECT);
   const R=rng(20261106),nz=makeNoise(7),nz2=makeNoise(99);
@@ -136,7 +136,19 @@ async function build(w,pn,h){
     if((n&1023)===0)await yieldNow();
   }
   await tick();
+  // asBlob: JPEG wird außerhalb des Hauptfadens kodiert (toDataURL blockierte bei 4800×2000 Pixeln ~70 ms)
+  if(asBlob&&c.toBlob)return new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
   return c.toDataURL('image/jpeg',0.92);
+}
+// Fertiges Bild dauerhaft im Gerätespeicher halten (Cache Storage): der Himmel wird je Gerät nur EINMAL berechnet, danach
+// ist er beim Öffnen des Globus sofort da. SKY_VER erhöhen, wenn sich das Bild ändern soll.
+const SKY_VER='4',SKY_CACHE='sky-cache';
+async function loadCached(key){
+  try{const c=await caches.open(SKY_CACHE),r=await c.match(key);if(r){const b=await r.blob();if(b&&b.size>20000)return URL.createObjectURL(b);}}catch(e){}
+  return null;
+}
+async function storeCached(key,blob){
+  try{const c=await caches.open(SKY_CACHE);(await c.keys()).forEach(k=>{if(!k.url.endsWith(key))c.delete(k);});await c.put(key,new Response(blob,{headers:{'Content-Type':'image/jpeg'}}));}catch(e){}
 }
 
 // Darstellungsgröße: Bildhöhe 2× Viewport-Höhe, Breite 2.4× Höhe; vertikal reicht der Überstand genau für ±90° Kippen.
@@ -175,7 +187,10 @@ window.Sky={
     const run=async()=>{
       try{
         const coarse=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
-        url=await build(coarse?3072:4800);
+        const w=coarse?3072:4800,key='/sky/v'+SKY_VER+'-'+currentPreset+'-'+w+'.jpg';
+        url=await loadCached(key);
+        if(!url){const out=await build(w,null,null,true);
+          if(out&&typeof out!=='string'){url=URL.createObjectURL(out);storeCached(key,out);}else url=out||null;}
       }catch(e){url=null;}
       building=false;
       if(url&&typeof projection!=='undefined'&&projection==='globe'){const m=document.getElementById('map-bg');if(m)window.Sky.apply(m);}

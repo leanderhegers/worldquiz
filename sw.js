@@ -1,6 +1,6 @@
 // Bump this whenever the precached asset list or any file in it changes — activating a new
 // cache name is what evicts the old one.
-const CACHE_NAME = 'weltquiz-v106';
+const CACHE_NAME = 'weltquiz-v107';
 
 // Precached on install: the app shell plus everything the world-map quiz (the entry point for
 // most players) needs. After this the core game is fully playable with no network at all.
@@ -70,7 +70,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE_NAME && k !== 'sky-cache').map(k => caches.delete(k))) // sky-cache: einmal berechneter Sternenhimmel (sky.js), bleibt über Updates erhalten
     ).then(() => self.clients.claim())
   );
 });

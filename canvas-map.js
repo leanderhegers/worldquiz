@@ -42,13 +42,100 @@ function paintOf(el,prop){const s=el.style[prop];return s?s:el.getAttribute(prop
 function isNone(p){return p===null||p==='none'||p==='transparent'||p==='';}
 
 // path geometry cache: Path2D + (lazy) bbox. Invalidated by the MutationObserver when 'd' changes.
+// Zusätzlich je Pfad-Zeichenkette gemerkt: nach einem Neuaufbau der Karte (neue Elemente, dieselben Pfade – die flachen Karten
+// liefern ihre Pfade aus einem Zwischenspeicher) müssen die ~3 MB Pfaddaten nicht erneut zerlegt werden.
+const byStr=new Map();
 function geom(el){
   let c=S.cache.get(el);
-  if(!c){const d=el.getAttribute('d');c={p:d?new Path2D(d):null,bbox:undefined};S.cache.set(el,c);}
+  if(!c){
+    const d=el.getAttribute('d');
+    if(!d)c={p:null,bbox:undefined};
+    else{c=byStr.get(d);if(!c){if(byStr.size>2500)byStr.clear();c={p:new Path2D(d),bbox:undefined};byStr.set(d,c);}}
+    S.cache.set(el,c);
+  }
   return c;
 }
 // Shapes are display:none (see init), so there's no layout box to ask getBBox() — but d3-geo only
 // ever emits absolute M/L/Z commands, so the bbox is just the min/max of the number pairs.
+// ── Detailstufen (LOD) für die flachen Karten ──
+// In der Übersicht ist fast jedes Küstendetail kleiner als ein Pixel, gezeichnet wurden trotzdem alle ~150 000 Stützpunkte
+// je Bild – das kostet beim Zoomen/Ziehen Zeit im Grafikteil des Browsers (nicht im Skript messbar, aber als Ruckler sichtbar,
+// vor allem wenn die ganze Welt im Bild ist). Deshalb gibt es zu jedem Pfad bis zu drei vereinfachte Fassungen
+// (Douglas-Peucker, Toleranz in Karteneinheiten); gezeichnet wird die gröbste, deren Abweichung unter ~0,4 Gerätepixel bleibt.
+// Klicks und Hover prüfen weiter gegen den vollen Pfad. Die Fassungen entstehen im Leerlauf, bis dahin wird voll gezeichnet.
+const LOD_TOL=[0.25,0.1,0.04];
+function lodLevel(f){for(let i=0;i<LOD_TOL.length;i++)if(LOD_TOL[i]*f<=0.42)return i;return -1;} // f = Gerätepixel je Karteneinheit
+// d3-geo liefert nur absolute M/L/Z: in Teilpfade zerlegen. Andere Befehle (Bögen, H/V) → null = keine Detailstufen.
+function parseSubpaths(d){
+  const subs=[];let cur=null;const n=d.length;let i=0;
+  while(i<n){
+    const ch=d.charCodeAt(i);
+    if(ch===77){cur={x:[],closed:false};subs.push(cur);i++;continue;}
+    if(ch===76||ch===44||ch===32||ch===10){i++;continue;}
+    if(ch===90){if(cur)cur.closed=true;i++;continue;}
+    if(!((ch>=48&&ch<=57)||ch===45||ch===46)||!cur)return null;
+    let j=i+1;
+    while(j<n){const k=d.charCodeAt(j);if((k>=48&&k<=57)||k===46||k===101||k===69||((k===45||k===43)&&(d.charCodeAt(j-1)===101||d.charCodeAt(j-1)===69)))j++;else break;}
+    cur.x.push(+d.slice(i,j));i=j;
+  }
+  return subs;
+}
+// Douglas-Peucker auf einem flachen Koordinatenfeld [x0,y0,x1,y1,…]; gibt ein neues flaches Feld zurück
+function dpFlat(x,tol){
+  const n=x.length>>1;if(n<=3)return x;
+  const keep=new Uint8Array(n);keep[0]=keep[n-1]=1;
+  const st=[0,n-1],t2=tol*tol;
+  while(st.length){
+    const b=st.pop(),a=st.pop();if(b-a<2)continue;
+    const ax=x[2*a],ay=x[2*a+1],dx=x[2*b]-ax,dy=x[2*b+1]-ay,l2=dx*dx+dy*dy;
+    let m=-1,md=t2;
+    for(let i=a+1;i<b;i++){
+      let px=x[2*i]-ax,py=x[2*i+1]-ay;
+      if(l2>0){let u=(px*dx+py*dy)/l2;u=u<0?0:u>1?1:u;px-=u*dx;py-=u*dy;}
+      const d2=px*px+py*py;if(d2>md){md=d2;m=i;}
+    }
+    if(m>=0){keep[m]=1;st.push(a,m,m,b);}
+  }
+  const out=[];for(let i=0;i<n;i++)if(keep[i])out.push(x[2*i],x[2*i+1]);
+  return out;
+}
+function buildLod(d){
+  if(!d||d.length<600)return null; // kleine Pfade: lohnt nicht
+  const subs=parseSubpaths(d);if(!subs||!subs.length)return null;
+  // geschlossene Ringe: Startpunkt ans Ende hängen (als offene Linie vereinfachen), Ausdehnung merken
+  for(const s of subs){
+    const x=s.x;let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;
+    for(let i=0;i+1<x.length;i+=2){if(x[i]<x0)x0=x[i];if(x[i]>x1)x1=x[i];if(x[i+1]<y0)y0=x[i+1];if(x[i+1]>y1)y1=x[i+1];}
+    s.size=Math.max(x1-x0,y1-y0);
+    if(s.closed&&x.length>=2)x.push(x[0],x[1]);
+  }
+  const lod=[null,null,null];
+  // von fein nach grob, jede Stufe aus der vorherigen
+  for(let lv=LOD_TOL.length-1;lv>=0;lv--){
+    const tol=LOD_TOL[lv],p=new Path2D();
+    for(const s of subs){
+      if(s.closed&&s.size<tol*0.7)continue;                    // Fleck unter einem halben Pixel: weglassen
+      if(s.size>=tol*14&&s.x.length>8)s.x=dpFlat(s.x,tol);       // kleine Ringe bleiben unverändert (sonst flache Splitter)
+      const x=s.x,m=x.length-(s.closed?2:0);
+      if(m<4)continue;
+      p.moveTo(x[0],x[1]);for(let i=2;i<m;i+=2)p.lineTo(x[i],x[i+1]);
+      if(s.closed)p.closePath();
+    }
+    lod[lv]=p;
+  }
+  return lod;
+}
+const lodQ=[];let lodBusy=false;
+const idle=window.requestIdleCallback?(fn=>requestIdleCallback(fn,{timeout:800})):(fn=>setTimeout(()=>fn({timeRemaining:()=>6}),50));
+function lodStep(dl){
+  const t0=performance.now();
+  while(lodQ.length&&(performance.now()-t0<6||(dl&&dl.timeRemaining&&dl.timeRemaining()>3))){const e=lodQ.pop();e[0].lod=buildLod(e[1]);}
+  if(lodQ.length)idle(lodStep);else lodBusy=false;
+}
+function lodRequest(c,d){
+  if(c.lod!==undefined||c.lodQ)return;c.lodQ=true;
+  lodQ.push([c,d]);if(!lodBusy){lodBusy=true;idle(lodStep);}
+}
 function bboxOf(el,c){
   if(c.bbox===undefined){
     const nums=(el.getAttribute('d')||'').match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
@@ -75,6 +162,7 @@ function offscreen(m,b,pad,vp){
 function draw(){
   const svg=S.svg;if(!svg||!svg.isConnected)return;
   const t0=performance.now();
+  S.lodOn=S.lod!==false&&!(typeof projection!=='undefined'&&projection==='globe');
   const rect=svg.getBoundingClientRect();
   const ctm=svg.getScreenCTM();
   const dpr=Math.min(window.devicePixelRatio||1,S.liveProj?1.25:2);
@@ -95,8 +183,15 @@ function draw(){
   const L=S.layer,lt=S.lastT;
   const panning=lt&&T[0]===lt[0]&&(T[4]!==lt[4]||T[5]!==lt[5]);
   S.lastT=T;
+  // Bewegung (Zoomen/Ziehen): Linien werden so lange höchstens 1 Gerätepixel breit gezeichnet. Breitere Linien muss der
+  // Grafikteil des Browsers aufwendig in Flächen zerlegen – bei den langen Küsten- und Grenzlinien war das auf Bildschirmen mit
+  // hoher Pixeldichte (Handys) der größte Posten je Bild (gemessen: 23 → 6 langsame Bilder von 40). Sobald die Karte steht,
+  // wird einmal in voller Linienstärke nachgezeichnet.
+  const moved=!!(lt&&(T[0]!==lt[0]||T[4]!==lt[4]||T[5]!==lt[5]));
+  S.fast=moved&&!S.exact;
+  if(S.fast){clearTimeout(S.idle);S.idle=setTimeout(()=>{S.exact=true;draw();},160);}
   let sx=0,sy=0,useLayer=false;
-  if(L&&!S.layerDirty&&L.key===key){
+  if(L&&!S.layerDirty&&L.key===key&&(S.fast||!L.fast)){
     sx=Math.round(base[0]*(T[4]-L.T[4])+base[2]*(T[5]-L.T[5]));
     sy=Math.round(base[1]*(T[4]-L.T[4])+base[3]*(T[5]-L.T[5]));
     useLayer=Math.abs(sx)<=L.M&&Math.abs(sy)<=L.M;
@@ -116,7 +211,7 @@ function draw(){
     const bl=mul([1,0,0,1,M,M],base);
     for(const ch of svg.children)paint(ch,bl,1);
     S.skip=null;
-    S.layer={key,T:T.slice(),M};S.layerDirty=false;sx=0;sy=0;useLayer=true;
+    S.layer={key,T:T.slice(),M,fast:S.fast};S.layerDirty=false;sx=0;sy=0;useLayer=true;
   }
   S.ctx=main;S.vp={w,h,dpr};
   main.miterLimit=4;main.lineJoin='miter';main.lineCap='butt';
@@ -127,7 +222,7 @@ function draw(){
     for(const ch of svg.children)paint(ch,base,1);
   }
   const ms=performance.now()-t0,st=S.stats;
-  st.draws++;st.lastMs=ms;st.avgMs=st.avgMs?st.avgMs*0.9+ms*0.1:ms;if(ms>st.maxMs)st.maxMs=ms;
+  st.draws++;st.lastMs=ms;st.sumMs=(st.sumMs||0)+ms;st.avgMs=st.avgMs?st.avgMs*0.9+ms*0.1:ms;if(ms>st.maxMs)st.maxMs=ms;
 }
 function paint(el,m,alpha){
   if(el===S.skip)return;
@@ -159,7 +254,9 @@ function shape(el,tag,m,alpha){
     // Live-Modus (Globus beim Drehen): Geo-Formen werden aus ihrem GeoJSON direkt mit der aktuellen Projektion gezeichnet
     if(S.liveProj){const gd=el.__data__;if(!gd||!gd.type)return;live=S.liveGeom?S.liveGeom(gd):gd;if(!live)return;}
     else{c=geom(el);p=c.p;if(!p)return;
-      const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;}
+      const b=bboxOf(el,c);if(b&&offscreen(m,b,6*dpr,S.vp))return;
+      if(S.lodOn){const lv=lodLevel(Math.sqrt(det(m)));
+        if(lv>=0){if(c.lod===undefined)lodRequest(c,el.getAttribute('d'));else if(c.lod&&c.lod[lv])p=c.lod[lv];}}}
   }else if(S.liveProj&&tag==='circle'&&S.liveCircle){lp=S.liveCircle(el);if(!lp)return;}
   else if(S.liveProj&&!(tag==='rect'&&el.classList.contains('ocean')))return;
   ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
@@ -181,7 +278,8 @@ function shape(el,tag,m,alpha){
     const sw=num(el,'stroke-width',1);
     const ns=(el.style.getPropertyValue('vector-effect')||el.getAttribute('vector-effect'))==='non-scaling-stroke';
     const k=Math.sqrt(det(m))||1,f=ns?dpr/k:1; // non-scaling: width/dashes are screen px, not user units
-    ctx.globalAlpha=alpha*num(el,'stroke-opacity',1);ctx.strokeStyle=stroke;ctx.lineWidth=sw*f;
+    ctx.globalAlpha=alpha*num(el,'stroke-opacity',1);ctx.strokeStyle=stroke;
+    ctx.lineWidth=(S.fast&&ns&&tag==='path'&&sw*dpr>1)?f/dpr:sw*f; // in Bewegung: höchstens 1 Gerätepixel (siehe draw)
     const da=el.getAttribute('stroke-dasharray');
     ctx.setLineDash(da&&da!=='none'?da.split(/[\s,]+/).filter(Boolean).map(v=>+v*f):[]);
     const glow=(el.getAttribute('filter')||'').indexOf('url(')===0; // river hover glow
@@ -344,6 +442,11 @@ window.CanvasMap={
   redraw:draw,
   invalidate(){S.layerDirty=true;draw();},
   setLive(proj,geomFn,drawFn,hitFn,circleFn){S.liveProj=proj||null;S.liveGeom=geomFn||null;S.liveDraw=drawFn||null;S.liveHit=hitFn||null;S.liveCircle=circleFn||null;S.layerDirty=true;S.layer=null;},
-  stats:S.stats
+  // Pfad schon vor dem ersten Zeichnen zerlegen (Leerlauf-Vorbereitung auf der Startseite)
+  warm(d){if(d&&!byStr.has(d)){if(byStr.size>2500)byStr.clear();byStr.set(d,{p:new Path2D(d),bbox:undefined,lod:buildLod(d)});}},
+  // Detailstufen ein/aus (zum Vergleichen in der Leistungsprüfung)
+  setLod(on){S.lod=!!on;S.layerDirty=true;draw();},
+  stats:S.stats,
+  _test:{parseSubpaths,dpFlat,lodLevel,LOD_TOL} // nur für test/perf.test.js
 };
 })();
