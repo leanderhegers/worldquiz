@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 H';
+const BUILD_ID='2026-11-12 I';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1282,6 +1282,10 @@ function resolveAnswer({key,correct,name,flashKey,flash,repaint,keepOnFound=true
     // never runs for them and behaviour is unchanged.
     if(game.currentGroup){
       game.currentGroup.delete(key);
+      if(game._triviaBase){ // Zähler "(gefunden/gesamt)" in der Frage mitführen
+        game._triviaQ=game._triviaBase+' ('+(game._triviaN-game.currentGroup.size)+'/'+game._triviaN+')';
+        const tn=$('target-name');if(tn)tn.textContent=game._triviaQ;
+      }
       if(game.currentGroup.size>0){
         if(showWrongHint)showFeedback(t('correctFb')(name),THEMES[theme].found);
         recordCorrectForCurrent();repaint();updateStats();
@@ -1855,7 +1859,7 @@ async function startTriviaGame(){
     specs=specs.concat(_triviaBuildSpecs(m.sorted,dir,m.singleQ,m.multiQ,TRIVIA_SINGLE_PER_SIDE,groupN,TRIVIA_SINGLE_MAX_RANK));
   }));
   // Ländergruppen (groups.js) daruntermischen
-  specs=specs.concat(shuffle(groupTriviaItems(pop,null)).slice(0,TRIVIA_GROUP_QUESTIONS).map(i=>({ids:i.ids.slice(),q:i.title+' ('+i.ids.length+')'})));
+  specs=specs.concat(shuffle(groupTriviaItems(pop,null)).slice(0,TRIVIA_GROUP_QUESTIONS).map(i=>({ids:i.ids.slice(),q:i.title+' (0/'+i.ids.length+')',base:i.title,n:i.ids.length})));
   const shuffled=shuffle(specs);
   game={mode:'trivia',triviaMode:true,
     queue:shuffled,current:null,currentGroup:null,
@@ -3039,11 +3043,11 @@ function nextCountry(){
   if(entry&&typeof entry==='object'&&entry.ids){
     game.current=entry.ids[0];
     game.currentGroup=new Set(entry.ids);
-    game._triviaQ=entry.q;
+    game._triviaQ=entry.q;game._triviaBase=entry.base||null;game._triviaN=entry.n||0;
   }else{
     game.current=entry;
     game.currentGroup=null;
-    game._triviaQ=null;
+    game._triviaQ=null;game._triviaBase=null;
   }
   game.wrongOnCurrent=false;
   if(game.riverMode){const f=game.riverFeatures[game.current];$('target-name').textContent=f?riverDisplayName(f):'?';}
