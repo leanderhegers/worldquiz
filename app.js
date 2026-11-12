@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-12 K';
+const BUILD_ID='2026-11-12 L';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1902,13 +1902,11 @@ function groupTriviaItems(pop,area){
 // Trivia-Menü: Mischung, Ranglisten und die Ländergruppen-Kategorien (groups.js)
 function triviaMenuPanel(){
   const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
-  const nq=c=>(window.GROUP_Q||[]).filter(r=>r[1]===c).length+(window.GROUP_NUM||[]).filter(r=>r[1]===c).length;
-  const unit=['Fragen','questions','preguntas','questions'][li];
-  const cards=[
-    gsCard("startTriviaGame()",['Alles gemischt','Everything mixed','Todo mezclado','Tout mélangé'][li],['Ranglisten und Ländergruppen','Rankings and country groups','Clasificaciones y grupos de países','Classements et groupes de pays'][li],'trivia:world'),
-    gsCard("startTriviaGame('ranks')",'🏆 '+['Rekorde & Ranglisten','Records & rankings','Récords y clasificaciones','Records et classements'][li],['Einwohner, Fläche, Glück, Export, Welterbe','Population, area, happiness, exports, heritage','Población, superficie, felicidad, exportaciones, patrimonio','Population, superficie, bonheur, exportations, patrimoine'][li],'trivia:ranks')
-  ].concat((window.GROUP_CATS||[]).map(c=>gsCard("startTriviaGame('"+c.key+"')",c.icon+' '+c.t[li],nq(c.key)+' '+unit+' · '+c.s[li],'trivia:'+c.key)));
-  return _cardsPanel(cards,'gs-grid-pin');
+  const card=(call,emoji,name,key)=>gsCard(call,'<span class="tm-emoji">'+emoji+'</span>'+name,'',key); // Emoji oben, darunter der Name
+  return _cardsPanel([
+    card('startTriviaGame()','🎲',['Alles gemischt','Everything mixed','Todo mezclado','Tout mélangé'][li],'trivia:world'),
+    card("startTriviaGame('ranks')",'🏆',['Rekorde & Ranglisten','Records & rankings','Récords y clasificaciones','Records et classements'][li],'trivia:ranks')
+  ].concat((window.GROUP_CATS||[]).map(c=>card("startTriviaGame('"+c.key+"')",c.icon,c.t[li],'trivia:'+c.key))),'gs-grid-pin');
 }
 // ── DIFFICULTY TIERS (all 197 countries, split into 5 by population) ──
 // Precomputed once from data/population.json (sorted descending, cut into 5 equal-ish slices —
