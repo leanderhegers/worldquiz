@@ -32,6 +32,7 @@ const FT2={
 const FX2=()=>FT2[typeof lang!=='undefined'&&FT2[lang]?lang:'de'];
 const FX=()=>FT[typeof lang!=='undefined'&&FT[lang]?lang:'de'];
 const RACE_MS=60000;
+const L4p=(de,en,es,fr)=>({de,en,es,fr}[typeof lang!=='undefined'&&{de:1,en:1,es:1,fr:1}[lang]?lang:'de']);
 const capOf=id=>(typeof CAPITALS!=='undefined'&&CAPITALS[id])?(CAPITALS[id][typeof lang!=='undefined'?lang:'de']||CAPITALS[id].de):'';
 // Häufige Varianten (nach norm()): Zahl = Länder-ID wie in countries.js
 const ALIAS={
@@ -149,6 +150,7 @@ function hint(){
   const inp=document.getElementById('fill-input');if(inp)inp.focus();
 }
 function updateFillStats(){
+  if(game.fillPath){if(window.updatePathStats)window.updatePathStats();return;}
   const X=FX(),found=game.found.size,tot=game.total||1;
   const X2=FX2(),area=game.fillArea||game.fillKey,areaName=area==='world'?X.world:((MODES&&MODES[area]&&MODES[area][lang])||area);
   $('find-label').textContent=(game.fillCap?X2.capLbl:game.fillRace?X2.raceLbl:X.lbl)+' · '+areaName;
@@ -217,6 +219,7 @@ function showResult(){
 }
 // key: 'world' | 'EU' …  (Länder eintippen) · 'cap:world' | 'cap:EU' …  (Hauptstädte) · 'race:world'  (Zeitrennen, 60 s)
 async function startFillGame(fullKey){
+  if(fullKey==='path'&&typeof startPathGame==='function')return startPathGame(); // Kürzester Weg (path.js)
   if(!nameMap)buildNames();
   stopTimer();
   lastMode='fill';canClick=false;optsOpen=false;
@@ -235,9 +238,28 @@ async function startFillGame(fullKey){
     updateFillStats();},game.fillRace?200:500);
   const inp=document.getElementById('fill-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
 }
+// Namen → Länder-ID für andere Spiele (Kürzester Weg): genauer Treffer, sonst bei Enter Tippfehler-Toleranz
+function fillResolve(text,fuzzy){
+  if(!nameMap)buildNames();
+  const s=norm(String(text).trim());if(!s)return null;
+  const ex=nameMap.get(s);if(ex)return ex[0];
+  if(!fuzzy||s.length<5)return null;
+  const tol=s.length>=9?2:1;let best=null,bd=tol+1,tie=false;
+  for(const [k,ids] of nameMap){if(k.length<5)continue;const d=dist(s,k,tol);if(d>tol)continue;if(d<bd){bd=d;best=ids[0];tie=false;}else if(d===bd&&ids[0]!==best)tie=true;}
+  return(best==null||tie)?null:best;
+}
+// Länder, in deren Namen das getippte Wort vorkommt ("Kongo" → Republik Kongo, DR Kongo; "Guinea" → Guinea, Guinea-Bissau, …)
+function fillCandidates(text){
+  if(!nameMap)buildNames();
+  const s=norm(String(text).trim());if(s.length<4)return[];
+  const out=new Set();
+  for(const [k,ids] of nameMap){if(k.split(/[\s\-.']+/).some(w=>w===s||w.startsWith(s)))ids.forEach(i=>out.add(i));}
+  return[...out];
+}
+function fillHasLonger(s){if(!nameMap)buildNames();for(const k of nameMap.keys())if(k.length>s.length&&k.startsWith(s))return true;return false;}
 function fillGiveUp(){if(game&&game.fillMode&&!game.fillDone)finish(false);}
 function fillStop(){ // beim Verlassen: Timer aus, Feld weg, "Aufgeben" wieder zu "Überspringen"
-  stopTimer();
+  stopTimer();if(window.pathStop)window.pathStop();
   const b=document.getElementById('fill-box');if(b)b.style.display='none';
   const sk=document.getElementById('btn-skip');if(sk)sk.setAttribute('onclick','skip()');
 }
@@ -247,6 +269,7 @@ function fillMenuGroup(){
   const conts=['EU','AS','AF','NA','SA','OC'];
   return {cls:'gs-flag',head:X.head,items:[
     {icon:'🌐',title:X.world,sub:X.worldSub+' · '+n('world'),onclick:"startFillGame('world')"},
+    {icon:'🛤️',title:L4p('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court'),sub:L4p('Von Land zu Land über Nachbarn','From country to country via neighbours','De país a país por sus vecinos','De pays en pays par les voisins'),onclick:"startFillGame('path')"},
     {icon:'⏱️',title:FX2().raceHead,sub:FX2().raceSub,onclick:"startFillGame('race:world')"},
     {icon:'🏛️',title:FX2().capHead,sub:FX2().capSub,panel:'fill-caps',
       renderPanel:()=>_cardsPanel(['world'].concat(conts).map(k=>gsCard("startFillGame('cap:"+k+"')",k==='world'?X.world:((MODES[k]&&MODES[k][lang])||k),n(k)+' '+(lang==='de'?'Hauptstädte':lang==='es'?'capitales':lang==='fr'?'capitales':'capitals'),'fill:cap:'+k)),'gs-grid-pin')},
@@ -254,5 +277,5 @@ function fillMenuGroup(){
       renderPanel:()=>_cardsPanel(conts.map(k=>gsCard("startFillGame('"+k+"')",(MODES[k]&&MODES[k][lang])||k,n(k)+' '+(lang==='de'?'Länder':lang==='es'?'países':lang==='fr'?'pays':'countries'),'fill:'+k)),'gs-grid-pin')}
   ]};
 }
-window.startFillGame=startFillGame;window.fillGiveUp=fillGiveUp;window.fillStop=fillStop;window.fillMenuGroup=fillMenuGroup;window.updateFillStats=updateFillStats;
+window.fillCandidates=fillCandidates;window.fillResolve=fillResolve;window.fillHasLonger=fillHasLonger;window.startFillGame=startFillGame;window.fillGiveUp=fillGiveUp;window.fillStop=fillStop;window.fillMenuGroup=fillMenuGroup;window.updateFillStats=updateFillStats;
 })();

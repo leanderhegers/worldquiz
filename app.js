@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-13 B';
+const BUILD_ID='2026-11-13 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -830,7 +830,7 @@ function gameScoreKey(){
 }
 function gameScoreValue(){
   if(_regGame)return {score:_regGame.firstTry||0,total:_regGame.total||0};
-  if(game.fillMode)return {score:Math.max(0,game.found.size-(game.hints||0)),total:game.total||0};
+  if(game.fillMode)return game.fillPath?{score:game.fillPath.total,total:game.fillPath.pairs.length*100}:{score:Math.max(0,game.found.size-(game.hints||0)),total:game.total||0};
   if(game.flagMode)return {score:game.flagCorrect||0,total:game.flagTotal||0};
   if(game.pinMode){const isCont=PIN_BONUS_REGIONS.includes(game.pinRegion);return {score:game.pinScore||0,total:(game.total||0)*(isCont?1050:1000)};}
   return {score:game.firstTry||0,total:game.total||0};
@@ -1168,7 +1168,7 @@ function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){if(game.fillMode){if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(game.fillMode){if(game.fillPath&&game.fillPath.duel&&typeof duelLeave==='function')duelLeave();if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -2797,8 +2797,8 @@ function _avail(rawId){return theme==='terrain'?terrainFill(rawId):theme==='reli
 function _availDot(id){return theme==='relief'?'#f4ecd0':_avail(id);}
 // Trivia: Treffer sind nur während der laufenden Frage grün (nextCountry() leert game.found), Übersprungenes leuchtet
 // nur kurz orange (skip()). Es bleibt also nichts markiert, das bei einer späteren Frage etwas verraten könnte.
-function getColor(rawId){const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode||game.triviaMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
-function getMSColor(id){const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode||game.triviaMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
+function getColor(rawId){if(game.fillPath)return pathColor(rawId);const id=eff(rawId),th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode)return _avail(rawId);if(game.pinMode){if(!C[id])return th.dim;if(!isActive(id))return th.dim;return _avail(rawId);}if(!C[id])return th.dim;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode||game.triviaMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _avail(rawId);}
+function getMSColor(id){if(game.fillPath)return pathColor(id);const th=THEMES[theme];if(wrongFlashIds.has(id))return th.wrong;if(game.skippedItems&&game.skippedItems.has(id))return th.skipped;if((keepFound||game.fillMode||game.challengeMode||game.triviaMode)&&game.found&&game.found.has(id))return th.found;if(!isActive(id))return th.dim;return _availDot(id);}
 function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   const neutral=game.lakeMode||game.riverMode||game.cityMode||game.mountainMode||game.rangeMode;
   if(neutral){
@@ -2832,6 +2832,7 @@ function updateColors(){if(!countryPaths)return;const th=THEMES[theme];
   updateCityColors();
   updateMountainColors();
   updateRangeColors();
+  if(game.fillPath&&typeof pathStyle==='function')pathStyle(); // Kürzester Weg: nur Start, Ziel und gefundene Länder sichtbar
 }
 // ── RANDOM CHALLENGE ──
 // Mixes question types from the existing map-click (country) and text-input (flag/capital/

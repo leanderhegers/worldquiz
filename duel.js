@@ -35,8 +35,10 @@ const DUEL_MODES=[
   {k:'language',ico:'🗣️',de:'Sprachen',en:'Languages'},
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
   {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
-  {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',diff:true}
+  {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',diff:true},
+  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path'}
 ];
+const _duelPts=m=>m==='pin'||m==='path'; // Punkte-Modi (statt "x von 10 richtig")
 function _duelMode(m){return DUEL_MODES.find(x=>x.k===m)||DUEL_MODES[0];}
 function _duelModeName(m,de){const x=_duelMode(m);return de?x.de:x.en;}
 // Schwierigkeit (nur Flaggen und Karte): all | easy | medium | hard.
@@ -200,8 +202,9 @@ async function duelSendInvite(){
   // getPinCities('EU') wieder in dieselben Städte auf.
   const diff=_duelMode(mode).diff?(_duelSelDiff||'all'):'all';
   _duelLastSet();
-  const pool=_duelPool(mode,diff);
-  const picked=_duelDraw(_duelKey(mode,diff),pool);
+  let picked;
+  if(mode==='path'){try{picked=await pathMakePairs(5);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
+  else picked=_duelDraw(_duelKey(mode,diff),_duelPool(mode,diff));
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
@@ -344,22 +347,28 @@ async function _duelBegin(d){
   const me=_duelMe();
   const mode=DUEL_MODES.some(x=>x.k===d.mode)?d.mode:'flag';
   _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},finished:false};
-  if(d.host!==me)_duelRecentAdd(_duelKey(mode,d.diff),d.q||[],_duelPool(mode,d.diff).length);
+  if(d.host!==me&&mode!=='path')_duelRecentAdd(_duelKey(mode,d.diff),d.q||[],_duelPool(mode,d.diff).length);
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
-  const de=_duelDE(),isPin=mode==='pin';
-  const queue=isPin?[]:d.q.map(id=>({type:mode==='map'?'country':mode,id}));
+  const de=_duelDE(),isPin=mode==='pin',isPath=mode==='path';
+  const queue=(isPin||isPath)?[]:d.q.map(id=>({type:mode==='map'?'country':mode,id}));
   const cities=isPin?d.q.map(n=>getPinCities('EU').find(c=>c.name_en===n)).filter(Boolean):[];
   const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelEsc(_duelCur.names[u]||'?')).join(', ');
   const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff},de)}</h2>
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
   // Karten-Modus braucht die geladene Weltkarte, Flaggen ihre Bilder — beides läuft während des Countdowns.
-  const pre=isPin?Promise.resolve():mode==='map'?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
+  const pre=isPin?Promise.resolve():(mode==='map'||isPath)?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
   for(let n=3;n>=1;n--){cd(n);await new Promise(r=>setTimeout(r,900));}
   await pre;
   if(!_duelCur||_duelCur.id!==d.id)return; // währenddessen abgebrochen
   _duelClose();
+  if(isPath){
+    if(!(d.q||[]).length){_duelCur=null;_duelMessage('⚠️',de?'Die Aufgaben des Duells konnten nicht geladen werden.':'Could not load the duel tasks.');return;}
+    _duelCur.rounds=d.q.length;_duelChip(d);
+    await startPathGame({pairs:d.q,duel:true});
+    return;
+  }
   if(isPin){
     if(!cities.length){_duelCur=null;_duelMessage('⚠️',de?'Die Städte des Duells konnten nicht geladen werden.':'Could not load the duel cities.');return;}
     _duelChip(d);
@@ -382,6 +391,22 @@ function duelPinProgress(){
   const me=_duelMe();
   if(!_duelCur||_duelCur.mode!=='pin'||!game||!game.pinDuel||!me||!_db)return;
   _duelRef(_duelCur.id).update({['p.'+me]:{pos:game.pinRound||0,sc:game.pinScore||0,done:false}}).catch(()=>{});
+}
+function duelPathProgress(p){
+  const me=_duelMe();
+  if(!_duelCur||_duelCur.mode!=='path'||!me||!_db)return;
+  _duelRef(_duelCur.id).update({['p.'+me]:{pos:p.round+(p.roundDone?1:0),sc:p.total,done:false}}).catch(()=>{});
+}
+function duelPathFinish(p){
+  const me=_duelMe();
+  if(!_duelCur||_duelCur.mode!=='path'||!me||!_db)return;
+  showScreen('result-screen');
+  const set=(id,txt)=>{const e=_duelEl(id);if(e)e.textContent=txt;};
+  set('res-btn-back',t('back'));set('btn-new',t('newgame'));
+  _duelCur.finished=true;_duelCur.score=p.total;_duelCur.total=p.pairs.length;_duelCur.rounds=p.pairs.length;
+  _duelChip(null);_duelHideResultExtras();
+  _duelRef(_duelCur.id).update({['p.'+me]:{pos:p.pairs.length,sc:p.total,done:true,score:p.total}}).catch(()=>{});
+  _duelRenderResult(_duelDocs[_duelCur.id]);
 }
 function _duelHideResultExtras(){
   const b=_duelEl('btn-again');if(b)b.style.display='none';
@@ -409,7 +434,7 @@ function duelShowResult(g){
 function duelLeave(){
   const me=_duelMe();
   if(_duelCur&&!_duelCur.finished&&me&&_db){
-    _duelRef(_duelCur.id).update({['p.'+me]:{pos:(_duelCur.mode==='pin'?(game&&game.pinRound):(_challenge&&_challenge.pos))||0,done:true,left:true,score:0}}).catch(()=>{});
+    _duelRef(_duelCur.id).update({['p.'+me]:{pos:(_duelCur.mode==='pin'?(game&&game.pinRound):_duelCur.mode==='path'?(game&&game.fillPath&&game.fillPath.round):(_challenge&&_challenge.pos))||0,done:true,left:true,score:0}}).catch(()=>{});
   }
   _duelCur=null;_duelChip(null);
 }
@@ -427,8 +452,8 @@ function _duelRenderResult(d){
   const de=_duelDE(),me=_duelMe(),p=(d&&d.p)||{};
   const t=_duelEl('res-title'),e=_duelEl('res-emoji'),l1=_duelEl('res-l1'),l2=_duelEl('res-l2');
   if(!t||!l2)return;
-  const mine=_duelCur.score||0,isPin=_duelCur.mode==='pin';
-  l1.textContent=isPin?`${de?'Du':'You'}: ${mine} ${de?'Punkte':'points'} · Ø ${_duelCur.avg||0} km`:`${de?'Du':'You'}: ${_duelCur.ft}/${_duelCur.total} · ${mine} ${de?'Punkte':'points'}`;
+  const mine=_duelCur.score||0,isPin=_duelCur.mode==='pin',isPts=_duelPts(_duelCur.mode);
+  l1.textContent=isPin?`${de?'Du':'You'}: ${mine} ${de?'Punkte':'points'} · Ø ${_duelCur.avg||0} km`:isPts?`${de?'Du':'You'}: ${mine} ${de?'Punkte':'points'}`:`${de?'Du':'You'}: ${_duelCur.ft}/${_duelCur.total} · ${mine} ${de?'Punkte':'points'}`;
   const others=_duelCur.joined.filter(u=>u!==me).map(u=>({name:_duelCur.names[u]||'?',st:p[u]||{}}));
   const pending=others.filter(o=>!o.st.done);
   l2.innerHTML=others.map(o=>{
@@ -463,7 +488,7 @@ function _duelChip(d){
     let txt;
     if(op.left)txt=de?'hat aufgegeben':'gave up';
     else if(op.done)txt=de?`fertig · ${op.score||0} P.`:`done · ${op.score||0} pts`;
-    else txt=_duelCur.mode==='pin'?`${op.pos||0}/${DUEL_ROUNDS} · ${op.sc||0} ${de?'P.':'pts'}`:`${op.pos||0}/${DUEL_ROUNDS} · ${op.ft||0} ✓`;
+    else txt=_duelPts(_duelCur.mode)?`${op.pos||0}/${_duelCur.rounds||DUEL_ROUNDS} · ${op.sc||0} ${de?'P.':'pts'}`:`${op.pos||0}/${DUEL_ROUNDS} · ${op.ft||0} ✓`;
     return `<div>⚔️ ${_duelEsc(_duelCur.names[u]||'?')}: ${txt}</div>`;
   }).join('');
   c.style.display='block';

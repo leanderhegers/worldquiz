@@ -623,3 +623,16 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 @media (max-width:640px){.duel-cols{grid-template-columns:1fr;}.duel-friends.tall,.duel-chat{max-height:28vh;}.duel-foot .duel-btn{flex:1;min-width:0;}}
 
 .iq-pie-load{color:#8a9bb8;font-size:28px;min-height:230px;display:flex;align-items:center;}
+
+/* Kürzester Weg (path.js): gleiches schwebendes Eingabefeld */
+/* Karte ausfüllen: schwebendes Eingabefeld über der Karte */
+#path-box{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(92%,360px);z-index:6;background:rgba(10,16,28,.94);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);}
+#path-box .path-row{display:flex;gap:6px;}
+#path-input{flex:1;min-width:0;font-size:18px;padding:9px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;outline:none;}
+#path-input:focus{border-color:#4fd18b;box-shadow:0 0 0 2px rgba(79,209,139,.25);}
+#path-hint{flex:0 0 auto;font-size:18px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);cursor:pointer;}
+#path-msg{min-height:20px;margin-top:6px;text-align:center;font-size:14px;font-weight:500;transition:opacity .25s;}
+#path-msg .fill-done{font-size:16px;margin-bottom:8px;}
+#path-msg button{padding:8px 18px;border-radius:9px;border:1px solid rgba(255,255,255,.25);background:#1D9E75;color:#fff;font-size:14px;cursor:pointer;}
+
+#path-msg .fill-done{font-size:16px;margin-bottom:6px;}
