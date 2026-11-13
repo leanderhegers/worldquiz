@@ -694,7 +694,9 @@ function pfSwitchTab(tab) {
 }
 
 const AVATAR_EMOJIS=['🌍','🌎','🌏','🗺️','🧭','✈️','🏔️','🌋','🏝️','🗼','🗽','🏛️','⛩️','🕌','🎌','🐪','🐧','🦁','🐨','🦅','🌴','🌊','⭐','💎','🔥','🚀','⚓','🎯','🏆','👑'];
-const AVATAR_COLORS=['#1D9E75','#2563EB','#7C3AED','#DC2626','#EA580C','#D97706','#059669','#0891B2','#4F46E5','#BE185D','#65A30D','#475569'];
+const AVATAR_COLORS=['#1D9E75','#2563EB','#7C3AED','#DC2626','#EA580C','#D97706','#059669','#0891B2','#4F46E5','#BE185D','#65A30D','#475569',
+  // blasse Farbtöne: das Emoji bleibt gut sichtbar
+  '#BFE3D4','#BFD4F5','#D9C9F2','#F5C6C6','#F9D5B8','#F6E3A8','#C5E8C0','#B8E4EC','#C9CCF2','#F2C4DC','#DCE8B0','#CBD2DB'];
 
 function _renderAvatar(av,fallback,size){
   const sz=size||50;const fs=Math.round(sz*0.48);
