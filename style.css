@@ -636,3 +636,48 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 #path-msg button{padding:8px 18px;border-radius:9px;border:1px solid rgba(255,255,255,.25);background:#1D9E75;color:#fff;font-size:14px;cursor:pointer;}
 
 #path-msg .fill-done{font-size:16px;margin-bottom:6px;}
+
+/* Anzeigegröße des Ziels in den Texteingabe-Quizzen (Einstellung im Zahnrad: Klein / Mittel / Groß; Mittel = bisherige Größe) */
+#flag-screen.iq-size-s #flag-img{max-height:105px;max-width:min(215px,70vw);}
+#flag-screen.iq-size-s #flag-img.flag-img-wappen{max-height:190px;max-width:min(190px,70vw);}
+#flag-screen.iq-size-l #flag-img{max-height:270px;max-width:min(540px,94vw);}
+#flag-screen.iq-size-l #flag-img.flag-img-wappen{max-height:430px;max-width:min(430px,94vw);}
+#flag-screen.iq-size-s #iq-outline{width:min(210px,60vw)!important;height:125px!important;}
+#flag-screen.iq-size-l #iq-outline{width:min(540px,94vw)!important;height:320px!important;}
+#flag-screen.iq-size-s #iq-neighbor-wrap svg{width:150px;height:150px;}
+#flag-screen.iq-size-l #iq-neighbor-wrap svg{width:min(340px,86vw);height:min(340px,86vw);}
+#flag-screen.iq-size-s #iq-neighbor-wrap img{width:72px!important;}
+#flag-screen.iq-size-l #iq-neighbor-wrap img{width:min(170px,40vw)!important;}
+
+/* Lernmodus: farbiger Menühintergrund + Hinweiszeile + Erklärung */
+body.learn-on .home-bg,body.learn-on .cat-bg{background:radial-gradient(ellipse 80% 60% at 50% 30%,#5d3d12 0%,#33220d 45%,#150d06 100%);}
+body.learn-on .home-bg::after{background-image:radial-gradient(circle at 20% 35%,rgba(255,170,60,.14),transparent 25%),radial-gradient(circle at 80% 65%,rgba(255,110,60,.12),transparent 25%);}
+body.learn-on #mode-screen{background:radial-gradient(ellipse 80% 60% at 50% 30%,#5d3d12 0%,#33220d 45%,#150d06 100%)!important;}
+body.learn-on #home-screen::before,body.learn-on #category-screen::before{content:'🎓 Lernmodus';position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:5px 14px;border-radius:999px;background:rgba(255,170,60,.18);border:1px solid rgba(255,190,90,.55);color:#ffd48a;font-size:13px;font-weight:600;pointer-events:none;}
+#iq-hint{margin-top:8px;text-align:center;font:600 22px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:#ffd48a;min-height:26px;}
+.learn-intro{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(5,8,14,.72);backdrop-filter:blur(3px);}
+.learn-intro-box{width:min(92vw,420px);padding:22px 22px 18px;border-radius:18px;background:#201508;border:1px solid rgba(255,190,90,.5);box-shadow:0 20px 60px rgba(0,0,0,.55);color:#f3e6d0;}
+.learn-intro-t{font-size:22px;font-weight:700;margin-bottom:10px;color:#ffd48a;}
+.learn-intro-box ul{margin:0 0 16px 18px;display:flex;flex-direction:column;gap:7px;font-size:15px;line-height:1.4;}
+.learn-intro-ok{width:100%;padding:11px;border-radius:10px;border:0;background:#e0952a;color:#241503;font-weight:700;font-size:15px;cursor:pointer;}
+
+/* ── Theme Cartoon: knallige Farben, dicke Tinten-Konturen, Comic-Schrift ── */
+body.theme-cartoon{font-family:'Comic Sans MS','Chalkboard SE','Marker Felt','Segoe Print',cursive,system-ui,sans-serif;--ink:#1a1a2e;}
+body.theme-cartoon #game-screen,body.theme-cartoon #flag-screen,body.theme-cartoon #region-screen{background:#fff7d6;color:var(--ink);}
+body.theme-cartoon #game-screen>div:first-child,body.theme-cartoon #flag-screen>div:first-child,body.theme-cartoon #region-screen>div:first-child{background:linear-gradient(180deg,#ffe36b,#ffc83a)!important;border-bottom:4px solid var(--ink)!important;color:var(--ink)!important;box-shadow:0 4px 0 rgba(26,26,46,.18);}
+body.theme-cartoon #game-screen>div:first-child *,body.theme-cartoon #flag-screen>div:first-child *{color:var(--ink)!important;}
+body.theme-cartoon #target-name,body.theme-cartoon #reg-target-name{font-weight:900!important;font-size:24px;letter-spacing:.01em;text-shadow:2px 2px 0 rgba(255,255,255,.75);}
+body.theme-cartoon #find-label,body.theme-cartoon #flag-quiz-lbl,body.theme-cartoon #found-label{color:#5a4a00!important;font-weight:800;}
+body.theme-cartoon #game-screen button,body.theme-cartoon #flag-screen button,body.theme-cartoon #region-screen button{background:#fff!important;color:var(--ink)!important;border:3px solid var(--ink)!important;border-radius:12px!important;font-weight:800;box-shadow:3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s;}
+body.theme-cartoon #game-screen button:active,body.theme-cartoon #flag-screen button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
+body.theme-cartoon #btn-skip{background:#ffb3e1!important;}
+body.theme-cartoon #map-bg{border-top:4px solid var(--ink);border-bottom:4px solid var(--ink);}
+body.theme-cartoon #flag-img,body.theme-cartoon #iq-outline,body.theme-cartoon #iq-neighbor-wrap img{border:4px solid var(--ink)!important;border-radius:14px!important;box-shadow:6px 6px 0 var(--ink)!important;background:#fff;}
+body.theme-cartoon #flag-input,body.theme-cartoon #fill-input,body.theme-cartoon #path-input{background:#fff!important;color:var(--ink)!important;border:3px solid var(--ink)!important;border-radius:14px!important;font-weight:700;box-shadow:4px 4px 0 var(--ink);}
+body.theme-cartoon #fill-box,body.theme-cartoon #path-box{background:#fff3b0;border:4px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--ink);backdrop-filter:none;}
+body.theme-cartoon #fill-msg,body.theme-cartoon #path-msg{color:var(--ink)!important;font-weight:800;}
+body.theme-cartoon #feedback{background:#fff!important;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);color:var(--ink)!important;font-weight:800;border-radius:16px!important;}
+body.theme-cartoon #prog-bar{height:10px!important;border:2px solid var(--ink);border-radius:8px;}
+body.theme-cartoon #game-screen>div:last-child,body.theme-cartoon #flag-screen>div:last-child{background:#ffc83a!important;border-top:4px solid var(--ink)!important;color:var(--ink)!important;font-weight:800;}
+body.theme-cartoon #iq-hint{color:var(--ink);}
+.tp .dot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}

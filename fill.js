@@ -219,7 +219,7 @@ function showResult(){
 }
 // key: 'world' | 'EU' …  (Länder eintippen) · 'cap:world' | 'cap:EU' …  (Hauptstädte) · 'race:world'  (Zeitrennen, 60 s)
 async function startFillGame(fullKey){
-  if(fullKey==='path'&&typeof startPathGame==='function')return startPathGame(); // Kürzester Weg (path.js)
+  if(/^path(:|$)/.test(fullKey)&&typeof startPathGame==='function')return startPathGame({diff:fullKey.split(':')[1]||'all'}); // Kürzester Weg (path.js)
   if(!nameMap)buildNames();
   stopTimer();
   lastMode='fill';canClick=false;optsOpen=false;
@@ -269,7 +269,8 @@ function fillMenuGroup(){
   const conts=['EU','AS','AF','NA','SA','OC'];
   return {cls:'gs-flag',head:X.head,items:[
     {icon:'🌐',title:X.world,sub:X.worldSub+' · '+n('world'),onclick:"startFillGame('world')"},
-    {icon:'🛤️',title:L4p('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court'),sub:L4p('Von Land zu Land über Nachbarn','From country to country via neighbours','De país a país por sus vecinos','De pays en pays par les voisins'),onclick:"startFillGame('path')"},
+    {icon:'🛤️',title:L4p('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court'),sub:L4p('Von Land zu Land über Nachbarn','From country to country via neighbours','De país a país por sus vecinos','De pays en pays par les voisins'),panel:'fill-path',
+      renderPanel:()=>_cardsPanel([['easy','Leicht','Easy','Fácil','Facile','4–6'],['medium','Mittel','Medium','Medio','Moyen','7–11'],['hard','Schwer','Hard','Difícil','Difficile','12–20'],['all','Gemischt','Mixed','Mixto','Mixte','']].map(x=>gsCard("startFillGame('path:"+x[0]+"')",L4p(x[1],x[2],x[3],x[4]),x[5]?x[5]+' '+L4p('Länder','countries','países','pays'):L4p('Leicht bis schwer','Easy to hard','De fácil a difícil','De facile à difficile'),'fill:path:'+x[0])),'gs-grid-pin')},
     {icon:'⏱️',title:FX2().raceHead,sub:FX2().raceSub,onclick:"startFillGame('race:world')"},
     {icon:'🏛️',title:FX2().capHead,sub:FX2().capSub,panel:'fill-caps',
       renderPanel:()=>_cardsPanel(['world'].concat(conts).map(k=>gsCard("startFillGame('cap:"+k+"')",k==='world'?X.world:((MODES[k]&&MODES[k][lang])||k),n(k)+' '+(lang==='de'?'Hauptstädte':lang==='es'?'capitales':lang==='fr'?'capitales':'capitals'),'fill:cap:'+k)),'gs-grid-pin')},

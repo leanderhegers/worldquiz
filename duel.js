@@ -36,7 +36,7 @@ const DUEL_MODES=[
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
   {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
   {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',diff:true},
-  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path'}
+  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',diff:true}
 ];
 const _duelPts=m=>m==='pin'||m==='path'; // Punkte-Modi (statt "x von 10 richtig")
 function _duelMode(m){return DUEL_MODES.find(x=>x.k===m)||DUEL_MODES[0];}
@@ -203,7 +203,7 @@ async function duelSendInvite(){
   const diff=_duelMode(mode).diff?(_duelSelDiff||'all'):'all';
   _duelLastSet();
   let picked;
-  if(mode==='path'){try{picked=await pathMakePairs(5);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
+  if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
   else picked=_duelDraw(_duelKey(mode,diff),_duelPool(mode,diff));
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{

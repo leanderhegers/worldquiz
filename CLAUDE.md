@@ -116,6 +116,6 @@ this project were touch-only or offline-only and looked fine on a desktop browse
 changing map interaction, say plainly that it was only checked on desktop and ask for a check on
 a phone, rather than implying it is verified.
 
-## Theme Relief und Globus
-- **Relief** (`THEMES.relief`): Höhenfarben-Hintergrund aus `data/relief/` (siehe `data/relief.README.md`). `renderMap` fügt bei diesem Theme `rect.relief-under` (Marker, `relief.js` zeichnet dort) und `path.ocean-mask` (Meer-Maske, schneidet die grobe Kachelküste ab) ein; Länder sind durchsichtig (`_avail()` = 'transparent'). Mercator zeichnet Kacheln direkt, andere Projektionen rechnen sie per Gitter um (`relief.js`). Der Theme-Wechsel von/zu Relief baut die Karte neu auf (`setTheme`).
+## Globus
+- Themes: atlas, neon (Cyberpunk), terrain, cartoon (`THEMES.cartoon`: dicke Konturen über `bw`, UI-Stil über `body.theme-cartoon` in style.css). Das frühere Theme Relief ist entfernt.
 - **Globus** (`projection==='globe'`, `globe.js`): `d3.geoOrthographic`, Drehung in `globeRot`. Ziehen dreht (live über `CanvasMap.setLive`, danach `renderMap` neu), Zoom nur um die Kugelmitte (Mausrad/Pinch), eigener quadratischer viewBox `240 10 480 480`. Punkte auf der Rückseite bekommen `data-away` (canvas-map überspringt sie). Presets/Städte-Zoom rufen `Globe.flyTo`.

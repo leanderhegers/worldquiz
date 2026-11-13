@@ -8,8 +8,13 @@
 // Mehrspieler (duel.js, Modus 'path'): alle bekommen dieselben Start/Ziel-Paare ("a-b" als Text, Firestore kennt keine verschachtelten Listen).
 (function(){
 'use strict';
-const ROUNDS=5,MIN_D=3,MAX_D=5;
+const ROUNDS=5;
+// Schwierigkeit = Länder insgesamt inkl. Start und Ziel: Leicht 4–6, Mittel 7–11, Schwer 12–20 (= 3–5, 6–10, 11–19 Grenzübergänge)
+const DIFF={easy:[3,5],medium:[6,10],hard:[11,19]};
+const MIX=['easy','easy','medium','medium','hard'];
 const MICRO_EDGES=[[492,250],[20,250],[20,724],[674,380],[336,380],[438,756],[438,40]]; // Monaco, Andorra, San Marino, Vatikan, Liechtenstein
+// Frankreichs Fläche enthält Französisch-Guayana: die Grenzen zu Brasilien und Suriname sind keine Landgrenzen des Mutterlandes (sonst gäbe es eine Landbrücke Europa–Südamerika)
+const NO_EDGE=new Set(['250-76','76-250','250-740','740-250']);
 const COL_START='#4f8cff',COL_GOAL='#ff9f1c',BG='#0d1420';
 let graph=null,boxTimer=0,nextT=0,prevProj=null;
 const P=()=>game&&game.fillPath;
@@ -22,7 +27,7 @@ async function ensureGraph(){
   const feats=_topoCached(worldData,'countries').features;
   const nb=topojson.neighbors(worldData.objects.countries.geometries);
   const adj=new Map();
-  const add=(a,b)=>{if(a===b||!C[a]||!C[b])return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
+  const add=(a,b)=>{if(a===b||!C[a]||!C[b]||NO_EDGE.has(a+'-'+b))return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
   feats.forEach((f,i)=>{const a=+f.id;if(!(a>0)||!C[a])return;nb[i].forEach(j=>{const b=+feats[j].id;if(b>0&&C[b])add(a,b);});});
   MICRO_EDGES.forEach(([a,b])=>add(a,b));
   graph={adj};
@@ -34,20 +39,29 @@ function bfs(from,adj){const d=new Map([[from,0]]),prev=new Map(),q=[from];
 function route(from,to,adj){const {prev}=bfs(from,adj);const r=[to];let u=to;while(u!==from){u=prev.get(u);if(u==null)return null;r.unshift(u);}return r;}
 // bekannte Länder als Start/Ziel (sonst sind die Aufgaben unfair obskur)
 function knownIds(){const s=new Set();[typeof FLAG_BEGINNER!=='undefined'?FLAG_BEGINNER:[],typeof FLAG_EASY!=='undefined'?FLAG_EASY:[],typeof FLAG_MEDIUM!=='undefined'?FLAG_MEDIUM:[]].forEach(x=>x.forEach(i=>s.add(i)));return s;}
-// n Paare "a-b" ziehen (Entfernung 3 bis 5 Länder, ohne Wiederholung von Start oder Ziel)
-async function makePairs(n){
-  const {adj}=await ensureGraph(),known=knownIds(),nodes=[...adj.keys()].filter(i=>known.has(i)&&adj.get(i).size>0);
-  const out=[],used=new Set();let guard=0;
-  while(out.length<n&&guard++<500){
-    const a=nodes[Math.floor(Math.random()*nodes.length)];if(used.has(a))continue;
-    const {d}=bfs(a,adj);
-    const cand=nodes.filter(b=>!used.has(b)&&d.get(b)>=MIN_D&&d.get(b)<=MAX_D);
-    if(!cand.length)continue;
-    const b=cand[Math.floor(Math.random()*cand.length)];
-    out.push(a+'-'+b);used.add(a);used.add(b);
+// n Paare "a-b" ziehen. diff: easy | medium | hard | all (gemischt: 2 leicht, 2 mittel, 1 schwer). Start und Ziel wiederholen sich nicht.
+async function makePairs(n,diff){
+  const {adj}=await ensureGraph(),known=knownIds();
+  const pool=[...adj.keys()].filter(i=>known.has(i)&&adj.get(i).size>0),all=[...adj.keys()].filter(i=>adj.get(i).size>0);
+  const plan=[];for(let i=0;i<n;i++)plan.push(DIFF[diff]?diff:MIX[i%MIX.length]);
+  const out=[],used=new Set();
+  for(const df of plan){
+    const [lo,hi]=DIFF[df];let got=null;
+    for(const nodes of [pool,all]){ // erst bekannte Länder, notfalls alle
+      for(let g=0;g<400&&!got;g++){
+        const a=nodes[Math.floor(Math.random()*nodes.length)];if(used.has(a))continue;
+        const {d}=bfs(a,adj);
+        const cand=nodes.filter(b=>!used.has(b)&&d.get(b)>=lo&&d.get(b)<=hi);
+        if(cand.length)got=a+'-'+cand[Math.floor(Math.random()*cand.length)];
+      }
+      if(got)break;
+    }
+    if(got){out.push(got);got.split('-').forEach(x=>used.add(+x));}
   }
   return out;
 }
+const _dcache=new Map();
+function distTo(a){let m=_dcache.get(a);if(!m){m=bfs(a,graph.adj).d;_dcache.set(a,m);}return m;}
 
 // ── Anzeige: nur gezeigte Länder sichtbar ──
 function shownSet(){const p=P();return p?p.shown:new Set();}
@@ -116,9 +130,12 @@ function submit(fuzzy){
   const v=inp.value;if(!v.trim())return;
   let id=window.fillResolve(v,fuzzy);
   const {adj}=graph;
-  // Der Weg muss vom Start aus zusammenhängen: ein Land zählt nur, wenn es an den Start oder ein bereits eingetipptes Land grenzt (das Ziel allein reicht nicht)
-  const inChain=n=>n===p.a||p.typed.includes(n);
-  const valid=i=>adj.has(i)&&!p.shown.has(i)&&[...adj.get(i)].some(inChain);
+  // Nur der kürzeste Weg zählt: ein Land gilt, wenn es auf einem kürzesten Weg Start → Ziel liegt UND der nächste Schritt nach dem bisherigen Ende ist
+  // (Deutschland → Portugal: nur Frankreich, Spanien; Belgien wäre ein Umweg und damit falsch)
+  const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
+  const onShortest=i=>da.get(i)+db.get(i)===p.D;
+  const nextOk=i=>adj.has(i)&&adj.get(end).has(i)&&onShortest(i)&&da.get(i)===da.get(end)+1;
+  const valid=i=>!p.shown.has(i)&&nextOk(i);
   if(id==null&&fuzzy){ // nur ein Wortteil getippt (z. B. "Kongo"): unter den möglichen Zügen gibt es oft genau einen Treffer
     const c=(window.fillCandidates?window.fillCandidates(v):[]).filter(valid);
     if(c.length===1)id=c[0];
@@ -129,11 +146,16 @@ function submit(fuzzy){
   if(id==null){if(fuzzy)miss(L4('Kein Land gefunden','No country found','País no encontrado','Aucun pays trouvé'));return;}
   if(p.shown.has(id)){msg(L4('Schon sichtbar','Already visible','Ya visible','Déjà visible')+': '+cn(id),'#e0b84a');inp.select();shake();return;}
   if(!adj.has(id)){miss(cn(id)+' – '+L4('keine Landgrenze zu einem anderen Land','no land border to another country','sin frontera terrestre','pas de frontière terrestre'));return;}
-  const touches=[...adj.get(id)].some(inChain);
-  if(!touches){miss(cn(id)+' '+L4('grenzt nicht an den bisherigen Weg','does not touch the route so far','no limita con la ruta actual','ne touche pas le chemin actuel'));return;}
+  const notShortest=cn(id)+' – '+L4('nicht auf dem kürzesten Weg','not on the shortest route','no está en el camino más corto','pas sur le chemin le plus court');
+  if(!adj.get(end).has(id)){
+    if(onShortest(id)){msg('↪ '+cn(id)+': '+L4('liegt auf dem kürzesten Weg, ist aber noch nicht dran – es grenzt nicht an','is on the shortest route but is not next yet – it does not touch','está en el camino más corto pero aún no toca – no limita con','est sur le chemin le plus court mais pas encore – ne touche pas')+' '+cn(end),'#e0b84a');inp.select();shake();}
+    else miss(notShortest);
+    return;
+  }
+  if(!nextOk(id)){miss(notShortest);return;}
   // richtig
   p.shown.add(id);p.typed.push(id);p.lastMiss=null;inp.value='';
-  const reached=adj.get(id).has(p.b);
+  const reached=db.get(id)===1;
   msg('✓ '+cn(id),'#4fd18b');
   if(reached){p.reached=true;endRound(false);}
   updateColors();fitShown();updatePathStats();
@@ -141,10 +163,10 @@ function submit(fuzzy){
 function hint(){
   const p=P();if(!p||p.roundDone)return;
   const {adj}=graph;
-  // kürzester Weg von allen sichtbaren Ländern zum Ziel: der nächste Schritt wird verraten
-  let best=null;
-  for(const s of [p.a,...p.typed]){const r=route(s,p.b,adj);if(r&&(!best||r.length<best.length))best=r;}
-  const nxt=best&&best.find(i=>!p.shown.has(i)&&i!==p.b);
+  // der nächste Schritt eines kürzesten Weges wird verraten (Anfangsbuchstabe)
+  const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
+  const opts=[...adj.get(end)].filter(i=>i!==p.b&&da.get(i)===da.get(end)+1&&da.get(i)+db.get(i)===p.D);
+  const nxt=opts[Math.floor(Math.random()*opts.length)];
   if(nxt==null)return;
   p.hints++;const n=cn(nxt);
   msg('💡 '+L4('Ein Land mit','A country starting with','Un país que empieza por','Un pays commençant par')+' <b>'+n[0].toUpperCase()+'</b> … ('+[...n].length+')','#ffd166');
@@ -152,7 +174,7 @@ function hint(){
 }
 
 // ── Runden ──
-function pts(p){const used=p.typed.length,opt=p.opt;return Math.max(0,100-20*Math.max(0,used-opt)-5*p.wrong-10*p.hints);}
+function pts(p){return Math.max(0,100-5*p.wrong-10*p.hints);} // Umwege gibt es nicht mehr: nur Fehler und Tipps kosten Punkte
 function endRound(gaveUp){
   const p=P();if(!p||p.roundDone)return;
   p.roundDone=true;const adj=graph.adj;
@@ -176,7 +198,7 @@ function nextRound(){
 function loadRound(){
   const p=P();const [a,b]=p.pairs[p.round].split('-').map(Number);
   p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;
-  p.opt=(route(a,b,graph.adj)||[]).length-2;
+  p.D=distTo(a).get(b);p.opt=p.D-1;
   ensureBox();updateColors();fitShown();updatePathStats();
   const inp=document.getElementById('path-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
 }
@@ -185,7 +207,7 @@ function finishGame(){
   game.fillDone=true;
   const tot=p.pairs.length*100,pct=Math.round(p.total/tot*100);
   let note='';
-  if(!p.duel&&typeof recordScore==='function'){const isBest=recordScore('fill:path',p.total,tot);if(isBest)note=' · 🏆 '+t('newRecord');else{const b=typeof bestScore==='function'?bestScore('fill:path'):null;if(b)note=' · '+t('bestLabel')+' '+b.pct+'%';}}
+  if(!p.duel&&typeof recordScore==='function'){const isBest=recordScore(gameScoreKey(),p.total,tot);if(isBest)note=' · 🏆 '+t('newRecord');else{const b=typeof bestScore==='function'?bestScore(gameScoreKey()):null;if(b)note=' · '+t('bestLabel')+' '+b.pct+'%';}}
   const box=document.getElementById('path-box');if(box)box.style.display='none';
   if(p.duel&&typeof duelPathFinish==='function'){duelPathFinish(p);return;}
   showScreen('result-screen');
@@ -224,10 +246,11 @@ async function startPathGame(opts){
   // immer ganz ins Bild; die eingestellte Ansicht kommt beim Verlassen zurück.
   if(prevProj===null&&projection==='mercator'&&window.innerWidth/window.innerHeight<1.5){prevProj=projection;projection='natural';}
   lastMode='fill';canClick=false;optsOpen=false;
-  game={mode:'fill:path',fillMode:true,fillKey:'path',fillArea:'world',found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
+  const diff=DIFF[opts.diff]?opts.diff:'all';
+  game={mode:'fill:path:'+diff,fillMode:true,fillKey:'path:'+diff,fillArea:'world',found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
   showScreen('game-screen');$('opts-panel').style.display='none';
   updateAllText();await loadMap();await ensureGraph();
-  const pairs=opts.pairs&&opts.pairs.length?opts.pairs:await makePairs(ROUNDS);
+  const pairs=opts.pairs&&opts.pairs.length?opts.pairs:await makePairs(ROUNDS,diff);
   game.fillPath={pairs,round:0,total:0,results:[],duel:!!opts.duel,a:0,b:0,shown:new Set(),typed:[],wrong:0,hints:0};
   $('btn-skip').setAttribute('onclick','pathGiveUp()');
   clearFeedback&&clearFeedback();

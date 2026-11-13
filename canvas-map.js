@@ -237,7 +237,6 @@ function paint(el,m,alpha){
   }
   const tr=el.getAttribute('transform');if(tr)m=mul(m,parseTransform(tr));
   if(st.opacity!=='')alpha*=+st.opacity;
-  if(tag==='rect'&&el.classList.contains('relief-under')){if(window.Relief){S.ctx.globalAlpha=alpha;window.Relief.draw(S.ctx,m,S.vp);S.ctx.globalAlpha=1;}return;}
   if(tag==='g'){for(const ch of el.children)paint(ch,m,alpha);return;}
   if(tag==='use'){
     const ref=S.svg.querySelector(el.getAttribute('href')||el.getAttribute('xlink:href')||'');if(!ref)return;

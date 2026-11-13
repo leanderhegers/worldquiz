@@ -2,7 +2,7 @@
 //
 // Der Kartenbaum aus renderMap() bleibt unverändert die Grundlage für Spiellogik und Klicks. Zum Drehen gilt:
 //   • Während des Ziehens zeichnet canvas-map.js alle Geo-Formen live neu (setLive → d3.geoPath direkt auf den
-//     Canvas, ohne SVG-Pfadtexte), Punkte/Pins werden ausgeblendet, das Relief wird gröber gerechnet.
+//     Canvas, ohne SVG-Pfadtexte), Punkte/Pins werden ausgeblendet.
 //   • Beim Loslassen baut renderMap() die Szene mit der neuen Drehung sauber neu auf (Klickflächen, Punkte, Zonen).
 // Der Zoom bleibt immer um die Kugelmitte; gezoomt wird nur mit Mausrad, Pinch und den Presets.
 // Globale Variablen aus app.js: globeRot, currentProj, worldData, zoomBehavior, renderMap.
@@ -166,7 +166,7 @@ function prep(g){
     else if(geom.type==='MultiPolygon')p={polys:geom.coordinates.map(poly=>poly.map(ringArr))};
     else if(geom.type==='LineString')p={lines:[ringArr(geom.coordinates)]};
     else if(geom.type==='MultiLineString')p={lines:geom.coordinates.map(ringArr)};
-    else if(geom.type==='GeometryCollection'){ // Kugel + Flächen (Meer-Maske im Relief-Theme)
+    else if(geom.type==='GeometryCollection'){ // Kugel + Flächen
       const polys=[];let sphere=false,ok=true;
       for(const x of geom.geometries){if(!x)continue;if(x.type==='Sphere')sphere=true;else if(x.type==='Polygon')polys.push(x.coordinates.map(ringArr));else if(x.type==='MultiPolygon')x.coordinates.forEach(pl=>polys.push(pl.map(ringArr)));else ok=false;}
       if(ok)p={polys,sphere};
@@ -309,7 +309,6 @@ function dotsAt(k){if(G.dotR){G.dotR(k);G.kBuilt=k;}}
 function setLive(on){
   if(on){if(currentProj)currentProj.precision(window.Globe.precision()*1.6);}
   if(window.CanvasMap)window.CanvasMap.setLive(on?currentProj:null,on?liveGeom:null,on?drawLive:null,on?hitLive:null,on?liveCircle:null,on?livePin:null);
-  if(window.Relief)window.Relief.live=!!on;
 }
 function frame(){ // eine Zeichnung pro Animationsbild
   if(G.raf)return;

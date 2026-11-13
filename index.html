@@ -255,6 +255,7 @@
       <div id="flag-score" style="font-size:16px;font-weight:500;">0/0</div>
     </div>
     <button onclick="toggleFlagOpts()" id="flag-opts-btn" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;">⚙</button>
+    <button onclick="flagHint()" id="flag-hint-btn" title="Hinweis" style="display:none;font-size:12px;padding:5px 10px;background:#3a2a10;border:1px solid #b9822a;color:#ffd48a;border-radius:6px;cursor:pointer;white-space:nowrap;">💡</button>
     <button onclick="skipFlag()" id="flag-skip-btn" style="font-size:12px;padding:5px 10px;background:#222;border:1px solid #444;color:#ccc;border-radius:6px;cursor:pointer;white-space:nowrap;"></button>
   </div>
   <div id="flag-opts-panel" style="display:none;padding:8px 1rem;border-bottom:.5px solid #333;background:#111;"></div>
@@ -319,7 +320,6 @@
 <script src="currencies.js"></script>
 <script>window.CANVAS_MAP=typeof Path2D==='function'&&!/[?&]svg(&|=|$)/.test(location.search);</script>
 <script src="canvas-map.js"></script>
-<script src="relief.js"></script>
 <script src="globe.js"></script>
 <script src="sky.js"></script>
 <script src="fill.js"></script>
