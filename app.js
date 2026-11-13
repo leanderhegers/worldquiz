@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-13 A';
+const BUILD_ID='2026-11-13 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -245,6 +245,10 @@ const HIT_R=COARSE?22:DOT_R+5; // invisible touch-target radius in screen px (~4
 const MS_HIT_OVERRIDE={438:14,442:HIT_R+8}; // per-microstate hit radius override (438 Liechtenstein: small so taps fall through to Switzerland; 442 Luxembourg: larger, easier to hit)
 const msHitR=id=>MS_HIT_OVERRIDE[id]||HIT_R;
 
+TX.de.pieQuiz='Flaggen-Kuchen';TX.de.pieCardSub='Welches Land hat diese Farben?';
+TX.en.pieQuiz='Flag pie chart';TX.en.pieCardSub='Which country has these colours?';
+TX.es.pieQuiz='Gráfico de banderas';TX.es.pieCardSub='¿Qué país tiene estos colores?';
+TX.fr.pieQuiz='Camembert des drapeaux';TX.fr.pieCardSub='Quel pays a ces couleurs ?';
 function t(k){return TX[lang][k]||TX.de[k]||k;}
 function cn(id){return C[id]?(C[id][lang]||C[id].de):'?';}
 function $(id){return document.getElementById(id);}
@@ -639,7 +643,7 @@ function renderPinPage(){
     ]}
   ]);
 }
-const INPUT_ICONS={flag:'🏳️',capital:'🏛️',outline:'🗾',language:'🗣️',currency:'💱',wappen:'🛡️',neighbor:'🧩'};
+const INPUT_ICONS={flag:'🏳️',capital:'🏛️',outline:'🗾',language:'🗣️',currency:'💱',wappen:'🛡️',neighbor:'🧩',pie:'🥧'};
 // Texteingabe & Multiple Choice: kein Zwischenmenü mehr. Quiz-Arten mit Kontinent-/Schwierigkeitswahl klappen
 // direkt darunter auf (Karten: Weltweit, Kontinente, Schwierigkeit), die anderen starten sofort. Beim
 // Hauptstadt-Quiz steht oben im Panel noch die Richtung (Land→Hauptstadt …), sie bleibt gemerkt.
@@ -941,7 +945,8 @@ const INPUT_QUIZZES=[
   {type:'language',titleKey:'languageQuiz',subKey:'languageCardSub'},
   {type:'currency',titleKey:'currencyQuiz',subKey:'currencyCardSub'},
   {type:'wappen',titleKey:'wappenQuiz',subKey:'wappenCardSub'},
-  {type:'neighbor',titleKey:'neighborQuiz',subKey:'neighborCardSub'}
+  {type:'neighbor',titleKey:'neighborQuiz',subKey:'neighborCardSub'},
+  {type:'pie',titleKey:'pieQuiz',subKey:'pieCardSub'}
 ];
 // Nachbarland-Flaggen-Rätsel: guess the country from its neighbors' flags alone (e.g. Switzerland +
 // Austria -> Liechtenstein). Curated from the map's own real adjacency (topojson.neighbors() on
@@ -2850,7 +2855,7 @@ const CHALLENGE_TYPES=['country','flag','capital','outline','language','currency
 function _preloadChallengeImages(queue){
   const urls=[];
   queue.forEach(q=>{
-    if(q.type==='flag')urls.push('data/flags/w320/'+ISO2[q.id]+'.png');
+    if(q.type==='flag'||q.type==='pie')urls.push('data/flags/w320/'+ISO2[q.id]+'.png');
     else if(q.type==='wappen')urls.push('data/wappen/'+q.id+'.png');
   });
   return Promise.all(urls.map(u=>new Promise(res=>{
@@ -3185,7 +3190,7 @@ let _fMatches=[],_fDdIdx=0;
 
 // ── Input-Quiz: Flaggen / Hauptstädte / Umrisse (gemeinsame Eingabefeld-Mechanik) ──
 let iqCfg={type:'flag',region:'world',diff:'all',dir:'c2cap'};
-const IQ_PREFIX={flag:'flag:',capital:'cap:',outline:'out:',language:'lang:',currency:'cur:',wappen:'coa:',neighbor:'nbr:'};
+const IQ_PREFIX={flag:'flag:',capital:'cap:',outline:'out:',language:'lang:',currency:'cur:',wappen:'coa:',neighbor:'nbr:',pie:'pie:'};
 function iqDiffPass(id,diff){
   if(diff==='all')return true;
   if(diff==='beginner')return FLAG_BEGINNER.has(id);
@@ -3255,7 +3260,7 @@ function iqPoolIds(cfg){
   if(cfg.type==='currency')return Object.keys(CURRENCIES);
   if(cfg.type==='neighbor')return NEIGHBOR_PUZZLES.map(p=>p.id);
   let base;
-  if(cfg.type==='flag')base=Object.keys(C).map(Number).filter(id=>ISO2[id]);
+  if(cfg.type==='flag'||cfg.type==='pie')base=Object.keys(C).map(Number).filter(id=>ISO2[id]);
   else if(cfg.type==='capital')base=Object.keys(C).map(Number).filter(id=>CAPITALS[id]&&(cfg.dir!=='flag2cap'||ISO2[id]));
   else if(cfg.type==='wappen')base=Object.keys(C).map(Number).filter(id=>!WAPPEN_EXCLUDE.has(id));
   else base=Object.keys(C).map(Number).filter(id=>!OUTLINE_EXCLUDE.has(id)&&(!outlineGeo||iqOutlineFeature(id)));
@@ -3273,7 +3278,7 @@ function iqDisplayName(id){
 function openInputCfg(type){iqCfg={type,region:'world',diff:'all',dir:'c2cap'};if(type==='outline')iqEnsureOutlineGeo().then(renderInputCfg);showScreen('inputcfg-screen');renderInputCfg();}
 function setIqCfg(k,v){iqCfg[k]=v;if(k==='region'&&v!=='world')iqCfg.diff='all';if(k==='diff'&&v!=='all')iqCfg.region='world';renderInputCfg();}
 function renderInputCfg(){
-  const meta={flag:{title:t('flagQuiz'),ic:'🚩'},capital:{title:t('capitalQuiz'),ic:'🏛️'},outline:{title:t('outlineQuiz'),ic:'🗺️'},language:{title:t('languageQuiz'),ic:'🗣️'},currency:{title:t('currencyQuiz'),ic:'💱'},wappen:{title:t('wappenQuiz'),ic:'🛡️'},neighbor:{title:t('neighborQuiz'),ic:'🧩'}}[iqCfg.type];
+  const meta={flag:{title:t('flagQuiz'),ic:'🚩'},capital:{title:t('capitalQuiz'),ic:'🏛️'},outline:{title:t('outlineQuiz'),ic:'🗺️'},language:{title:t('languageQuiz'),ic:'🗣️'},currency:{title:t('currencyQuiz'),ic:'💱'},wappen:{title:t('wappenQuiz'),ic:'🛡️'},neighbor:{title:t('neighborQuiz'),ic:'🧩'},pie:{title:t('pieQuiz'),ic:'🥧'}}[iqCfg.type];
   $('icfg-back').textContent=t('cback');
   $('icfg-title').textContent=meta.title;
   const regions=[['world',t('regWorld')]].concat(['EU','AF','AS','NA','SA','OC'].map(m=>[m,MODES[m][lang]]));
@@ -3437,6 +3442,56 @@ function skipFlag(){
   nextFlag();
 }
 
+// ── Flaggen-Kuchen: Farbanteile der Flagge als Kreisdiagramm, das Land ist zu erraten ──
+// Die Anteile werden aus dem Flaggenbild gemessen (verkleinert, jedes Pixel der nächsten Grundfarbe zugeordnet) – keine Datendatei nötig.
+const PIE_PALETTE=[['#ffffff',[255,255,255]],['#161616',[20,20,20]],['#d62828',[214,40,40]],['#0b8f3b',[11,143,59]],['#1f4fb8',[31,79,184]],['#ffd400',[255,212,0]],['#f77f00',[247,127,0]],['#7ec8f0',[126,200,240]],['#7a3b1e',[122,59,30]]];
+// Grundfarbe eines Pixels über Farbton/Sättigung/Helligkeit (dunkles Marineblau der französischen Flagge gilt als Blau, nicht als Schwarz).
+// Rückgabe: Index in PIE_PALETTE.
+function pieClass(r,g,b){
+  r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),v=mx,dl=mx-mn,sat=mx?dl/mx:0;
+  if(v<0.2)return 1;                       // schwarz
+  if(sat<0.2)return v>0.62?0:1;            // weiß (sonst dunkles Grau → schwarz)
+  let h=0;if(dl){if(mx===r)h=((g-b)/dl)%6;else if(mx===g)h=(b-r)/dl+2;else h=(r-g)/dl+4;h*=60;if(h<0)h+=360;}
+  if(h<14||h>=335)return 2;                // rot
+  if(h<40)return v<0.62?8:6;               // braun / orange
+  if(h<68)return 5;                        // gelb
+  if(h<165)return 3;                       // grün
+  if(h<205)return (sat<0.7&&v>0.7)?7:4;    // hellblau / blau
+  if(h<262)return 4;                       // blau
+  return 2;                                // violett/magenta → rot
+}
+const _pieCache=new Map();
+function flagColorShares(id){
+  if(_pieCache.has(id))return _pieCache.get(id);
+  const p=new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const W=64,H=40,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d',{willReadFrequently:true});
+        x.drawImage(img,0,0,W,H);const d=x.getImageData(0,0,W,H).data,cnt=new Array(PIE_PALETTE.length).fill(0);let n=0;
+        for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const b=pieClass(d[i],d[i+1],d[i+2]);
+          cnt[b]++;n++;}
+        let out=cnt.map((v,k)=>({c:PIE_PALETTE[k][0],f:v/(n||1)})).filter(o=>o.f>=0.03).sort((a,b)=>b.f-a.f);
+        const sum=out.reduce((a,o)=>a+o.f,0)||1;out.forEach(o=>o.f/=sum);res(out);
+      }catch(e){res([]);}
+    };
+    img.onerror=()=>res([]);
+    img.src='data/flags/w320/'+ISO2[id]+'.png';
+  });
+  _pieCache.set(id,p);return p;
+}
+function pieSvg(parts,size){
+  const r=size/2-4,cx=size/2,cy=size/2;let a0=-Math.PI/2,out='';
+  if(parts.length===1)out='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+parts[0].c+'"/>';
+  else parts.forEach(o=>{const a1=a0+o.f*2*Math.PI,l=o.f>0.5?1:0;
+    out+='<path d="M'+cx+','+cy+' L'+(cx+r*Math.cos(a0)).toFixed(2)+','+(cy+r*Math.sin(a0)).toFixed(2)+' A'+r+','+r+' 0 '+l+' 1 '+(cx+r*Math.cos(a1)).toFixed(2)+','+(cy+r*Math.sin(a1)).toFixed(2)+' Z" fill="'+o.c+'"/>';a0=a1;});
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" style="max-width:70vw;filter:drop-shadow(0 4px 20px rgba(0,0,0,.5));"><g stroke="#2a2f3a" stroke-width="1.5" stroke-linejoin="round">'+out+'</g></svg>';
+}
+async function flagPieShow(id,wrap){
+  const parts=await flagColorShares(id);
+  if(!game||game.flagCurrent!==id||game.inputMode!=='pie')return; // Frage hat inzwischen gewechselt
+  wrap.innerHTML=parts.length?pieSvg(parts,230):'<div class="iq-pie-load">?</div>';
+}
 function nextFlag(){
   if(!game.flagQueue||game.flagQueue.length===0){if(game.challengeMode){advanceChallenge();return;}showFlagResult();return;}
   game.flagCurrent=game.flagQueue.shift();
@@ -3445,6 +3500,7 @@ function nextFlag(){
   img.style.display='none';txt.style.display='none';out.style.display='none';nb.style.display='none';
   if(mode==='flag'||(mode==='capital'&&game.capitalDir==='flag2cap')){img.src='data/flags/w320/'+ISO2[id]+'.png';img.classList.remove('flag-img-wappen');img.style.display='';}
   else if(mode==='wappen'){img.src='data/wappen/'+id+'.png';img.classList.add('flag-img-wappen');img.style.display='';}
+  else if(mode==='pie'){nb.innerHTML='<div class="iq-pie-load">…</div>';nb.style.display='flex';flagPieShow(id,nb);}
   else if(mode==='outline'){if(!renderOutline(id)){nextFlag();return;}$('iq-outline-tip').textContent=t('zoomTip');out.style.display='flex';}
   else if(mode==='language'){txt.textContent=LANGUAGES[id].ex;txt.classList.add('iq-text-sentence');txt.style.display='';}
   else if(mode==='currency'){txt.textContent=id;txt.classList.remove('iq-text-sentence');txt.style.display='';}

@@ -34,7 +34,8 @@ const DUEL_MODES=[
   {k:'wappen',ico:'🛡️',de:'Wappen',en:'Coats of arms'},
   {k:'language',ico:'🗣️',de:'Sprachen',en:'Languages'},
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
-  {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'}
+  {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
+  {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',diff:true}
 ];
 function _duelMode(m){return DUEL_MODES.find(x=>x.k===m)||DUEL_MODES[0];}
 function _duelModeName(m,de){const x=_duelMode(m);return de?x.de:x.en;}
@@ -225,7 +226,7 @@ function _duelPrefetch(d){
   _duelPrefetched=d.id;
   try{
     if(d.mode==='map'){if(!worldData)loadMap().catch(()=>{});}
-    else if((d.mode==='flag'||d.mode==='wappen')&&typeof _preloadChallengeImages==='function')_preloadChallengeImages((d.q||[]).map(id=>({type:d.mode,id})));
+    else if((d.mode==='flag'||d.mode==='wappen'||d.mode==='pie')&&typeof _preloadChallengeImages==='function')_preloadChallengeImages((d.q||[]).map(id=>({type:d.mode,id})));
   }catch(e){}
 }
 function _duelChatHtml(d,me){

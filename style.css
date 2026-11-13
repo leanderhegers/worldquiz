@@ -621,3 +621,5 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 .duel-foot{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
 .duel-foot .duel-btn{min-width:150px;}
 @media (max-width:640px){.duel-cols{grid-template-columns:1fr;}.duel-friends.tall,.duel-chat{max-height:28vh;}.duel-foot .duel-btn{flex:1;min-width:0;}}
+
+.iq-pie-load{color:#8a9bb8;font-size:28px;min-height:230px;display:flex;align-items:center;}
