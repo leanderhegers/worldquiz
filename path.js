@@ -30,7 +30,12 @@ async function ensureGraph(){
   const add=(a,b)=>{if(a===b||!C[a]||!C[b]||NO_EDGE.has(a+'-'+b))return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
   feats.forEach((f,i)=>{const a=+f.id;if(!(a>0)||!C[a])return;nb[i].forEach(j=>{const b=+feats[j].id;if(b>0&&C[b])add(a,b);});});
   MICRO_EDGES.forEach(([a,b])=>add(a,b));
-  graph={adj};
+  const cent=new Map();
+  feats.forEach(f=>{const id=+f.id;if(!(id>0)||!C[id])return;let g=f;
+    if(f.geometry&&f.geometry.type==='MultiPolygon'){let best=null,ba=-1;f.geometry.coordinates.forEach(c=>{const pf={type:'Feature',geometry:{type:'Polygon',coordinates:c}};const ar=d3.geoArea(pf);if(ar>ba){ba=ar;best=pf;}});g=best||f;}
+    cent.set(id,d3.geoCentroid(g));});
+  (typeof MICROSTATES!=='undefined'?MICROSTATES:[]).forEach(m=>{if(!cent.has(m.id))cent.set(m.id,[m.lon,m.lat]);});
+  graph={adj,cent};
   return graph;
 }
 function bfs(from,adj){const d=new Map([[from,0]]),prev=new Map(),q=[from];
@@ -59,6 +64,21 @@ async function makePairs(n,diff){
     if(got){out.push(got);got.split('-').forEach(x=>used.add(+x));}
   }
   return out;
+}
+// Gibt es mehrere gleich kurze Wege (gleich viele Länder), ist der richtig, dessen Luftlinie – Summe der Strecken von Landesmitte zu Landesmitte – am kürzesten ist.
+const gd=(u,v)=>d3.geoDistance(graph.cent.get(u),graph.cent.get(v))*6371;
+const routeKm=r=>{let t=0;for(let i=1;i<r.length;i++)t+=gd(r[i-1],r[i]);return t;};
+function bestRoute(a,b){
+  const adj=graph.adj,da=distTo(a),db=distTo(b),D=da.get(b),best=new Map([[a,{c:0,prev:null}]]);
+  const layers=[];for(const [n,d] of da)if(d>=1&&d<D&&d+db.get(n)===D)(layers[d]=layers[d]||[]).push(n);
+  layers[D]=[b];
+  for(let k=1;k<=D;k++)for(const n of layers[k]||[]){
+    let bc=Infinity,bp=null;
+    for(const p of adj.get(n))if(da.get(p)===k-1&&best.has(p)){const c=best.get(p).c+gd(p,n);if(c<bc){bc=c;bp=p;}}
+    if(bp!=null)best.set(n,{c:bc,prev:bp});
+  }
+  const r=[b];let u=b;while(u!==a){u=best.get(u).prev;r.unshift(u);}
+  return r;
 }
 const _dcache=new Map();
 function distTo(a){let m=_dcache.get(a);if(!m){m=bfs(a,graph.adj).d;_dcache.set(a,m);}return m;}
@@ -166,26 +186,29 @@ function hint(){
   // der nächste Schritt eines kürzesten Weges wird verraten (Anfangsbuchstabe)
   const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
   const opts=[...adj.get(end)].filter(i=>i!==p.b&&da.get(i)===da.get(end)+1&&da.get(i)+db.get(i)===p.D);
-  const nxt=opts[Math.floor(Math.random()*opts.length)];
-  if(nxt==null)return;
+  const onBest=p.typed.every((x,i)=>x===p.best[i+1]);
+  const nxt=onBest?p.best[p.typed.length+1]:opts[Math.floor(Math.random()*opts.length)];
+  if(nxt==null||nxt===p.b)return;
   p.hints++;const n=cn(nxt);
   msg('💡 '+L4('Ein Land mit','A country starting with','Un país que empieza por','Un pays commençant par')+' <b>'+n[0].toUpperCase()+'</b> … ('+[...n].length+')','#ffd166');
   updatePathStats();const inp=document.getElementById('path-input');if(inp)inp.focus();
 }
 
 // ── Runden ──
-function pts(p){return Math.max(0,100-5*p.wrong-10*p.hints);} // Umwege gibt es nicht mehr: nur Fehler und Tipps kosten Punkte
+function pts(p,best){return Math.max(0,(best?100:60)-5*p.wrong-10*p.hints);} // Umwege gibt es nicht mehr: nur Fehler und Tipps kosten Punkte
 function endRound(gaveUp){
   const p=P();if(!p||p.roundDone)return;
   p.roundDone=true;const adj=graph.adj;
-  const r=route(p.a,p.b,adj)||[];
-  const got=gaveUp?0:pts(p);p.total+=got;p.results.push({got,used:p.typed.length,opt:p.opt});
+  const r=p.best;
+  const mine=[p.a,...p.typed,p.b],same=!gaveUp&&mine.length===r.length&&mine.every((x,i)=>x===r[i]);
+  const got=gaveUp?0:pts(p,same);p.total+=got;p.results.push({got,used:p.typed.length,opt:p.opt});
   if(gaveUp){p.reveal=new Set(r.slice(1,-1));r.forEach(i=>p.shown.add(i));}
   const names=r.map(cn).join(' → ');
   const row=document.getElementById('path-row');if(row)row.style.display='none';
   const last=p.round>=p.pairs.length-1;
-  const head=gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(p.typed.length<=p.opt?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Geschafft','Done','Hecho','Réussi'));
-  msg('<div class="fill-done">'+head+' · +'+got+'</div><div style="font-size:13px;opacity:.85;margin-bottom:8px">'+L4('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court')+': '+names+'</div><button type="button" id="path-next">'+(last?L4('Ergebnis','Result','Resultado','Résultat'):L4('Weiter','Next','Siguiente','Suivant'))+'</button>','#fff');
+  const head=gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(same?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Gleich viele Länder, aber längere Luftlinie','Same number of countries, but longer air distance','Mismo número de países, pero mayor distancia en línea recta','Même nombre de pays, mais distance à vol d’oiseau plus longue'));
+  const kmTxt=(!gaveUp&&!same)?'<div style="font-size:12px;opacity:.8;margin-bottom:4px">'+Math.round(routeKm(mine))+' km '+L4('statt','instead of','en vez de','au lieu de')+' '+Math.round(p.bestKm)+' km</div>':'';
+  msg('<div class="fill-done">'+head+' · +'+got+'</div>'+kmTxt+'<div style="font-size:13px;opacity:.85;margin-bottom:8px">'+L4('Beste Route','Best route','Mejor ruta','Meilleure route')+': '+names+'</div><button type="button" id="path-next">'+(last?L4('Ergebnis','Result','Resultado','Résultat'):L4('Weiter','Next','Siguiente','Suivant'))+'</button>','#fff');
   const nb=document.getElementById('path-next');if(nb)nb.addEventListener('click',nextRound);
   updateColors();fitShown();updatePathStats();
   if(p.duel&&typeof duelPathProgress==='function')duelPathProgress(p);
@@ -198,7 +221,7 @@ function nextRound(){
 function loadRound(){
   const p=P();const [a,b]=p.pairs[p.round].split('-').map(Number);
   p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;
-  p.D=distTo(a).get(b);p.opt=p.D-1;
+  p.D=distTo(a).get(b);p.opt=p.D-1;p.best=bestRoute(a,b);p.bestKm=routeKm(p.best);
   ensureBox();updateColors();fitShown();updatePathStats();
   const inp=document.getElementById('path-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
 }

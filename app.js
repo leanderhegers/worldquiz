@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-13 E';
+const BUILD_ID='2026-11-13 F';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -313,14 +313,14 @@ let _activeSections=['pin'];
 let _modeScreenBackOnclick="openCategoryPicker()";
 
 function openCategoryPicker(){
-  _catRerender=null;
+  _catRerender=openCategoryPicker; // Lernmodus-Schalter oben baut diese Seite neu auf
   if(typeof triggerStreakOnPlay==='function')triggerStreakOnPlay();
   const cards=CATEGORIES.map(c=>{const m=CATEGORY_META[c.key];return {key:c.key,icon:c.icon,cls:c.cardCls,title:m.head(),sub:m.sub(),onclick:`openCategory('${c.key}')`};});
   showScreen('category-screen');
   $('category-screen').classList.add('cat-picker');
   $('category-screen').innerHTML=`
     <div class="cat-bg"></div>
-    <div class="cat-topbar"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button></div>
+    <div class="cat-topbar cat-topbar-split"><button class="gs-home-btn" onclick="goHome()">${t('back')}</button>${learnToggleHTML()}</div>
     <div class="cat-inner">
       <h1 class="cat-heading">${t('catHeading')}</h1>
       <div class="cat-grid">${cards.map(c=>`<div class="cat-cell"><button class="cat-card ${c.cls}" onclick="${c.onclick}"><span class="cat-card-icon">${c.icon}</span><span class="cat-card-title">${c.title}</span><span class="cat-card-sub">${c.sub}</span></button><button class="cat-info" type="button" onclick="openModeInfo('${c.key}')" aria-label="Info">i</button></div>`).join('')}</div>
