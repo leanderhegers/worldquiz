@@ -19,6 +19,12 @@ const DUEL_DOC_MAX_AGE=24*3600*1000;  // eigene alte Duelle werden beim Login au
 let _duelUnsub=null,_duelDocs={},_duelLobbyId=null,_duelCur=null,_duelBannerId=null,_duelWaitTimer=null,_duelBannerTimer=null;
 let _duelSelMode='flag',_duelSel=new Set(),_duelFriendList=[];
 
+// Avatar eines Spielers: gewähltes Emoji auf Farbe (wie im Profil), sonst der Anfangsbuchstabe. Die Avatare aller Mitspieler stehen im Duell-Dokument (av).
+function _duelAv(av,name,size){
+  const f=String(name||'?').slice(0,1).toUpperCase();
+  return typeof _renderAvatar==='function'?_renderAvatar(av||null,f,size||26):'<span class="duel-av">'+_duelEsc(f)+'</span>';
+}
+function _duelAvOf(d,u,size){return _duelAv(d&&d.av&&d.av[u],d&&d.names&&d.names[u],size);}
 function _duelDE(){return typeof lang==='undefined'||lang!=='en';}
 function _duelMe(){return window._authUser?window._authUser.uid:null;}
 function _duelEl(id){return document.getElementById(id);}
@@ -174,7 +180,7 @@ function _duelRenderPicker(){
   const friends=_duelFriendList.length?_duelFriendList.map(f=>{
     const on=_duelSel.has(f.uid),online=_duelOnline(f);
     return `<div class="duel-friend${on?' selected':''}${(!on&&full)?' disabled':''}${online?'':' offline'}" onclick="duelToggleFriend('${_duelEsc(f.uid)}')">
-      <span class="duel-check">${on?'✓':''}</span><span class="duel-av">${_duelEsc((f.username||'?').slice(0,1).toUpperCase())}</span><span style="flex:1;">${_duelEsc(f.username||'?')}</span><span class="duel-dot ${online?'on':'off'}" title="${online?'online':'offline'}"></span></div>`;
+      <span class="duel-check">${on?'✓':''}</span>${_duelAv(f.avatar,f.username,28)}<span style="flex:1;">${_duelEsc(f.username||'?')}</span><span class="duel-dot ${online?'on':'off'}" title="${online?'online':'offline'}"></span></div>`;
   }).join(''):`<div class="duel-sub">${de?'Du hast noch keine Freunde. Füge zuerst Freunde hinzu (👥).':'You have no friends yet. Add some first (👥).'}</div>`;
   const m=_duelMode(_duelSelMode);
   _duelModal(`<div class="duel-head"><h2 class="pf-title" style="padding:0;margin:0;">⚔️ Multiplayer</h2><button class="duel-x" onclick="_duelClose()" aria-label="${de?'Schließen':'Close'}">✕</button></div>
@@ -197,7 +203,8 @@ async function duelSendInvite(){
   const de=_duelDE(),mode=_duelSelMode||'flag';
   const uids=[..._duelSel].slice(0,DUEL_MAX_PLAYERS-1);
   const names={[me]:(typeof _myName==='function'?_myName(window._authUser):(window._authUser.displayName||'?'))};
-  uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u);names[u]=(f&&f.username)||'?';});
+  const av={[me]:(typeof _store!=='undefined'&&_store.avatar)||null}; // Avatare aller Spieler ins Dokument, damit sie überall angezeigt werden
+  uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u);names[u]=(f&&f.username)||'?';av[u]=(f&&f.avatar)||null;});
   // Flaggen: Länder-IDs. Pin: Stadtnamen (name_en) aus dem europäischen Pool — alle lösen sie über
   // getPinCities('EU') wieder in dieselben Städte auf.
   const diff=_duelMode(mode).diff?(_duelSelDiff||'all'):'all';
@@ -213,7 +220,7 @@ async function duelSendInvite(){
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,...uids],host:me,names,mode,diff,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{},chat:[]
+      players:[me,...uids],host:me,names,av,mode,diff,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{},chat:[]
     });
     _duelLobbyId=ref.id;
     clearTimeout(_duelWaitTimer);
@@ -239,7 +246,7 @@ function _duelPrefetch(d){
 }
 function _duelChatHtml(d,me){
   const list=(d.chat||[]).slice(-60);
-  return list.length?list.map(c=>`<div class="duel-msg${c.u===me?' mine':''}"><span class="duel-msg-n">${_duelEsc(c.n||'?')}</span>${_duelEsc(c.t)}</div>`).join(''):`<div class="duel-sub" style="text-align:center;margin:auto;">${_duelDE()?'Noch keine Nachrichten':'No messages yet'}</div>`;
+  return list.length?list.map(c=>`<div class="duel-msg${c.u===me?' mine':''}"><span class="duel-msg-n">${_duelAvOf(d,c.u,16)}${_duelEsc(c.n||'?')}</span>${_duelEsc(c.t)}</div>`).join(''):`<div class="duel-sub" style="text-align:center;margin:auto;">${_duelDE()?'Noch keine Nachrichten':'No messages yet'}</div>`;
 }
 function _duelRenderLobby(d){
   if(!d)return;
@@ -248,7 +255,7 @@ function _duelRenderLobby(d){
   const rows=(d.players||[]).map(u=>{
     const st=(d.r||{})[u];
     const lbl=st==='yes'?(de?'dabei':'in'):st==='no'?(de?'abgelehnt':'declined'):(de?'wartet…':'waiting…');
-    return `<div class="duel-friend ${st==='yes'?'in':st==='no'?'out':''}"><span class="duel-av">${_duelEsc(((d.names||{})[u]||'?').slice(0,1).toUpperCase())}</span><span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}</span><span class="duel-state ${st||''}">${st==='yes'?'✓ ':st==='no'?'✕ ':'… '}${lbl}</span></div>`;
+    return `<div class="duel-friend ${st==='yes'?'in':st==='no'?'out':''}">${_duelAvOf(d,u,28)}<span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}</span><span class="duel-state ${st||''}">${st==='yes'?'✓ ':st==='no'?'✕ ':'… '}${lbl}</span></div>`;
   }).join('');
   const joined=(d.players||[]).filter(u=>(d.r||{})[u]==='yes').length;
   const foot=isHost
@@ -312,7 +319,7 @@ function _duelShowBanner(d){
   _duelBannerId=d.id;
   const host=_duelEsc((d.names||{})[d.host]||'?');
   const others=(d.players||[]).length-2;
-  b.innerHTML=`<div class="duel-banner-text">⚔️ <b>${host}</b> ${de?'fordert dich heraus:':'challenges you:'} ${_duelTitle(d,de)}${others>0?(de?` (+${others} weitere)`:` (+${others} more)`):''}</div>
+  b.innerHTML=`<div class="duel-banner-text" style="display:flex;align-items:center;gap:8px;">${_duelAvOf(d,d.host,32)}<span>⚔️ <b>${host}</b> ${de?'fordert dich heraus:':'challenges you:'} ${_duelTitle(d,de)}${others>0?(de?` (+${others} weitere)`:` (+${others} more)`):''}</span></div>
     <div class="duel-banner-btns"><button class="duel-btn primary" onclick="duelAccept('${d.id}')">${de?'Annehmen':'Accept'}</button>
     <button class="duel-btn" onclick="duelDecline('${d.id}')">${de?'Ablehnen':'Decline'}</button></div>`;
   b.style.display='flex';
@@ -351,14 +358,14 @@ async function _duelBegin(d){
   if(_duelCur&&_duelCur.id===d.id)return;
   const me=_duelMe();
   const mode=DUEL_MODES.some(x=>x.k===d.mode)?d.mode:'flag';
-  _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},finished:false};
+  _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},av:d.av||{},finished:false};
   if(d.host!==me&&mode!=='path')_duelRecentAdd(_duelKey(mode,d.diff),d.q||[],_duelPool(mode,d.diff).length);
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
   const de=_duelDE(),isPin=mode==='pin',isPath=mode==='path';
   const queue=(isPin||isPath)?[]:d.q.map(id=>({type:mode==='map'?'country':mode,id}));
   const cities=isPin?d.q.map(n=>getPinCities('EU').find(c=>c.name_en===n)).filter(Boolean):[];
-  const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelEsc(_duelCur.names[u]||'?')).join(', ');
+  const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelAvOf(d,u,22)+' '+_duelEsc(_duelCur.names[u]||'?')).join(' &nbsp; ');
   const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff},de)}</h2>
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
@@ -459,12 +466,12 @@ function _duelRenderResult(d){
   if(!t||!l2)return;
   const mine=_duelCur.score||0,isPin=_duelCur.mode==='pin',isPts=_duelPts(_duelCur.mode);
   l1.textContent=isPin?`${de?'Du':'You'}: ${mine} ${de?'Punkte':'points'} · Ø ${_duelCur.avg||0} km`:isPts?`${de?'Du':'You'}: ${mine} ${de?'Punkte':'points'}`:`${de?'Du':'You'}: ${_duelCur.ft}/${_duelCur.total} · ${mine} ${de?'Punkte':'points'}`;
-  const others=_duelCur.joined.filter(u=>u!==me).map(u=>({name:_duelCur.names[u]||'?',st:p[u]||{}}));
+  const others=_duelCur.joined.filter(u=>u!==me).map(u=>({uid:u,name:_duelCur.names[u]||'?',st:p[u]||{}}));
   const pending=others.filter(o=>!o.st.done);
   l2.innerHTML=others.map(o=>{
     const s=o.st;
     const txt=s.left?(de?'hat aufgegeben':'gave up'):s.done?`${s.score||0} ${de?'Punkte':'points'}`:`${de?'spielt noch':'still playing'} (${s.pos||0}/${_duelCur.total})`;
-    return `${_duelEsc(o.name)}: ${txt}`;
+    return `<span class="duel-res-row">${_duelAvOf({names:_duelCur.names,av:_duelCur.av},o.uid,20)} ${_duelEsc(o.name)}: ${txt}</span>`;
   }).join('<br>');
   if(pending.length){e.textContent='⏳';t.textContent=de?'Warte auf die anderen…':'Waiting for the others…';return;}
   const rivals=others.filter(o=>!o.st.left);
@@ -494,7 +501,7 @@ function _duelChip(d){
     if(op.left)txt=de?'hat aufgegeben':'gave up';
     else if(op.done)txt=de?`fertig · ${op.score||0} P.`:`done · ${op.score||0} pts`;
     else txt=_duelPts(_duelCur.mode)?`${op.pos||0}/${_duelCur.rounds||DUEL_ROUNDS} · ${op.sc||0} ${de?'P.':'pts'}`:`${op.pos||0}/${DUEL_ROUNDS} · ${op.ft||0} ✓`;
-    return `<div>⚔️ ${_duelEsc(_duelCur.names[u]||'?')}: ${txt}</div>`;
+    return `<div class="duel-chip-row">${_duelAvOf({names:_duelCur.names,av:_duelCur.av},u,18)}<span>${_duelEsc(_duelCur.names[u]||'?')}: ${txt}</span></div>`;
   }).join('');
   c.style.display='block';
 }

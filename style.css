@@ -681,3 +681,10 @@ body.theme-cartoon #prog-bar{height:10px!important;border:2px solid var(--ink);b
 body.theme-cartoon #game-screen>div:last-child,body.theme-cartoon #flag-screen>div:last-child{background:#ffc83a!important;border-top:4px solid var(--ink)!important;color:var(--ink)!important;font-weight:800;}
 body.theme-cartoon #iq-hint{color:var(--ink);}
 .tp .dot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}
+
+.duel-chip-row{display:flex;align-items:center;gap:6px;justify-content:center;}
+.duel-res-row{display:inline-flex;align-items:center;gap:6px;}
+.duel-msg-n{display:flex;align-items:center;gap:5px;}
+.duel-friend>div{flex:0 0 auto;}
+/* Lernmodus-Schalter immer oben rechts (auch auf der Spielauswahl, deren Kopfleiste sonst nur so breit wie ihr Inhalt ist) */
+.cat-picker .cat-topbar.cat-topbar-split{right:0;width:100%;box-sizing:border-box;}
