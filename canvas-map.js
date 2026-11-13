@@ -162,6 +162,7 @@ function offscreen(m,b,pad,vp){
 function draw(){
   const svg=S.svg;if(!svg||!svg.isConnected)return;
   const t0=performance.now();
+  S.cartoon=document.body.classList.contains('theme-cartoon');
   S.lodOn=S.lod!==false&&!(typeof projection!=='undefined'&&projection==='globe');
   const rect=svg.getBoundingClientRect();
   const ctm=svg.getScreenCTM();
@@ -273,10 +274,26 @@ function shape(el,tag,m,alpha){
     else if(tag==='line'){ctx.moveTo(num(el,'x1',0),num(el,'y1',0));ctx.lineTo(num(el,'x2',0),num(el,'y2',0));}
     else return;
   }
+  // Theme Cartoon: Länderflächen wirken leicht erhöht – dunkle Seitenwand nach rechts unten (mehrere kleine Versätze ergeben eine geschlossene Kante)
+  const raised=S.cartoon&&p&&doFill&&el.classList&&el.classList.contains('ct')&&!isNone(fill);
+  if(raised){
+    const k=Math.sqrt(det(m))||1,u=S.vp.dpr/k; // 1 CSS-Pixel in Karteneinheiten
+    ctx.fillStyle='#1a1a2e';ctx.globalAlpha=alpha*0.62;
+    for(let i=4;i>=1;i--){ctx.save();ctx.translate(i*0.95*u,i*1.2*u);ctx.fill(p,'nonzero');ctx.restore();}
+  }
   if(doFill){
     ctx.globalAlpha=alpha*num(el,'fill-opacity',1);ctx.fillStyle=fill;
     const fr=el.getAttribute('fill-rule')==='evenodd'?'evenodd':'nonzero';
     if(p)ctx.fill(p,fr);else ctx.fill(fr);
+    if(raised&&!S.fast){ // Oberkante: helle Innenkante oben links, dunkle unten rechts
+      const k=Math.sqrt(det(m))||1,u=S.vp.dpr/k;
+      ctx.save();ctx.clip(p,fr);ctx.lineJoin='round';
+      ctx.lineWidth=3.2*u;ctx.strokeStyle='rgba(255,255,255,0.38)';ctx.globalAlpha=alpha;
+      ctx.save();ctx.translate(1.7*u,1.9*u);ctx.stroke(p);ctx.restore();
+      ctx.strokeStyle='rgba(26,26,46,0.20)';
+      ctx.save();ctx.translate(-1.7*u,-1.9*u);ctx.stroke(p);ctx.restore();
+      ctx.restore();
+    }
   }
   if(doStroke){
     const sw=num(el,'stroke-width',1);
