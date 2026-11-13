@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-13 D';
+const BUILD_ID='2026-11-13 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3340,7 +3340,11 @@ function renderFlagOpts(){renderOptions();}
 async function startInputQuiz(cfg){
   iqCfg={...cfg};
   if(cfg.type==='outline')await iqEnsureOutlineGeo();
-  const ids=iqPoolIds(cfg);
+  let ids=iqPoolIds(cfg);
+  if(cfg.type==='pie'){ // nur Kuchen, die im Quiz eindeutig lösbar sind (Antwortmenge: die Auswahl selbst, bei Mittel/Schwer alle Länder)
+    const wide=cfg.diff==='medium'||cfg.diff==='hard';
+    ids=await pieFilterIds(ids,wide?iqPoolIds({...cfg,region:'world',diff:'all'}):ids);
+  }
   if(!ids.length)return;
   // Normal mode: a plain fresh shuffle every round (completely random). Learn mode keeps its own
   // ordering on purpose — it brings back what the player got wrong.
@@ -3502,6 +3506,11 @@ function pieClass(r,g,b){
 }
 const PIE_MIN=0.006; // ab 0,6 % Flächenanteil; darunter sind es fast nur Mischpixel an Farbkanten
 const _pieCache=new Map();
+const _pieSync={}; // id → Teile (sobald gemessen)
+// Farbanteile einer Flagge: je Grundfarbe der Flächenanteil und der TATSÄCHLICHE Farbton (Mittel der Pixel dieser Grundfarbe) – so unterscheidet sich
+// z. B. das dunkle Blau des Tschad vom helleren Blau Rumäniens auch im Kuchen. Vorberechnete Werte stehen in data/pie.json (siehe pieLoad); ohne die Datei
+// wird live aus dem Flaggenbild gemessen.
+// Rückgabe: [{c:'#rrggbb', f:Anteil 0..1, k:Index in PIE_PALETTE}] absteigend nach Anteil.
 function flagColorShares(id){
   if(_pieCache.has(id))return _pieCache.get(id);
   const p=new Promise(res=>{
@@ -3509,11 +3518,13 @@ function flagColorShares(id){
     img.onload=()=>{
       try{
         const W=160,H=100,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d',{willReadFrequently:true});
-        x.drawImage(img,0,0,W,H);const d=x.getImageData(0,0,W,H).data,cnt=new Array(PIE_PALETTE.length).fill(0);let n=0;
-        for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const b=pieClass(d[i],d[i+1],d[i+2]);
-          cnt[b]++;n++;}
-        let out=cnt.map((v,k)=>({c:PIE_PALETTE[k][0],f:v/(n||1)})).filter(o=>o.f>=PIE_MIN) // auch kleine Anteile (Wappen, Sterne, Embleme) bleiben im Kuchen.sort((a,b)=>b.f-a.f);
-        const sum=out.reduce((a,o)=>a+o.f,0)||1;out.forEach(o=>o.f/=sum);res(out);
+        x.drawImage(img,0,0,W,H);const d=x.getImageData(0,0,W,H).data,N=PIE_PALETTE.length;
+        const cnt=new Array(N).fill(0),sr=new Array(N).fill(0),sg=new Array(N).fill(0),sb=new Array(N).fill(0);let n=0;
+        for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const k=pieClass(d[i],d[i+1],d[i+2]);cnt[k]++;sr[k]+=d[i];sg[k]+=d[i+1];sb[k]+=d[i+2];n++;}
+        const hex=v=>('0'+Math.round(v).toString(16)).slice(-2);
+        let out=cnt.map((v,k)=>({c:v?'#'+hex(sr[k]/v)+hex(sg[k]/v)+hex(sb[k]/v):PIE_PALETTE[k][0],f:v/(n||1),k})).filter(o=>o.f>=PIE_MIN); // auch kleine Anteile (Wappen, Sterne, Embleme) bleiben im Kuchen
+        out.sort((a,b)=>b.f-a.f);
+        const sum=out.reduce((a,o)=>a+o.f,0)||1;out.forEach(o=>o.f/=sum);_pieSync[id]=out;res(out);
       }catch(e){res([]);}
     };
     img.onerror=()=>res([]);
@@ -3521,6 +3532,46 @@ function flagColorShares(id){
   });
   _pieCache.set(id,p);return p;
 }
+// ── Nur eindeutig lösbare Kuchen ──
+// Zwei Flaggen sind im Kuchen nicht zu unterscheiden, wenn ihre Anteile fast gleich sind (zusammen höchstens 6 Prozentpunkte Abstand) UND jede gemeinsame Grundfarbe
+// (ab 8 % Anteil) im echten Farbton fast gleich ist (Farbabstand ΔE unter 13,5; Rumänien/Tschad liegen bei 14 und gelten noch als unterscheidbar).
+// Beispiele, die dadurch NICHT vorkommen: Ägypten/Jemen/Irak, Malta/Monaco/Polen/Singapur, Paraguay/Russland, Kirgisistan/Vietnam, Tunesien/Türkei.
+// Frankreich/Slowenien bleiben: gleiche Drittel, aber Marineblau und Rot gegen reines Blau und reines Rot (ΔE über 100).
+const PIE_SHARE_MAX=6,PIE_DE_MIN=13.5,PIE_KEY='geoquiz_pie_v2';
+function pieLab(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const f=v=>v>0.04045?Math.pow((v+0.055)/1.055,2.4):v/12.92;r=f(r);g=f(g);b=f(b);
+  const X=(r*0.4124+g*0.3576+b*0.1805)/0.95047,Y=r*0.2126+g*0.7152+b*0.0722,Z=(r*0.0193+g*0.1192+b*0.9505)/1.08883,h=v=>v>0.008856?Math.cbrt(v):7.787*v+16/116;
+  return[116*h(Y)-16,500*(h(X)-h(Y)),200*(h(Y)-h(Z))];}
+function pieSimilar(a,b){
+  const A={},B={};(a||[]).forEach(o=>A[o.k]=o);(b||[]).forEach(o=>B[o.k]=o);
+  let share=0,de=0;
+  for(const k of new Set([...Object.keys(A),...Object.keys(B)])){
+    const x=A[k],y=B[k];share+=Math.abs((x?x.f:0)-(y?y.f:0));
+    if(x&&y&&Math.min(x.f,y.f)>=0.08){const l1=pieLab(x.c),l2=pieLab(y.c);de=Math.max(de,Math.hypot(l1[0]-l2[0],l1[1]-l2[1],l1[2]-l2[2]));}
+  }
+  return share/2*100<=PIE_SHARE_MAX&&de<PIE_DE_MIN;
+}
+let _pieReady=null;
+function pieEnsureAll(){
+  if(_pieReady)return _pieReady;
+  _pieReady=(async()=>{
+    const ids=Object.keys(C).map(Number).filter(i=>ISO2[i]);
+    try{const c=JSON.parse(localStorage.getItem(PIE_KEY)||'null');
+      if(c&&ids.every(i=>c[i])){ids.forEach(i=>{_pieSync[i]=c[i].map(x=>({c:x[0],f:x[1]/1000,k:x[2]}));_pieCache.set(i,Promise.resolve(_pieSync[i]));});return true;}}catch(e){}
+    await Promise.all(ids.map(i=>flagColorShares(i)));
+    try{const o={};ids.forEach(i=>{o[i]=(_pieSync[i]||[]).map(x=>[x.c,Math.round(x.f*1000),x.k]);});localStorage.setItem(PIE_KEY,JSON.stringify(o));}catch(e){}
+    return true;
+  })();
+  return _pieReady;
+}
+// ids: Ziele; scope: alle Länder, die als Antwort infrage kommen (Standard: ids selbst). Wer mit einem anderen Land der Auswahl verwechselbar ist, fliegt raus.
+function pieFilterSync(ids,scope){
+  const S=(scope||ids).filter(i=>_pieSync[i]),bad=new Set();
+  for(let i=0;i<S.length;i++)for(let j=i+1;j<S.length;j++)if(pieSimilar(_pieSync[S[i]],_pieSync[S[j]])){bad.add(S[i]);bad.add(S[j]);}
+  const out=ids.filter(i=>!bad.has(i));
+  return out.length>=Math.min(10,ids.length)?out:ids; // zu wenig übrig: lieber alle als ein leeres Quiz
+}
+async function pieFilterIds(ids,scope){await pieEnsureAll();return pieFilterSync(ids,scope);}
+window.pieEnsureAll=pieEnsureAll;window.pieFilterSync=pieFilterSync;
 function pieSvg(parts,size){
   const r=size/2-4,cx=size/2,cy=size/2;let a0=-Math.PI/2,out='';
   if(parts.length===1)out='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+parts[0].c+'"/>';

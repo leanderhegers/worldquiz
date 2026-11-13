@@ -204,6 +204,11 @@ async function duelSendInvite(){
   _duelLastSet();
   let picked;
   if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
+  else if(mode==='pie'){ // nur Kuchen, die eindeutig lösbar sind (jeder darf jedes Land tippen: Antwortmenge = alle Flaggen)
+    try{await pieEnsureAll();}catch(e){}
+    const all=_duelPool('pie','all');
+    picked=_duelDraw(_duelKey(mode,diff),pieFilterSync(_duelPool(mode,diff),all));
+  }
   else picked=_duelDraw(_duelKey(mode,diff),_duelPool(mode,diff));
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
