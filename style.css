@@ -584,3 +584,40 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;}
 @keyframes pin-glow-in{from{opacity:0}to{opacity:1}}
 
 .tm-emoji{display:block;font-size:28px;line-height:1.2;margin-bottom:4px;}
+
+/* Multiplayer: breites Fenster mit Spielkacheln, Freundeliste und Lobby-Chat */
+.duel-box.wide{max-width:min(940px,96vw);width:96vw;padding:1.1rem 1.2rem 1rem;text-align:left;max-height:92vh;overflow:auto;}
+.duel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.duel-x{background:none;border:0;color:#8a9bb8;font-size:20px;cursor:pointer;padding:4px 8px;}
+.duel-x:hover{color:#fff;}
+.duel-cols{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;}
+.duel-col{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.duel-sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7d8da6;display:flex;gap:8px;align-items:center;}
+.duel-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;}
+.duel-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:14px 6px;min-height:84px;text-align:center;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);cursor:pointer;transition:transform .08s,background .15s,border-color .15s;}
+.duel-tile:hover{background:rgba(255,255,255,.08);transform:translateY(-1px);}
+.duel-tile.selected{border-color:rgba(61,168,130,.85);background:rgba(61,168,130,.16);box-shadow:0 0 0 1px rgba(61,168,130,.4) inset;}
+.duel-tile-ico{font-size:30px;line-height:1;}
+.duel-tile-name{font-size:13px;font-weight:600;color:#e6eef8;line-height:1.2;}
+.duel-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;}
+.duel-chip{padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cfd9e8;font-size:13px;cursor:pointer;}
+.duel-chip.on{background:#2f9e7b;border-color:#2f9e7b;color:#fff;font-weight:600;}
+.duel-friends.tall{max-height:46vh;}
+.duel-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b6fb6,#2f9e7b);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.duel-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+.duel-dot.on{background:#3ddc97;box-shadow:0 0 6px rgba(61,220,151,.7);}
+.duel-dot.off{background:#4b5870;}
+.duel-state{font-size:12px;color:#8a9bb8;}
+.duel-state.yes{color:#7be0b8;}.duel-state.no{color:#ef8a8a;}
+.duel-friend.in{border-color:rgba(61,168,130,.45);}
+.duel-friend.out{opacity:.55;}
+.duel-chat{flex:1;min-height:180px;max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
+.duel-msg{align-self:flex-start;max-width:86%;padding:6px 10px;border-radius:12px 12px 12px 3px;background:rgba(255,255,255,.08);color:#e3ebf6;font-size:14px;word-break:break-word;}
+.duel-msg.mine{align-self:flex-end;border-radius:12px 12px 3px 12px;background:rgba(47,158,123,.28);}
+.duel-msg-n{display:block;font-size:11px;color:#8fb7a8;margin-bottom:1px;}
+.duel-chat-in{display:flex;gap:6px;}
+.duel-chat-in input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;}
+.duel-chat-in input:focus{border-color:#2f9e7b;}
+.duel-foot{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
+.duel-foot .duel-btn{min-width:150px;}
+@media (max-width:640px){.duel-cols{grid-template-columns:1fr;}.duel-friends.tall,.duel-chat{max-height:28vh;}.duel-foot .duel-btn{flex:1;min-width:0;}}
