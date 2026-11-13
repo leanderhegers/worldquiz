@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Schriftarten für das Quiz</title>
+<style>
+@font-face{font-family:'F-Nunito';src:url(nunito-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Nunito';src:url(nunito-800.woff2) format('woff2');font-weight:800}
+@font-face{font-family:'F-Fredoka';src:url(fredoka-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Fredoka';src:url(fredoka-700.woff2) format('woff2');font-weight:700}
+@font-face{font-family:'F-Baloo';src:url(baloo-2-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Baloo';src:url(baloo-2-800.woff2) format('woff2');font-weight:800}
+@font-face{font-family:'F-Poppins';src:url(poppins-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Poppins';src:url(poppins-700.woff2) format('woff2');font-weight:700}
+@font-face{font-family:'F-Lexend';src:url(lexend-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Lexend';src:url(lexend-700.woff2) format('woff2');font-weight:700}
+@font-face{font-family:'F-Quicksand';src:url(quicksand-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Quicksand';src:url(quicksand-700.woff2) format('woff2');font-weight:700}
+@font-face{font-family:'F-Lilita';src:url(lilita-one-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Bangers';src:url(bangers-400.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'F-Patrick';src:url(patrick-hand-400.woff2) format('woff2');font-weight:400}
+:root{--ink:#1a1a2e}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:#fff7d6;color:var(--ink);font-family:system-ui,sans-serif}
+h1{font-size:20px;margin:0 0 4px}
+p.sub{margin:0 0 16px;font-size:13px;color:#5a4a00}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.card{background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:5px 5px 0 var(--ink);padding:14px 16px}
+.name{font:700 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:#7a5f00;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+.lic{font:600 11px system-ui;background:#d8f5df;border:1.5px solid #2f8f4e;color:#1d5c33;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.target{font-size:30px;line-height:1.15;margin:4px 0}
+.mid{font-size:17px;line-height:1.35;margin:4px 0}
+.btnrow{display:flex;gap:8px;margin-top:8px;align-items:center}
+.btn{padding:7px 13px;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:3px 3px 0 var(--ink);font-size:14px}
+.stat{font-size:13px;margin-left:auto}
+.note{font:400 12px/1.4 system-ui;color:#555;margin-top:8px}
+</style></head><body>
+<h1>Schriftarten für das Quiz – alle frei nutzbar</h1>
+<p class="sub">Alle gezeigten Schriften stehen unter der SIL Open Font License 1.1: kostenlos, auch kommerziell, Einbetten in Webseiten erlaubt – ohne Google-Server (wir würden sie selbst hosten). Die Beispieltexte enthalten Umlaute und Akzente (DE/EN/ES/FR).</p>
+<div class="grid" id="g"></div>
+<script>
+const F=[
+ ['Nunito','F-Nunito',800,'rund, freundlich, sehr gut lesbar – die „sichere“ Wahl','Sehr gut für lange Namen und kleine Größen'],
+ ['Fredoka','F-Fredoka',700,'rund und verspielt, passt perfekt zum Cartoon-Design','Etwas breiter; wirkt sofort „Comic/Kinder“'],
+ ['Baloo 2','F-Baloo',800,'weich, kräftig, sehr leserlich','Etwas hoch, gut für große Zielnamen'],
+ ['Lilita One','F-Lilita',400,'dick, plakativ, Spielecharakter','Nur eine Stärke; für große Zielnamen top, für Fließtext zu laut'],
+ ['Bangers','F-Bangers',400,'Comic-Heft-Großbuchstaben','Sehr laut, nur für Überschriften/Zielname; lange Namen werden breit'],
+ ['Patrick Hand','F-Patrick',400,'handgeschrieben, locker','Wirkt wie Notizen; klein gut lesbar'],
+ ['Poppins','F-Poppins',700,'geometrisch, modern, klar','Neutraler, weniger „Cartoon“, sehr sauber'],
+ ['Lexend','F-Lexend',700,'für Lesbarkeit entworfen, ruhig','Sehr gut lesbar, aber nüchtern'],
+ ['Quicksand','F-Quicksand',700,'dünn-rund, leicht und freundlich','Wirkt zarter; bei kleinen Größen weniger kräftig']
+];
+const g=document.getElementById('g');
+g.innerHTML=F.map(([n,f,w,desc,note])=>`<div class="card" style="font-family:'${f}',sans-serif">
+ <div class="name"><span>${n}</span><span class="lic">SIL OFL 1.1</span></div>
+ <div class="target" style="font-weight:${w}">Deutschland · Côte d'Ivoire</div>
+ <div class="target" style="font-weight:${w};font-size:24px">Äthiopien · Mosambik · España</div>
+ <div class="mid">Finde dieses Land: <b style="font-weight:${w}">Kasachstan</b> — 12 von 45 gefunden, Größe &amp; Fläche</div>
+ <div class="btnrow"><span class="btn" style="font-weight:${w}">Überspringen</span><span class="btn" style="font-weight:${w}">⚙</span><span class="stat">0 richtig · 2 falsch</span></div>
+ <div class="note" style="font-family:system-ui">${desc}. ${note}.</div></div>`).join('');
+</script></body></html>

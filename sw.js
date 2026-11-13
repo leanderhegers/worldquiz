@@ -1,6 +1,6 @@
 // Bump this whenever the precached asset list or any file in it changes — activating a new
 // cache name is what evicts the old one.
-const CACHE_NAME = 'weltquiz-v137';
+const CACHE_NAME = 'weltquiz-v138';
 
 // Precached on install: the app shell plus everything the world-map quiz (the entry point for
 // most players) needs. After this the core game is fully playable with no network at all.
@@ -24,6 +24,14 @@ const ASSETS = [
   './languages.js',
   './currencies.js',
   './manifest.json',
+  './fonts/poppins-latin-400.woff2',
+  './fonts/poppins-latin-ext-400.woff2',
+  './fonts/poppins-latin-500.woff2',
+  './fonts/poppins-latin-ext-500.woff2',
+  './fonts/poppins-latin-600.woff2',
+  './fonts/poppins-latin-ext-600.woff2',
+  './fonts/poppins-latin-700.woff2',
+  './fonts/poppins-latin-ext-700.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './vendor/d3.v7.min.js',
