@@ -158,6 +158,48 @@ function offscreen(m,b,pad,vp){
   return x1<-pad||y1<-pad||x0>vp.w+pad||y0>vp.h+pad;
 }
 
+// ── Theme Cartoon: erhöhte Länder ──
+// Alle Länder sind gleich hoch. Die dunklen Seitenwände werden daher für ALLE Länder zuerst gezeichnet und die Flächen erst danach darübergelegt: sichtbar bleibt eine
+// Wand nur dort, wo kein Nachbarland die Kante verdeckt (Küste, Meer). Beim Drücken (pointerdown) senkt sich ein Land wie ein Knopf um die Wandhöhe ab und federt beim
+// Loslassen zurück (S.press).
+const WALL_DX=0.95,WALL_DY=1.2,WALL_STEPS=4,PRESS_IN=90,PRESS_OUT=170;
+function pressAmt(){
+  const p=S.press;if(!p)return 0;const now=performance.now();
+  if(p.held)return Math.min(1,(now-p.t0)/PRESS_IN);
+  const t=Math.min(1,(now-p.tr)/PRESS_OUT);return p.a0*(1-t)*(1-t);
+}
+function pressTick(){
+  const p=S.press;
+  if(!p){S.pressRaf=0;return;}
+  if(!p.held&&performance.now()-p.tr>=PRESS_OUT){S.press=null;}
+  S.layerDirty=true;draw();
+  S.pressRaf=S.press?requestAnimationFrame(pressTick):0;
+}
+function pressStart(el){
+  if(!S.cartoon||!el||!el.classList||!el.classList.contains('ct'))return;
+  S.press={el,t0:performance.now(),held:true,a0:0,tr:0};
+  if(!S.pressRaf)S.pressRaf=requestAnimationFrame(pressTick);
+}
+function pressEnd(){
+  const p=S.press;if(!p||!p.held)return;
+  p.a0=pressAmt();p.held=false;p.tr=performance.now();
+  if(!S.pressRaf)S.pressRaf=requestAnimationFrame(pressTick);
+}
+function wallPass(g,m,alpha){
+  const ctx=S.ctx,k=Math.sqrt(det(m))||1,u=S.vp.dpr/k;
+  ctx.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
+  ctx.fillStyle='#1a1a2e';ctx.globalAlpha=alpha*0.62;
+  for(const ch of g.children){
+    if(!ch.classList||!ch.classList.contains('ct')||ch.style.display==='none'||ch.hasAttribute('data-away'))continue;
+    const f0=paintOf(ch,'fill');if(isNone(f0))continue;
+    const cc=geom(ch),p=cc.p;if(!p)continue;
+    const b=bboxOf(ch,cc);if(b&&offscreen(m,b,10*S.vp.dpr+10,S.vp))continue;
+    const h=(S.press&&S.press.el===ch)?1-pressAmt():1; // gedrücktes Land: Wand schrumpft
+    if(h<=0.02)continue;
+    for(let i=WALL_STEPS;i>=1;i--){ctx.save();ctx.translate(i*WALL_DX*u*h,i*WALL_DY*u*h);ctx.fill(p,'nonzero');ctx.restore();}
+  }
+  ctx.globalAlpha=1;
+}
 // ── painting ──
 function draw(){
   const svg=S.svg;if(!svg||!svg.isConnected)return;
@@ -238,7 +280,14 @@ function paint(el,m,alpha){
   }
   const tr=el.getAttribute('transform');if(tr)m=mul(m,parseTransform(tr));
   if(st.opacity!=='')alpha*=+st.opacity;
-  if(tag==='g'){for(const ch of el.children)paint(ch,m,alpha);return;}
+  if(tag==='g'){
+    let walled=false;
+    for(const ch of el.children){
+      if(S.cartoon&&!S.liveProj&&!walled&&ch.classList&&ch.classList.contains('ct')){wallPass(el,m,alpha);walled=true;} // erst alle Wände, dann die Flächen
+      paint(ch,m,alpha);
+    }
+    return;
+  }
   if(tag==='use'){
     const ref=S.svg.querySelector(el.getAttribute('href')||el.getAttribute('xlink:href')||'');if(!ref)return;
     const m2=mul(m,[1,0,0,1,num(el,'x',0),num(el,'y',0)]);
@@ -276,10 +325,10 @@ function shape(el,tag,m,alpha){
   }
   // Theme Cartoon: Länderflächen wirken leicht erhöht – dunkle Seitenwand nach rechts unten (mehrere kleine Versätze ergeben eine geschlossene Kante)
   const raised=S.cartoon&&p&&doFill&&el.classList&&el.classList.contains('ct')&&!isNone(fill);
-  if(raised){
-    const k=Math.sqrt(det(m))||1,u=S.vp.dpr/k; // 1 CSS-Pixel in Karteneinheiten
-    ctx.fillStyle='#1a1a2e';ctx.globalAlpha=alpha*0.62;
-    for(let i=4;i>=1;i--){ctx.save();ctx.translate(i*0.95*u,i*1.2*u);ctx.fill(p,'nonzero');ctx.restore();}
+  let sunk=false;
+  if(raised&&S.press&&S.press.el===el){ // gedrückt: Fläche rutscht um die Wandhöhe nach unten
+    const a=pressAmt(),k0=Math.sqrt(det(m))||1,u0=S.vp.dpr/k0;
+    if(a>0){ctx.save();ctx.translate(a*WALL_STEPS*WALL_DX*u0,a*WALL_STEPS*WALL_DY*u0);sunk=true;}
   }
   if(doFill){
     ctx.globalAlpha=alpha*num(el,'fill-opacity',1);ctx.fillStyle=fill;
@@ -309,6 +358,7 @@ function shape(el,tag,m,alpha){
     if(glow){ctx.shadowColor='transparent';ctx.shadowBlur=0;}
     ctx.setLineDash([]);
   }
+  if(sunk)ctx.restore();
   ctx.globalAlpha=1;
 }
 function text(el,m,alpha,fill,stroke){
@@ -405,8 +455,12 @@ function onMove(ev){
 }
 // Ein Klick gilt dem Ort, an dem gedrückt wurde: Beim schnellen Klicken verschiebt leichtes Zittern der Hand die Karte um ein paar
 // Pixel (d3-zoom wertet es als Ziehen), und beim Loslassen läge das Ziel schon unter einem Nachbarland (schmale Länder wie Chile).
-function onDown(ev){S.down={x:ev.clientX,y:ev.clientY,t:performance.now(),target:hitTest(ev.clientX,ev.clientY)};}
+function onDown(ev){
+  const t=hitTest(ev.clientX,ev.clientY);S.down={x:ev.clientX,y:ev.clientY,t:performance.now(),target:t};
+  S.cartoon=document.body.classList.contains('theme-cartoon');pressStart(t); // Cartoon: Land wird wie ein Knopf eingedrückt
+}
 function onClick(ev){
+  pressEnd();
   let t=null;const d=S.down;S.down=null;
   if(d&&performance.now()-d.t<1500&&Math.hypot(ev.clientX-d.x,ev.clientY-d.y)<=14)t=d.target; // Klick (kein echtes Ziehen): Ziel von beim Drücken
   else t=hitTest(ev.clientX,ev.clientY);
@@ -461,6 +515,7 @@ function init(svg){
   svg.addEventListener('mousemove',onMove);
   svg.addEventListener('mouseleave',onLeave);
   svg.addEventListener('pointerdown',onDown,true);svg.addEventListener('mousedown',onDown,true);
+  ['pointerup','pointercancel','mouseup','touchend'].forEach(t=>window.addEventListener(t,pressEnd,true));
   svg.addEventListener('click',onClick);
 }
 window.CanvasMap={
@@ -477,6 +532,7 @@ window.CanvasMap={
   // Detailstufen ein/aus (zum Vergleichen in der Leistungsprüfung)
   setLod(on){S.lod=!!on;S.layerDirty=true;draw();},
   stats:S.stats,
+  _S:S,
   _test:{parseSubpaths,dpFlat,lodLevel,LOD_TOL} // nur für test/perf.test.js
 };
 })();
