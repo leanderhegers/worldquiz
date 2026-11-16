@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 C';
+const BUILD_ID='2026-11-17 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3505,7 +3505,7 @@ function flagHint(){
   game.wrongOnCurrent=true;{const lk=learnKeyCur();if(lk&&learnActive())setLearnLevel(lk,0);}
   let shown=0;const txt=ch.map(c=>{if(c===' ')return ' ';if(shown<game.flagHint){shown++;return c;}return '_';}).join(' ').replace(/ {3}/g,'   ');
   let hl=$('iq-hint');
-  if(!hl){hl=document.createElement('div');hl.id='iq-hint';const inp=$('flag-input');inp.parentNode.insertBefore(hl,inp.nextSibling);}
+  if(!hl)return;
   hl.textContent=txt;
   $('flag-input').focus();
 }
