@@ -167,7 +167,7 @@ async function getDailyLeaderboard(dateStr,limitN){
 // Firestore, so each affected account heals itself the next time it loads rather than needing a
 // manual per-user fix.
 function _healStrayDotFields(uid, rawData) {
-  const MAPS = ['scores', 'achievements', 'misses', 'correct'];
+  const MAPS = ['scores', 'achievements', 'misses', 'correct', 'learn', 'pinD'];
   const setPatch = {};
   const strayKeys = [];
   for (const k of Object.keys(rawData)) {
@@ -200,7 +200,7 @@ async function loadUserData(u) {
     try {
       const snap = await _db.collection('users').doc(u.uid).get();
       const d = snap.exists ? snap.data() : {};
-      _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false, avatar: d.avatar || null };
+      _store = { settings: d.settings || {}, scores: d.scores || {}, misses: d.misses || {}, correct: d.correct || {}, learn: d.learn || {}, pinD: d.pinD || {}, achievements: d.achievements || {}, streak: d.streak || 0, lastPlayDay: d.lastPlayDay || '', customPlayed: d.customPlayed || false, avatar: d.avatar || null };
       _healStrayDotFields(u.uid, d);
     } catch (e) {
       console.warn('Firestore-Laden fehlgeschlagen', e);
@@ -241,6 +241,31 @@ function recordCorrect(qkey) {
   _queuePersist('correct.'+qkey, _store.correct[qkey]);
 }
 function getCorrects() { return _store.correct || {}; }
+
+// Lernmodus: Lernstufe je Ziel (0 = noch nie direkt gewusst, 1/2 = so oft nacheinander direkt gewusst, ab 3 gilt das Ziel als sicher).
+// Schlüssel enthalten nie einen Punkt (Firestore-Feldpfad), daher wird '.' ersetzt.
+function _lk(k) { return String(k).split('').map(c => '.~*/[]'.indexOf(c) >= 0 ? '․' : c).join(''); }
+function getLearnLevel(qkey) { const m = _store.learn; return (m && m[_lk(qkey)]) || 0; }
+function setLearnLevel(qkey, lvl) {
+  if (!qkey) return;
+  if (!_store.learn) _store.learn = {};
+  lvl = Math.max(0, Math.min(3, lvl | 0));
+  const k = _lk(qkey);
+  if ((_store.learn[k] || 0) === lvl) return; // nichts zu schreiben
+  if (lvl) _store.learn[k] = lvl; else delete _store.learn[k];
+  _queuePersist('learn.' + k, lvl ? lvl : (typeof firebase !== 'undefined' ? firebase.firestore.FieldValue.delete() : 0));
+}
+function getLearnMap() { return _store.learn || {}; }
+// Drop-a-Pin: Abstand (km) des letzten Klicks je Ort – im Lernmodus kommen zuerst die Orte mit dem größten Abstand
+function getPinDist(qkey) { const m = _store.pinD; const v = m && m[_lk(qkey)]; return typeof v === 'number' ? v : null; }
+function setPinDist(qkey, km) {
+  if (!qkey || !isFinite(km)) return;
+  if (!_store.pinD) _store.pinD = {};
+  const k = _lk(qkey), v = Math.round(km);
+  if (_store.pinD[k] === v) return;
+  _store.pinD[k] = v;
+  _queuePersist('pinD.' + k, v);
+}
 
 // Speichert das Ergebnis, falls es ein neuer Bestwert ist. Gibt true zurück bei neuem Rekord.
 function recordScore(key, score, total) {

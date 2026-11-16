@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-13 K';
+const BUILD_ID='2026-11-17 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -841,9 +841,9 @@ function gameScoreValue(){
   if(game.pinMode){const isCont=PIN_BONUS_REGIONS.includes(game.pinRegion);return {score:game.pinScore||0,total:(game.total||0)*(isCont?1050:1000)};}
   return {score:game.firstTry||0,total:game.total||0};
 }
-// Verstecktes Tracking: meldet die aktuell gefragte (falsch beantwortete) Frage an die Datenschicht
-function recordMissForCurrent(){
-  if(typeof recordMiss!=='function'||!game)return;
+// Schlüssel der gerade gefragten Frage (für Fehler-/Treffer-Zähler und Lernstufen)
+function learnKeyCur(){
+  if(!game)return null;
   let k=null;
   if(game.flagMode&&game.flagCurrent!=null)k=IQ_PREFIX[game.inputMode||'flag']+game.flagCurrent;
   else if(game.cityMode&&game.current!=null)k='city:'+cityDisplayName(game.cityFeatures[game.current]);
@@ -852,7 +852,14 @@ function recordMissForCurrent(){
   else if(game.mountainMode&&game.current!=null)k='mountain:'+mountainDisplayName(game.mountainFeatures[game.current]);
   else if(game.rangeMode&&game.current!=null)k='range:'+rangeDisplayName(game.rangeFeatures[game.current]);
   else if(game.current)k='country:'+game.current;
+  return k;
+}
+// Verstecktes Tracking: meldet die aktuell gefragte (falsch beantwortete) Frage an die Datenschicht
+function recordMissForCurrent(){
+  if(typeof recordMiss!=='function'||!game)return;
+  const k=learnKeyCur();
   if(k)recordMiss(k);
+  if(k&&learnActive())setLearnLevel(k,0); // Fehler: Lernstufe zurück auf 0
 }
 // Records the just-finished game's result; returns a best-note string for the result screen
 function resultBestNote(){
@@ -896,7 +903,8 @@ function updateAllText(){
 const SECTIONS=['map','region','flag','pin','city','river','lake','mountain'];
 function gsCard(onclick,title,sub,key){
   let badge='';
-  if(key&&typeof bestScore==='function'){const b=bestScore(key);if(b)badge='<span class="gs-card-best">★ '+b.pct+'%</span>';}
+  if(key&&learnMode&&typeof learnSummary==='function'){const ls=learnSummary(key);if(ls)badge='<span class="gs-card-best">🎓 '+ls.s+'/'+ls.n+'</span>';}
+  if(!badge&&key&&typeof bestScore==='function'){const b=bestScore(key);if(b)badge='<span class="gs-card-best">★ '+b.pct+'%</span>';}
   return `<button class="gs-card" onclick="${onclick}"><span class="gs-card-t">${title}</span><span class="gs-card-s">${sub}</span>${badge}</button>`;
 }
 function sectionInner(key){
@@ -1164,7 +1172,7 @@ async function startGame(mode){
   showScreen('game-screen');$('opts-panel').style.display='none';
   $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
-  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','map:'+mode).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','map:'+mode).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game.total=game.queue.length;
   const g=zoomForMode(mode);
   zoomToGeo(g.lon,g.lat,g.k);
@@ -1177,20 +1185,20 @@ function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_
 function back(){if(game.fillMode){if(game.fillPath&&game.fillPath.duel&&typeof duelLeave==='function')duelLeave();if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
-function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;applyLearnClass();if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
+function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;_learnNormal=false;applyLearnClass();if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
 function toggleLearnTooltip(e){e.stopPropagation();if(!('ontouchstart' in window))return;const wrap=e.currentTarget.closest('.gs-mode-tooltip-wrap');if(!wrap)return;wrap.classList.toggle('show');}
 
 // Kurze Erklärung beim ersten Quiz im Lernmodus
 function learnIntro(){
   if(!learnMode||document.getElementById('learn-intro'))return;
-  try{if(localStorage.getItem('geoquiz_learn_intro')==='1')return;localStorage.setItem('geoquiz_learn_intro','1');}catch(e){}
+  try{if(localStorage.getItem('geoquiz_learn_intro2')==='1')return;localStorage.setItem('geoquiz_learn_intro2','1');}catch(e){}
   const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
   const T=[
     ['Lernmodus','Learning mode','Modo aprendizaje','Mode apprentissage'],
-    [['Du bekommst alle Ziele, die du noch nicht sicher kennst – nicht nur zehn.','Falsch oder übersprungen? Das Ziel kommt nach kurzer Zeit noch einmal.','Das Quiz ist erst zu Ende, wenn jedes Ziel richtig war.','Bei Texteingabe verrät 💡 oben nach und nach die ersten Buchstaben.','Im Menü ist der Hintergrund farbig, solange der Lernmodus an ist.'],
-     ['You get every target you do not know well yet – not just ten.','Wrong or skipped? The target comes back after a short while.','The quiz only ends when every target was answered correctly.','In typing quizzes 💡 at the top reveals the first letters one by one.','The menu background is tinted while learning mode is on.'],
-     ['Recibes todos los objetivos que aún no dominas, no solo diez.','¿Fallo u omitido? El objetivo vuelve a salir al poco tiempo.','El quiz termina solo cuando todos están bien.','En los quizzes de escribir, 💡 arriba revela las primeras letras poco a poco.','El fondo del menú cambia de color mientras el modo está activo.'],
-     ['Tu reçois toutes les cibles que tu ne maîtrises pas encore, pas seulement dix.','Faux ou passé ? La cible revient au bout d’un moment.','Le quiz ne se termine que lorsque chaque cible est juste.','Pour les quiz à saisir, 💡 en haut révèle peu à peu les premières lettres.','Le fond du menu change de couleur tant que le mode est actif.']],
+    [['Du bekommst alle Ziele, die du noch nicht sicher kennst – zuerst die ganz neuen, dann die, die du einmal oder zweimal direkt wusstest.','Direkt richtig = eine Stufe höher. Nach dreimal in Folge gilt ein Ziel als sicher und kommt nicht mehr dran.','Falsch, übersprungen oder Hinweis genutzt? Die Stufe fällt auf 0 und das Ziel kommt nach einigen anderen noch einmal.','Bei Texteingabe verrät 💡 oben nach und nach die ersten Buchstaben.','Im Menü ist der Hintergrund farbig, solange der Lernmodus an ist.'],
+     ['You get every target you do not know well yet – brand-new ones first, then those you knew once or twice.','Correct without help = one level up. After three in a row a target counts as secure and no longer appears.','Wrong, skipped or hint used? The level drops to 0 and the target returns after a few others.','In typing quizzes 💡 at the top reveals the first letters one by one.','The menu background is tinted while learning mode is on.'],
+     ['Recibes todos los objetivos que aún no dominas: primero los nuevos, luego los que acertaste una o dos veces.','Acierto sin ayuda = un nivel más. Tras tres seguidos el objetivo es seguro y ya no sale.','¿Fallo, omitido o pista? El nivel baja a 0 y el objetivo vuelve tras algunos otros.','En los quizzes de escribir, 💡 arriba revela las primeras letras poco a poco.','El fondo del menú cambia de color mientras el modo está activo.'],
+     ['Tu reçois toutes les cibles que tu ne maîtrises pas encore : d’abord les nouvelles, puis celles réussies une ou deux fois.','Juste sans aide = un niveau de plus. Après trois de suite, la cible est acquise et ne revient plus.','Faux, passé ou indice ? Le niveau retombe à 0 et la cible revient après quelques autres.','Pour les quiz à saisir, 💡 en haut révèle peu à peu les premières lettres.','Le fond du menu change de couleur tant que le mode est actif.']],
     ['Los geht’s','Got it','Entendido','Compris']
   ];
   const o=document.createElement('div');o.id='learn-intro';o.className='learn-intro';
@@ -1198,44 +1206,57 @@ function learnIntro(){
   o.querySelector('button').onclick=()=>o.remove();
   document.body.appendChild(o);
 }
-// Lernmodus-Sortierung: häufig falsch vorne, 1-3× richtig hinten, >3× richtig ausgeblendet.
-// quizKey (optional) scopes first-lap ordering (see firstLapOrder above) to this exact quiz —
-// only used when learn mode is off, since learn mode's own front/mid/end priority already solves
-// a version of the same "don't feel repetitive" problem.
-function learnSortIds(ids,prefix,quizKey){
-  if(!learnMode||typeof getMisses!=='function')return firstLapOrder(quizKey,[...ids]);
-  const misses=getMisses(),corrects=typeof getCorrects==='function'?getCorrects():{};
-  const filtered=ids.filter(id=>(corrects[prefix+id]||0)<=3);
-  // shuffle() first: the sort is stable, so ids with the same miss count come out in random order
-  // instead of always the same one.
-  const front=shuffle(filtered.filter(id=>!(corrects[prefix+id])&&misses[prefix+id]))
-    .sort((a,b)=>(misses[prefix+b]||0)-(misses[prefix+a]||0));
-  const mid=shuffle(filtered.filter(id=>!(corrects[prefix+id])&&!(misses[prefix+id])));
-  const end=filtered.filter(id=>(corrects[prefix+id]||0)>=1);
-  return[...front,...mid,...end];
+// Lernmodus: Jedes Ziel hat eine Lernstufe (0 = noch nie direkt gewusst, 1/2 = so oft nacheinander direkt gewusst, ab 3 sicher). Eine Runde besteht aus allen
+// Zielen unter Stufe 3: erst Stufe 0, dann 1, dann 2 (jeweils gemischt). Sind alle sicher, läuft das Quiz im normalen Zufallsmodus und ein Hinweis erscheint.
+let _learnNormal=false,_learnPool=null;
+function learnOn(){return !!learnMode&&!_learnNormal;}
+function learnActive(){return learnOn()&&!!game&&!game.challengeMode&&!game.triviaMode&&!game.fillMode&&!game.pinMode&&typeof getLearnLevel==='function';}
+function _learnOrder(items,keyOf,fallback){
+  _learnNormal=false;_learnPool=null;
+  if(!learnMode||typeof getLearnLevel!=='function')return fallback();
+  const keys=items.map(keyOf);_learnPool=keys;if(game&&typeof game==='object')game.learnKeys=keys;
+  const lv=x=>getLearnLevel(keyOf(x));
+  const open=items.filter(x=>lv(x)<3);
+  if(!open.length&&items.length){_learnNormal=true;learnAllSafe();return fallback();}
+  return [0,1,2].flatMap(l=>shuffle(open.filter(x=>lv(x)===l)));
 }
-function learnSortIdx(indices,features,displayFn,prefix,quizKey){
-  if(!learnMode||typeof getMisses!=='function')return firstLapOrder(quizKey,[...indices]);
-  const misses=getMisses(),corrects=typeof getCorrects==='function'?getCorrects():{};
-  const getKey=idx=>prefix+displayFn(features[idx]);
-  const filtered=indices.filter(idx=>(corrects[getKey(idx)]||0)<=3);
-  const front=filtered.filter(idx=>!(corrects[getKey(idx)])&&misses[getKey(idx)])
-    .sort((a,b)=>(misses[getKey(b)]||0)-(misses[getKey(a)]||0));
-  const mid=shuffle(filtered.filter(idx=>!(corrects[getKey(idx)])&&!(misses[getKey(idx)])));
-  const end=filtered.filter(idx=>(corrects[getKey(idx)]||0)>=1);
-  return[...front,...mid,...end];
+function learnSortIds(ids,prefix,quizKey){return _learnOrder(ids,id=>prefix+id,()=>firstLapOrder(quizKey,[...ids]));}
+function learnSortIdx(indices,features,displayFn,prefix,quizKey){return _learnOrder(indices,idx=>prefix+displayFn(features[idx]),()=>firstLapOrder(quizKey,[...indices]));}
+// Hinweis: alle Ziele dieses Quiz sind sicher gelernt
+function learnAllSafe(){
+  if(document.getElementById('learn-intro'))return;
+  const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+  const T=[['Alles sicher gelernt!','Everything learned!','¡Todo aprendido!','Tout est acquis !'],
+    ['Du kennst alle Ziele dieses Quiz sicher (mindestens dreimal in Folge ohne Hilfe). Du spielst jetzt den normalen Zufallsmodus.','You know every target of this quiz for sure (at least three times in a row without help). You are now playing the normal random mode.','Dominas todos los objetivos de este quiz (al menos tres veces seguidas sin ayuda). Ahora juegas el modo aleatorio normal.','Tu connais toutes les cibles de ce quiz (au moins trois fois de suite sans aide). Tu joues maintenant en mode aléatoire normal.'],
+    ['Weiter','Continue','Continuar','Continuer']];
+  const o=document.createElement('div');o.id='learn-intro';o.className='learn-intro';
+  o.innerHTML='<div class="learn-intro-box"><div class="learn-intro-t">🎓 '+T[0][li]+'</div><p style="margin:0 0 12px;line-height:1.45;">'+T[1][li]+'</p><button type="button" class="learn-intro-ok">'+T[2][li]+'</button></div>';
+  o.querySelector('button').onclick=()=>o.remove();
+  document.body.appendChild(o);
 }
+// Lernstatistik statt der üblichen Zähler: gesichert / in Übung / noch nicht gewusst
+const LEARN_LBL={safe:['sicher','secure','seguro','acquis'],mid:['in Übung','practising','practicando','en cours'],neu:['neu','new','nuevo','nouveau']};
+function learnStatsApply(pre){
+  if(!learnActive()||game.challengeMode)return false;
+  if(!game.learnKeys)game.learnKeys=_learnPool;
+  const keys=game.learnKeys;if(!keys||!keys.length)return false;
+  let safe=0,mid=0,neu=0;
+  for(const k of keys){const l=getLearnLevel(k);if(l>=3)safe++;else if(l>=1)mid++;else neu++;}
+  const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
+  set(pre+'stat-c',safe);set(pre+'lbl-c',LEARN_LBL.safe[li]);
+  set(pre+'stat-w',mid);set(pre+'lbl-w',LEARN_LBL.mid[li]);
+  set(pre+'stat-s',neu);set(pre+(pre?'lbl-s':'lbl-s'),LEARN_LBL.neu[li]);
+  const pb=$(pre?'flag-prog':'prog-bar');if(pb)pb.style.width=Math.round(safe/keys.length*100)+'%';
+  try{const gk=gameScoreKey();if(gk){const m=JSON.parse(localStorage.getItem('geoquiz_learnsum')||'{}');m[gk]={s:safe,n:keys.length};localStorage.setItem('geoquiz_learnsum',JSON.stringify(m));}}catch(e){}
+  return true;
+}
+function learnSummary(key){try{return (JSON.parse(localStorage.getItem('geoquiz_learnsum')||'{}'))[key]||null;}catch(e){return null;}}
 function recordCorrectForCurrent(){
   if(typeof recordCorrect!=='function'||!game)return;
-  let k=null;
-  if(game.flagMode&&game.flagCurrent!=null)k=IQ_PREFIX[game.inputMode||'flag']+game.flagCurrent;
-  else if(game.cityMode&&game.current!=null)k='city:'+cityDisplayName(game.cityFeatures[game.current]);
-  else if(game.riverMode&&game.current!=null)k='river:'+riverDisplayName(game.riverFeatures[game.current]);
-  else if(game.lakeMode&&game.current!=null)k='lake:'+lakeDisplayName(game.lakeFeatures[game.current]);
-  else if(game.mountainMode&&game.current!=null)k='mountain:'+mountainDisplayName(game.mountainFeatures[game.current]);
-  else if(game.rangeMode&&game.current!=null)k='range:'+rangeDisplayName(game.rangeFeatures[game.current]);
-  else if(game.current)k='country:'+game.current;
+  const k=learnKeyCur();
   if(k)recordCorrect(k);
+  if(k&&learnActive()&&!game.wrongOnCurrent&&typeof setLearnLevel==='function')setLearnLevel(k,getLearnLevel(k)+1); // direkt gewusst: eine Stufe höher
   if(typeof checkAchievements==='function')checkAchievements();
 }
 function skip(){
@@ -1256,7 +1277,7 @@ function skip(){
   }else{
     game.skippedItems.add(game.current);
   }
-  if(learnMode)game.wrongOnCurrent=true; // Lernmodus: übersprungen = nicht gewusst, kommt wieder
+  if(learnActive()){game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // Lernmodus: übersprungen = nicht gewusst, kommt wieder
   clearFeedback();if(showSkipHint)updateColors();updateStats();nextCountry();
 }
 
@@ -1435,7 +1456,7 @@ async function startCityGame(diffOrCountry){
   let cities;
   if(CITY_COUNTRIES[diffOrCountry])cities=CITY_COUNTRIES[diffOrCountry].cities.slice();
   else cities=getAllCitiesByDifficulty(diffOrCountry);
-  const cityQueue=learnSortIdx(cities.map((_,i)=>i),cities,cityDisplayName,'city:','city:'+diffOrCountry).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const cityQueue=learnSortIdx(cities.map((_,i)=>i),cities,cityDisplayName,'city:','city:'+diffOrCountry).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game={mode:'city',cityMode:true,difficulty:diffOrCountry,
     cityFeatures:cities,
     queue:cityQueue,
@@ -1498,7 +1519,7 @@ function updateMountainColors(){if(!mountainDots)return;const th=THEMES[theme];m
 async function startMountainGame(diff){
   await ensureMountainsData();
   const feats=getMountainFeatures(diff);
-  const mountainQueue=learnSortIdx(feats.map((_,i)=>i),feats,mountainDisplayName,'mountain:','mountain:'+diff).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const mountainQueue=learnSortIdx(feats.map((_,i)=>i),feats,mountainDisplayName,'mountain:','mountain:'+diff).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game={mode:'mountain',mountainMode:true,difficulty:diff,
     mountainFeatures:feats,
     queue:mountainQueue,
@@ -1552,7 +1573,7 @@ async function startRangeGame(diff){
   const feats=getRangeFeatures(diff);
   const rangeRep={};const order=[];
   feats.forEach((f,i)=>{const n=rangeDisplayName(f);if(!(n in rangeRep)){rangeRep[n]=i;order.push(i);}});
-  const rangeQueue=learnSortIdx(order,feats,rangeDisplayName,'range:','range:'+diff).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const rangeQueue=learnSortIdx(order,feats,rangeDisplayName,'range:','range:'+diff).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game={mode:'range',rangeMode:true,difficulty:diff,
     rangeFeatures:feats,rangeRep,
     queue:rangeQueue,
@@ -1596,7 +1617,15 @@ function addPin(layer,pt,color,ll){
 async function startPinGame(region,fixedCities){
   region=region||'EU';
   // fixedCities: a multiplayer duel hands both players the same cities (see duel.js).
-  const cities=(fixedCities&&fixedCities.length)?fixedCities:shuffle(getPinCities(region)).slice(0,Math.min(quizRoundLimit,getPinCities(region).length));
+  let cities;
+  if(fixedCities&&fixedCities.length)cities=fixedCities;
+  else if(learnMode&&window._authUser&&region!=='trivia'&&typeof getPinDist==='function'){
+    // Lernmodus: zuerst die Orte, die bisher am weitesten daneben geklickt wurden (noch nie gespielte zuerst)
+    const all=getPinCities(region);
+    const sc=shuffle(all.map(c=>{const d=getPinDist('pin:'+cityDisplayName(c));return {c,d:d==null?Infinity:d};}));
+    sc.sort((x,y)=>y.d-x.d);
+    cities=sc.slice(0,Math.min(quizRoundLimit,all.length)).map(x=>x.c);
+  }else cities=shuffle(getPinCities(region)).slice(0,Math.min(quizRoundLimit,getPinCities(region).length));
   game={mode:'pin',pinMode:true,difficulty:region,pinRegion:region,
     pinCities:cities,queue:cities.map((_,i)=>i),pinDuel:!!(fixedCities&&fixedCities.length),
     current:null,pinScore:0,pinTotalDist:0,pinRound:0,total:cities.length};
@@ -1748,6 +1777,7 @@ function handlePinClick(ev){
     }
     if(countryBonus&&!glowFeat&&countryPaths){try{glowFeat=pinTargetFeature(city,countryPaths.data());}catch(e){}}
   }
+  if(window._authUser&&!game.pinDuel&&game.pinRegion!=='trivia'&&typeof setPinDist==='function')setPinDist('pin:'+cityDisplayName(city),dist);
   game.pinScore=(game.pinScore||0)+pts;
   game.pinTotalDist=(game.pinTotalDist||0)+dist;
   game.pinRound=(game.pinRound||0)+1;
@@ -1971,7 +2001,7 @@ async function startDifficultyGame(tier){
   showScreen('game-screen');$('opts-panel').style.display='none';
   $('target-name').textContent='';showFeedback(t('load'),'#888');$('feedback').style.color='#888';
   updateAllText();await loadMap();
-  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','diff:'+tier).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  game.queue=learnSortIds(game.queue.filter(id=>_onMap(id)&&C[id]),'country:','diff:'+tier).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game.total=game.queue.length;
   // Population tiers scatter countries across the whole globe rather than one region, so the
   // world framing (not a continent zoom) is the only one that makes sense here.
@@ -1984,7 +2014,7 @@ async function startRiverGame(diff){
   if(!riversData){showFeedback(t('load'),'#888');await loadMap();}
   const feats=getRiverFeatures(diff);
   const indexed=feats.map((f,i)=>({...f,_i:i}));
-  const riverQueue=learnSortIdx(feats.map((_,i)=>i),feats,riverDisplayName,'river:','river:'+diff).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const riverQueue=learnSortIdx(feats.map((_,i)=>i),feats,riverDisplayName,'river:','river:'+diff).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game={mode:'river',riverMode:true,difficulty:diff,
     riverFeatures:feats,
     queue:riverQueue,
@@ -2015,7 +2045,7 @@ async function startLakeGame(diff){
   const indexed=feats.map((f,i)=>({...f,_i:i}));
   const lakeRep={};const order=[];
   feats.forEach((f,i)=>{const n=lakeDisplayName(f);if(!(n in lakeRep)){lakeRep[n]=i;order.push(i);}});
-  const lakeQueue=learnSortIdx(order,feats,lakeDisplayName,'lake:','lake:'+diff).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const lakeQueue=learnSortIdx(order,feats,lakeDisplayName,'lake:','lake:'+diff).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   game={mode:'lake',lakeMode:true,difficulty:diff,
     lakeFeatures:feats,lakeRep,
     queue:lakeQueue,
@@ -3089,12 +3119,12 @@ function _queueEntryResolved(entry){
 // Lernmodus: Ziel, das falsch oder gar nicht gewusst wurde, nach ~3 weiteren Fragen noch einmal stellen. Das Quiz ist erst vorbei, wenn die Warteschlange
 // leer ist, also jedes Ziel einmal ohne Fehler beantwortet wurde.
 function _learnRequeue(){
-  if(!learnMode||!game||game.challengeMode||game.triviaMode||game.fillMode||game.pinMode)return;
+  if(!learnActive())return;
   const prev=game.current;
   if(prev==null||!game.wrongOnCurrent||!game.queue)return;
   if(game.found)game.found.delete(prev);
   if(game.skippedItems)game.skippedItems.delete(prev);
-  game.queue.splice(Math.min(3,game.queue.length),0,prev);
+  game.queue.splice(Math.min(6,game.queue.length),0,prev);
   game.wrongOnCurrent=false;
 }
 function nextCountry(){
@@ -3190,7 +3220,7 @@ function updateStats(){
     $('prog-bar').style.width=Math.round((dn/tot)*100)+'%';
     return;
   }
-  const dn=game.found?game.found.size:0,tot=game.total||1,rm=(game.queue?game.queue.length:0)+(game.current?1:0);$('score-disp').textContent=dn+'/'+tot;$('found-label').textContent=t('foundLbl');$('stat-c').textContent=game.correct||0;$('lbl-c').textContent=t('correctLbl');$('stat-w').textContent=game.wrong||0;$('lbl-w').textContent=t('wrongLbl');$('stat-s').textContent=game.skipped||0;$('lbl-s').textContent=t('skippedLbl');$('stat-r').textContent=rm+' '+t('remLbl');$('prog-bar').style.width=Math.round((dn/tot)*100)+'%';}
+  const dn=game.found?game.found.size:0,tot=game.total||1,rm=(game.queue?game.queue.length:0)+(game.current?1:0);$('score-disp').textContent=dn+'/'+tot;$('found-label').textContent=t('foundLbl');$('stat-c').textContent=game.correct||0;$('lbl-c').textContent=t('correctLbl');$('stat-w').textContent=game.wrong||0;$('lbl-w').textContent=t('wrongLbl');$('stat-s').textContent=game.skipped||0;$('lbl-s').textContent=t('skippedLbl');$('stat-r').textContent=rm+' '+t('remLbl');$('prog-bar').style.width=Math.round((dn/tot)*100)+'%';learnStatsApply('');}
 function showResult(){if(!game.total){back();return;}const p=game.total>0?Math.round((game.firstTry/game.total)*100):0;const note=resultBestNote();game.current=null;showScreen('result-screen');$('res-btn-back').textContent=t('back');$('res-emoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';$('res-title').textContent=t('resTitle');$('res-l1').textContent=t('res1')(game.firstTry,game.total,p);const sk=game.skipped||0;$('res-l2').textContent=t('res2')(game.correct,game.wrong)+(sk>0?', '+sk+' '+t('skippedLbl'):'')+note;$('btn-again').textContent=t('again');$('btn-new').textContent=t('newgame');$('btn-share').textContent=t('shareBtn');if(typeof checkAchievements==='function')checkAchievements();}
 
 // Reads the already-rendered result-screen text rather than re-deriving it from game state,
@@ -3348,7 +3378,7 @@ async function startInputQuiz(cfg){
   if(!ids.length)return;
   // Normal mode: a plain fresh shuffle every round (completely random). Learn mode keeps its own
   // ordering on purpose — it brings back what the player got wrong.
-  const queue=(learnMode?learnSortIds(ids,IQ_PREFIX[cfg.type],iqScoreKey(cfg)):shuffle(ids)).slice(0,(allTargets||learnMode)?Infinity:quizRoundLimit);
+  const queue=(learnMode?learnSortIds(ids,IQ_PREFIX[cfg.type],iqScoreKey(cfg)):shuffle(ids)).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
   // The two hardest difficulty tiers show every possible country in the dropdown, not just this
   // round's pool — a short list would let you find the answer by elimination instead of actually
   // recognising the flag/capital/outline. Easier tiers (and region-scoped rounds) keep the short,
@@ -3468,7 +3498,7 @@ function flagHint(){
   if(game.flagCurrent==null||game.flagFound&&game.flagFound.has(game.flagCurrent))return;
   const ans=iqDisplayName(game.flagCurrent),ch=[...ans],letters=ch.filter(c=>c!==' ').length;
   game.flagHint=Math.min((game.flagHint||0)+1,Math.max(1,letters-1));
-  game.wrongOnCurrent=true;
+  game.wrongOnCurrent=true;{const lk=learnKeyCur();if(lk&&learnActive())setLearnLevel(lk,0);}
   let shown=0;const txt=ch.map(c=>{if(c===' ')return ' ';if(shown<game.flagHint){shown++;return c;}return '_';}).join(' ').replace(/ {3}/g,'   ');
   let hl=$('iq-hint');
   if(!hl){hl=document.createElement('div');hl.id='iq-hint';const inp=$('flag-input');inp.parentNode.insertBefore(hl,inp.nextSibling);}
@@ -3480,7 +3510,7 @@ function skipFlag(){
   // Challenge mode (Random/Daily): see skip()'s comment — a skip must not count as a first-try hit.
   if(game.challengeMode){game.wrongOnCurrent=true;_challenge.skipped=(_challenge.skipped||0)+1;nextFlag();return;}
   game.flagSkipped=(game.flagSkipped||0)+1;
-  if(learnMode)game.wrongOnCurrent=true; // Lernmodus: übersprungen = nicht gewusst
+  if(learnActive()){game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // Lernmodus: übersprungen = nicht gewusst
   if(showSkipHint&&game.flagCurrent!=null)showFlagFb('→ '+iqDisplayName(game.flagCurrent),'#e0952a');
   updateFlagStats();
   nextFlag();
@@ -3586,14 +3616,14 @@ async function flagPieShow(id,wrap){
 }
 function nextFlag(){
   applyIqSize();
-  if(learnMode&&!game.challengeMode&&game.flagCurrent!=null&&game.wrongOnCurrent&&game.flagQueue){ // Lernmodus: nicht gewusst → später noch einmal
+  if(learnActive()&&game.flagCurrent!=null&&game.wrongOnCurrent&&game.flagQueue){ // Lernmodus: nicht gewusst → später noch einmal
     if(game.flagFound)game.flagFound.delete(game.flagCurrent);
-    game.flagQueue.splice(Math.min(3,game.flagQueue.length),0,game.flagCurrent);
+    game.flagQueue.splice(Math.min(6,game.flagQueue.length),0,game.flagCurrent);
   }
   learnIntro();
   if(!game.flagQueue||game.flagQueue.length===0){if(game.challengeMode){advanceChallenge();return;}showFlagResult();return;}
   game.flagCurrent=game.flagQueue.shift();game.wrongOnCurrent=false;game.flagHint=0;
-  {const hb=$('flag-hint-btn');if(hb)hb.style.display=learnMode?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
+  {const hb=$('flag-hint-btn');if(hb)hb.style.display=learnOn()?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
   const id=game.flagCurrent,mode=game.inputMode||'flag';
   const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline-wrap'),nb=$('iq-neighbor-wrap');
   img.style.display='none';txt.style.display='none';out.style.display='none';nb.style.display='none';
@@ -3677,7 +3707,7 @@ function submitFlag(){
   if(game.flagFound&&game.flagFound.has(id))return;
   const tg=mode==='language'?LANGUAGES[id]:mode==='currency'?CURRENCIES[id]:iqAnswerCapital()?CAPITALS[id]:C[id];
   if(val===norm(tg.de)||val===norm(tg.en)||iqAltOk(id,val)){
-    if(!(learnMode&&game.wrongOnCurrent))game.flagCorrect++; // Lernmodus: nur Treffer ohne Fehler zählen (das Ziel kommt sonst noch einmal)
+    if(!(learnOn()&&game.wrongOnCurrent))game.flagCorrect++; // Lernmodus: nur Treffer ohne Fehler zählen (das Ziel kommt sonst noch einmal)
     game.flagFound.add(id);
     showFlagFb('✓ '+iqDisplayName(id),'#1D9E75');
     recordCorrectForCurrent();
@@ -3713,6 +3743,7 @@ function updateFlagStats(){
   $('flag-lbl-s').textContent=t('skippedLbl');
   $('flag-stat-r').textContent=((game.flagQueue?game.flagQueue.length:0)+(game.flagCurrent!=null?1:0))+' '+t('remLbl');
   $('flag-prog').style.width=Math.round((done/tot)*100)+'%';
+  learnStatsApply('flag-');
 }
 
 function showFlagResult(){
