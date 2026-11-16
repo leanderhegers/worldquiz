@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 B';
+const BUILD_ID='2026-11-17 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -904,7 +904,7 @@ const SECTIONS=['map','region','flag','pin','city','river','lake','mountain'];
 function gsCard(onclick,title,sub,key){
   let badge='';
   if(key&&learnMode&&typeof learnSummary==='function'){const ls=learnSummary(key);if(ls)badge='<span class="gs-card-best">🎓 '+ls.s+'/'+ls.n+'</span>';}
-  if(!badge&&key&&typeof bestScore==='function'){const b=bestScore(key);if(b)badge='<span class="gs-card-best">★ '+b.pct+'%</span>';}
+  if(!badge&&!learnMode&&key&&typeof bestScore==='function'){const b=bestScore(key);if(b)badge='<span class="gs-card-best">★ '+b.pct+'%</span>';}
   return `<button class="gs-card" onclick="${onclick}"><span class="gs-card-t">${title}</span><span class="gs-card-s">${sub}</span>${badge}</button>`;
 }
 function sectionInner(key){
@@ -1214,8 +1214,9 @@ function learnTrack(){return !!window._authUser&&!!game&&!game.challengeMode&&!g
 function learnActive(){return learnOn()&&!!game&&!game.challengeMode&&!game.triviaMode&&!game.fillMode&&!game.pinMode&&typeof getLearnLevel==='function';}
 function _learnOrder(items,keyOf,fallback){
   _learnNormal=false;_learnPool=null;
-  if(!learnMode||typeof getLearnLevel!=='function')return fallback();
+  if(typeof getLearnLevel!=='function'||!window._authUser)return fallback();
   const keys=items.map(keyOf);_learnPool=keys;if(game&&typeof game==='object')game.learnKeys=keys;
+  if(!learnMode)return fallback();
   const lv=x=>getLearnLevel(keyOf(x));
   const open=items.filter(x=>lv(x)<3);
   if(!open.length&&items.length){_learnNormal=true;learnAllSafe();return fallback();}
@@ -1238,17 +1239,19 @@ function learnAllSafe(){
 // Lernstatistik statt der üblichen Zähler: gesichert / in Übung / noch nicht gewusst
 const LEARN_LBL={safe:['sicher','secure','seguro','acquis'],mid:['in Übung','practising','practicando','en cours'],neu:['neu','new','nuevo','nouveau']};
 function learnStatsApply(pre){
-  if(!learnActive()||game.challengeMode)return false;
+  if(!learnTrack())return false;
   if(!game.learnKeys)game.learnKeys=_learnPool;
   const keys=game.learnKeys;if(!keys||!keys.length)return false;
   let safe=0,mid=0,neu=0;
   for(const k of keys){const l=getLearnLevel(k);if(l>=3)safe++;else if(l>=1)mid++;else neu++;}
-  const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
-  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
-  set(pre+'stat-c',safe);set(pre+'lbl-c',LEARN_LBL.safe[li]);
-  set(pre+'stat-w',mid);set(pre+'lbl-w',LEARN_LBL.mid[li]);
-  set(pre+'stat-s',neu);set(pre+(pre?'lbl-s':'lbl-s'),LEARN_LBL.neu[li]);
-  const pb=$(pre?'flag-prog':'prog-bar');if(pb)pb.style.width=Math.round(safe/keys.length*100)+'%';
+  if(learnActive()){
+    const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+    const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
+    set(pre+'stat-c',safe);set(pre+'lbl-c',LEARN_LBL.safe[li]);
+    set(pre+'stat-w',mid);set(pre+'lbl-w',LEARN_LBL.mid[li]);
+    set(pre+'stat-s',neu);set(pre+'lbl-s',LEARN_LBL.neu[li]);
+    const pb=$(pre?'flag-prog':'prog-bar');if(pb)pb.style.width=Math.round(safe/keys.length*100)+'%';
+  }
   try{const gk=gameScoreKey();if(gk){const m=JSON.parse(localStorage.getItem('geoquiz_learnsum')||'{}');m[gk]={s:safe,n:keys.length};localStorage.setItem('geoquiz_learnsum',JSON.stringify(m));}}catch(e){}
   return true;
 }
