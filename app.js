@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 A';
+const BUILD_ID='2026-11-17 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -859,7 +859,7 @@ function recordMissForCurrent(){
   if(typeof recordMiss!=='function'||!game)return;
   const k=learnKeyCur();
   if(k)recordMiss(k);
-  if(k&&learnActive())setLearnLevel(k,0); // Fehler: Lernstufe zurück auf 0
+  if(k&&learnTrack())setLearnLevel(k,0); // Fehler: Lernstufe zurück auf 0
 }
 // Records the just-finished game's result; returns a best-note string for the result screen
 function resultBestNote(){
@@ -1210,6 +1210,7 @@ function learnIntro(){
 // Zielen unter Stufe 3: erst Stufe 0, dann 1, dann 2 (jeweils gemischt). Sind alle sicher, läuft das Quiz im normalen Zufallsmodus und ein Hinweis erscheint.
 let _learnNormal=false,_learnPool=null;
 function learnOn(){return !!learnMode&&!_learnNormal;}
+function learnTrack(){return !!window._authUser&&!!game&&!game.challengeMode&&!game.triviaMode&&!game.fillMode&&!game.pinMode&&typeof getLearnLevel==='function';} // Stufen werden auch im normalen Modus mitgeführt
 function learnActive(){return learnOn()&&!!game&&!game.challengeMode&&!game.triviaMode&&!game.fillMode&&!game.pinMode&&typeof getLearnLevel==='function';}
 function _learnOrder(items,keyOf,fallback){
   _learnNormal=false;_learnPool=null;
@@ -1256,7 +1257,7 @@ function recordCorrectForCurrent(){
   if(typeof recordCorrect!=='function'||!game)return;
   const k=learnKeyCur();
   if(k)recordCorrect(k);
-  if(k&&learnActive()&&!game.wrongOnCurrent&&typeof setLearnLevel==='function')setLearnLevel(k,getLearnLevel(k)+1); // direkt gewusst: eine Stufe höher
+  if(k&&learnTrack()&&!game.wrongOnCurrent)setLearnLevel(k,getLearnLevel(k)+1); // direkt gewusst: eine Stufe höher
   if(typeof checkAchievements==='function')checkAchievements();
 }
 function skip(){
@@ -1277,7 +1278,7 @@ function skip(){
   }else{
     game.skippedItems.add(game.current);
   }
-  if(learnActive()){game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // Lernmodus: übersprungen = nicht gewusst, kommt wieder
+  if(learnTrack()){if(learnOn())game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // übersprungen = nicht gewusst (im Lernmodus kommt es wieder)
   clearFeedback();if(showSkipHint)updateColors();updateStats();nextCountry();
 }
 
@@ -3510,7 +3511,7 @@ function skipFlag(){
   // Challenge mode (Random/Daily): see skip()'s comment — a skip must not count as a first-try hit.
   if(game.challengeMode){game.wrongOnCurrent=true;_challenge.skipped=(_challenge.skipped||0)+1;nextFlag();return;}
   game.flagSkipped=(game.flagSkipped||0)+1;
-  if(learnActive()){game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // Lernmodus: übersprungen = nicht gewusst
+  if(learnTrack()){if(learnOn())game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // übersprungen = nicht gewusst
   if(showSkipHint&&game.flagCurrent!=null)showFlagFb('→ '+iqDisplayName(game.flagCurrent),'#e0952a');
   updateFlagStats();
   nextFlag();
