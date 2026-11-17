@@ -31,12 +31,13 @@ function _duelEl(id){return document.getElementById(id);}
 function _duelRef(id){return _db.collection('duels').doc(id);}
 function _duelEsc(s){return typeof escapeHtml==='function'?escapeHtml(String(s)):String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // Alle Spielarten des Multiplayers. diff: Schwierigkeitsstufen wählbar. Ein neuer Modus braucht hier einen Eintrag, einen Pool (_duelPool)
-// und – wenn er die Frage-Maschine der Challenges nutzt (Typen country, flag, capital, wappen, language, currency, neighbor) – sonst nichts.
+// und – wenn er die Frage-Maschine der Challenges nutzt (Typen country, flag, capital, outline, wappen, language, currency, neighbor) – sonst nichts.
 const DUEL_MODES=[
   {k:'flag',ico:'🏳️',de:'Flaggen',en:'Flags',sc:'rd'},
   {k:'map',ico:'🗺️',de:'Länder anklicken',en:'Click countries',sc:'rt'},
   {k:'pin',ico:'📍',de:'Drop a Pin',en:'Drop a Pin',sc:'pr'},
   {k:'capital',ico:'🏛️',de:'Hauptstädte',en:'Capitals',sc:'rd'},
+  {k:'outline',ico:'🏝️',de:'Umrisse',en:'Outlines',sc:'rd'},
   {k:'wappen',ico:'🛡️',de:'Wappen',en:'Coats of arms',sc:'rd'},
   {k:'language',ico:'🗣️',de:'Sprachen',en:'Languages'},
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
@@ -257,6 +258,7 @@ async function duelSendInvite(){
   if(_duelMode(mode).sc==='rt'&&/^(beginner|easy|medium|hard)$/.test(diff))diff='all';
   _duelLastSet();
   let picked;
+  if(mode==='outline'&&typeof iqEnsureOutlineGeo==='function'){try{await iqEnsureOutlineGeo();}catch(e){}} // Umriss-Daten werden für die Fragenauswahl gebraucht
   if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
   else if(mode==='pie'){ // nur Kuchen, die eindeutig lösbar sind (jeder darf jedes Land tippen: Antwortmenge = alle Flaggen)
     try{await pieEnsureAll();}catch(e){}
@@ -289,6 +291,7 @@ function _duelPrefetch(d){
   _duelPrefetched=d.id;
   try{
     if(d.mode==='map'){if(!worldData)loadMap().catch(()=>{});}
+    else if(d.mode==='outline'){if(typeof iqEnsureOutlineGeo==='function')iqEnsureOutlineGeo().catch(()=>{});}
     else if((d.mode==='flag'||d.mode==='wappen'||d.mode==='pie')&&typeof _preloadChallengeImages==='function')_preloadChallengeImages((d.q||[]).map(id=>({type:d.mode,id})));
   }catch(e){}
 }
@@ -418,7 +421,7 @@ async function _duelBegin(d){
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
   // Karten-Modus braucht die geladene Weltkarte, Flaggen ihre Bilder — beides läuft während des Countdowns.
-  const pre=isPin?Promise.resolve():(mode==='map'||isPath)?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
+  const pre=isPin?Promise.resolve():mode==='outline'?(typeof iqEnsureOutlineGeo==='function'?iqEnsureOutlineGeo():Promise.resolve()):(mode==='map'||isPath)?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
   for(let n=3;n>=1;n--){cd(n);await new Promise(r=>setTimeout(r,900));}
   await pre;
   if(!_duelCur||_duelCur.id!==d.id)return; // währenddessen abgebrochen
