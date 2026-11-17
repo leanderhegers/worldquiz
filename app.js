@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 F';
+const BUILD_ID='2026-11-17 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1860,6 +1860,7 @@ function _computeAreaData(){
     const id=+f.id;if(id<0)return;
     d[id]=(d[id]||0)+d3.geoArea(f)*EARTH_KM2/(4*Math.PI);
   });
+  if(worldData._fullAreaKm2)for(const id in worldData._fullAreaKm2)d[id]=(d[id]||0)+worldData._fullAreaKm2[id]; // entfernte Überseegebiete zählen zur Fläche weiter
   for(const id in MICROSTATE_AREA_KM2){if(d[id]==null)d[id]=MICROSTATE_AREA_KM2[id];}
   areaData=d;
   return d;
@@ -2132,6 +2133,31 @@ async function loadMap(){
   if(!worldData)await ensureWorldData();
   if(worldData)renderMap(worldData);else showFeedback('Error','#C0432A');
 }
+// Überseegebiete auf anderen Kontinenten gehören nicht zur Landesfläche auf der Karte (z. B. Französisch-Guayana bei Frankreich): Sie verzerren Kartenausschnitt, Mittelpunkt
+// (Luftlinie im Kürzester-Weg-Spiel) und Klickflächen. Je Land steht eine Regel, welche Teilflächen (nach Mittelpunkt) bleiben. Die echte Gesamtfläche wird vorher
+// gemerkt (worldData._fullAreaKm2), damit die Flächen-Fragen im Trivia unverändert bleiben.
+const OVERSEAS_KEEP={
+  250:c=>c[1]>40&&c[0]>-10&&c[0]<15,   // Frankreich: Festland + Korsika (ohne Guayana, Réunion, Mayotte, Guadeloupe, Martinique)
+  528:c=>c[1]>45,                      // Niederlande: ohne Bonaire, Saba, Sint Eustatius
+  554:c=>c[1]<-30,                     // Neuseeland: ohne Tokelau
+  152:c=>c[0]>-85,                     // Chile: ohne Osterinsel
+  36:c=>c[1]>-50                       // Australien: ohne Macquarie-Insel
+};
+function _stripOverseas(topo){
+  try{
+    const geoms=topo&&topo.objects&&topo.objects.countries&&topo.objects.countries.geometries;if(!geoms)return;
+    const EARTH_KM2=510072000,full={};
+    for(const g of geoms){
+      const rule=OVERSEAS_KEEP[+g.id];
+      if(!rule||g.type!=='MultiPolygon')continue;
+      const feat=topojson.feature(topo,g),coords=feat.geometry.coordinates;
+      const keepIdx=[];let lost=0;
+      coords.forEach((c,i)=>{const pg={type:'Polygon',coordinates:c};if(rule(d3.geoCentroid(pg)))keepIdx.push(i);else lost+=d3.geoArea(pg)*EARTH_KM2/(4*Math.PI);});
+      if(keepIdx.length&&keepIdx.length<g.arcs.length){g.arcs=keepIdx.map(i=>g.arcs[i]);full[+g.id]=(full[+g.id]||0)+lost;}
+    }
+    topo._fullAreaKm2=full;
+  }catch(e){console.warn('Überseegebiete nicht entfernt',e);}
+}
 async function _fetchWorldData(){
   if(worldData)return;
   try{
@@ -2141,6 +2167,7 @@ async function _fetchWorldData(){
       fetch('data/ne_50m_rivers_lake_centerlines.geojson').then(r=>r.json()).catch(()=>null),
       fetch('data/island-zones.json').then(r=>r.json()).catch(()=>null)
     ]);
+    _stripOverseas(worldData);
     // Normalize known river sections to their common names, then merge same-named segments
     const RIVER_ALIASES={
       'Chang Jiang':'Yangtze','Jinsha':'Yangtze','Tongtian':'Yangtze','Tuotuo':'Yangtze',

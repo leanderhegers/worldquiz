@@ -12,8 +12,10 @@ const ROUNDS=5;
 // Schwierigkeit = Länder insgesamt inkl. Start und Ziel: Leicht 4–6, Mittel 7–11, Schwer 12–20 (= 3–5, 6–10, 11–19 Grenzübergänge)
 const DIFF={easy:[3,5],medium:[6,10],hard:[11,19]};
 const MIX=['easy','easy','medium','medium','hard'];
-const MICRO_EDGES=[[492,250],[20,250],[20,724],[674,380],[336,380],[438,756],[438,40]]; // Monaco, Andorra, San Marino, Vatikan, Liechtenstein
+// Mikrostaaten ohne eigene Fläche (Monaco, Andorra, San Marino, Vatikan, Liechtenstein …) kommen im Kürzester-Weg-Spiel nicht vor: Sie wären nur als kleine Kreise sichtbar.
 // Frankreichs Fläche enthält Französisch-Guayana: die Grenzen zu Brasilien und Suriname sind keine Landgrenzen des Mutterlandes (sonst gäbe es eine Landbrücke Europa–Südamerika)
+// Echte Landgrenzen, die in den vereinfachten Kartendaten fehlen (Nigeria–Tschad liegt mitten im Tschadsee)
+const EXTRA_EDGES=[[566,148]];
 const NO_EDGE=new Set(['250-76','76-250','250-740','740-250']);
 const COL_START='#4f8cff',COL_GOAL='#ff9f1c',BG='#0d1420';
 let graph=null,boxTimer=0,nextT=0,prevProj=null;
@@ -27,9 +29,10 @@ async function ensureGraph(){
   const feats=_topoCached(worldData,'countries').features;
   const nb=topojson.neighbors(worldData.objects.countries.geometries);
   const adj=new Map();
-  const add=(a,b)=>{if(a===b||!C[a]||!C[b]||NO_EDGE.has(a+'-'+b))return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
+  const msd=new Set((typeof MICROSTATES!=='undefined'?MICROSTATES:[]).map(m=>m.id));
+  const add=(a,b)=>{if(a===b||!C[a]||!C[b]||msd.has(a)||msd.has(b)||NO_EDGE.has(a+'-'+b))return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
   feats.forEach((f,i)=>{const a=+f.id;if(!(a>0)||!C[a])return;nb[i].forEach(j=>{const b=+feats[j].id;if(b>0&&C[b])add(a,b);});});
-  MICRO_EDGES.forEach(([a,b])=>add(a,b));
+  EXTRA_EDGES.forEach(([a,b])=>add(a,b));
   const cent=new Map();
   feats.forEach(f=>{const id=+f.id;if(!(id>0)||!C[id])return;let g=f;
     if(f.geometry&&f.geometry.type==='MultiPolygon'){let best=null,ba=-1;f.geometry.coordinates.forEach(c=>{const pf={type:'Feature',geometry:{type:'Polygon',coordinates:c}};const ar=d3.geoArea(pf);if(ar>ba){ba=ar;best=pf;}});g=best||f;}
