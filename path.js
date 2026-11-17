@@ -17,7 +17,7 @@ const MIX=['easy','easy','medium','medium','hard'];
 // Echte Landgrenzen, die in den vereinfachten Kartendaten fehlen (Nigeria–Tschad liegt mitten im Tschadsee)
 const EXTRA_EDGES=[[566,148]];
 const NO_EDGE=new Set(['250-76','76-250','250-740','740-250']);
-const COL_START='#4f8cff',COL_GOAL='#ff9f1c',BG='#0d1420';
+const COL_START='#4f8cff',COL_GOAL='#ff9f1c',COL_DETOUR='#e8622c',BG='#0d1420';
 let graph=null,boxTimer=0,nextT=0,prevProj=null;
 const P=()=>game&&game.fillPath;
 const L4=(de,en,es,fr)=>({de,en,es,fr}[typeof lang!=='undefined'&&{de:1,en:1,es:1,fr:1}[lang]?lang:'de']);
@@ -94,7 +94,8 @@ function pathColor(rawId){
   if(id===p.b&&!p.reached)return COL_GOAL;
   if(id===p.a)return COL_START;
   if(p.reached&&id===p.b)return COL_GOAL;
-  return p.reveal&&p.reveal.has(id)?COL_GOAL:THEMES[theme].found;
+  if(p.reveal&&p.reveal.has(id))return COL_GOAL;
+  return p.detour&&p.typed.includes(id)?COL_DETOUR:THEMES[theme].found; // zweitbester Weg (ein Land mehr): orange
 }
 function pathStyle(){ // nach jedem updateColors(): Meer, Gradnetz und Linien unsichtbar machen
   const p=P();if(!p)return;const th=THEMES[theme];
@@ -157,7 +158,9 @@ function submit(fuzzy){
   // (Deutschland → Portugal: nur Frankreich, Spanien; Belgien wäre ein Umweg und damit falsch)
   const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
   const onShortest=i=>da.get(i)+db.get(i)===p.D;
-  const nextOk=i=>adj.has(i)&&adj.get(end).has(i)&&onShortest(i)&&da.get(i)===da.get(end)+1;
+  // Gesamtlänge des Weges, wenn i als Nächstes kommt (Länder bisher + i + kürzester Rest). Ein Land mehr als nötig (D+1) gilt als zweitbester Weg.
+  const tot=i=>p.typed.length+1+db.get(i);
+  const nextOk=i=>adj.has(i)&&adj.get(end).has(i)&&db.has(i)&&tot(i)<=p.D+1;
   const valid=i=>!p.shown.has(i)&&nextOk(i);
   if(id==null&&fuzzy){ // nur ein Wortteil getippt (z. B. "Kongo"): unter den möglichen Zügen gibt es oft genau einen Treffer
     const c=(window.fillCandidates?window.fillCandidates(v):[]).filter(valid);
@@ -177,6 +180,7 @@ function submit(fuzzy){
   }
   if(!nextOk(id)){miss(notShortest);return;}
   // richtig
+  if(tot(id)>p.D)p.detour=true; // zweitbester Weg
   p.shown.add(id);p.typed.push(id);p.lastMiss=null;inp.value='';
   const reached=db.get(id)===1;
   msg('✓ '+cn(id),'#4fd18b');
@@ -188,8 +192,9 @@ function hint(){
   const {adj}=graph;
   // der nächste Schritt eines kürzesten Weges wird verraten (Anfangsbuchstabe)
   const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
-  const opts=[...adj.get(end)].filter(i=>i!==p.b&&da.get(i)===da.get(end)+1&&da.get(i)+db.get(i)===p.D);
-  const onBest=p.typed.every((x,i)=>x===p.best[i+1]);
+  const goal=p.D+(p.detour?1:0);
+  const opts=[...adj.get(end)].filter(i=>i!==p.b&&!p.shown.has(i)&&db.has(i)&&p.typed.length+1+db.get(i)===goal);
+  const onBest=!p.detour&&p.typed.every((x,i)=>x===p.best[i+1]);
   const nxt=onBest?p.best[p.typed.length+1]:opts[Math.floor(Math.random()*opts.length)];
   if(nxt==null||nxt===p.b)return;
   p.hints++;const n=cn(nxt);
@@ -198,7 +203,7 @@ function hint(){
 }
 
 // ── Runden ──
-function pts(p,best){return Math.max(0,(best?100:60)-5*p.wrong-10*p.hints);} // Umwege gibt es nicht mehr: nur Fehler und Tipps kosten Punkte
+function pts(p,best){return Math.max(0,(p.detour?40:best?100:60)-5*p.wrong-10*p.hints);} // 100 = kürzester Weg mit kürzester Luftlinie, 60 = gleich viele Länder, 40 = zweitbester Weg (ein Land mehr); Fehler −5, Tipp −10
 function endRound(gaveUp){
   const p=P();if(!p||p.roundDone)return;
   p.roundDone=true;const adj=graph.adj;
@@ -209,8 +214,8 @@ function endRound(gaveUp){
   const names=r.map(cn).join(' → ');
   const row=document.getElementById('path-row');if(row)row.style.display='none';
   const last=p.round>=p.pairs.length-1;
-  const head=gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(same?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Gleich viele Länder, aber längere Luftlinie','Same number of countries, but longer air distance','Mismo número de países, pero mayor distancia en línea recta','Même nombre de pays, mais distance à vol d’oiseau plus longue'));
-  const kmTxt=(!gaveUp&&!same)?'<div style="font-size:12px;opacity:.8;margin-bottom:4px">'+Math.round(routeKm(mine))+' km '+L4('statt','instead of','en vez de','au lieu de')+' '+Math.round(p.bestKm)+' km</div>':'';
+  const head=(!gaveUp&&p.detour)?'🟠 '+L4('Zweitbester Weg – ein Land mehr als nötig','Second-best route – one country more than needed','Segundo mejor camino – un país más de lo necesario','Deuxième meilleur chemin – un pays de plus que nécessaire'):gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(same?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Gleich viele Länder, aber längere Luftlinie','Same number of countries, but longer air distance','Mismo número de países, pero mayor distancia en línea recta','Même nombre de pays, mais distance à vol d’oiseau plus longue'));
+  const kmTxt=(!gaveUp&&!same&&!p.detour)?'<div style="font-size:12px;opacity:.8;margin-bottom:4px">'+Math.round(routeKm(mine))+' km '+L4('statt','instead of','en vez de','au lieu de')+' '+Math.round(p.bestKm)+' km</div>':'';
   msg('<div class="fill-done">'+head+' · +'+got+'</div>'+kmTxt+'<div style="font-size:13px;opacity:.85;margin-bottom:8px">'+L4('Beste Route','Best route','Mejor ruta','Meilleure route')+': '+names+'</div><button type="button" id="path-next">'+(last?L4('Ergebnis','Result','Resultado','Résultat'):L4('Weiter','Next','Siguiente','Suivant'))+'</button>','#fff');
   const nb=document.getElementById('path-next');if(nb)nb.addEventListener('click',nextRound);
   updateColors();fitShown();updatePathStats();
@@ -223,7 +228,7 @@ function nextRound(){
 }
 function loadRound(){
   const p=P();const [a,b]=p.pairs[p.round].split('-').map(Number);
-  p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;
+  p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;p.detour=false;
   p.D=distTo(a).get(b);p.opt=p.D-1;p.best=bestRoute(a,b);p.bestKm=routeKm(p.best);
   ensureBox();updateColors();fitShown();updatePathStats();
   const inp=document.getElementById('path-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
