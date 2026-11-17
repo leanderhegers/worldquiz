@@ -44,7 +44,7 @@ function _persist() {
   if (_auth && _auth.currentUser && _db) {
     const uid=_auth.currentUser.uid;
     _db.collection('users').doc(uid)
-      .set({ settings: _store.settings, streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false, avatar: _store.avatar || null }, { merge: true })
+      .set({ settings: JSON.parse(JSON.stringify(_store.settings||{})), streak: _store.streak || 0, lastPlayDay: _store.lastPlayDay || '', customPlayed: _store.customPlayed || false }, { merge: true })
       .catch(e => console.warn('Firestore-Speichern fehlgeschlagen', e));
     _updatePublicProfile(uid);
   } else {
@@ -779,7 +779,14 @@ function saveAvatar(){
   const av=_store.avatar||{emoji:'🌍',color:'#1D9E75'};
   _store.avatar={emoji:_avPick.emoji||av.emoji||'🌍',color:_avPick.color||av.color||'#1D9E75'};
   _avPick={emoji:null,color:null};
-  _persist();
+  _saveLocal();
+  // Avatar eigenständig speichern (nicht mit den Einstellungen im selben Schreibvorgang): scheitert dort ein Feld, ging früher auch der Avatar verloren.
+  const u=_auth&&_auth.currentUser;
+  if(u&&_db){
+    _db.collection('users').doc(u.uid).set({avatar:_store.avatar},{merge:true})
+      .catch(e=>{console.warn('Avatar speichern fehlgeschlagen',e);alert((typeof lang!=='undefined'&&lang==='en'?'Avatar could not be saved: ':'Avatar konnte nicht gespeichert werden: ')+(e&&e.code||e));});
+    _updatePublicProfile(u.uid);
+  }
   closeAvatarPicker();
   renderProfile();
 }
