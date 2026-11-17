@@ -238,7 +238,7 @@ function _duelRenderPicker(){
         <div class="duel-friends tall">${friends}</div>
       </div>
     </div>
-    <div class="duel-foot"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'} · ${_duelModeName(_duelSelMode,de)}</button></div>`,true);
+    <div class="duel-foot"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'} · ${_duelModeName(_duelSelMode,de)}</button></div>`,true,true);
 }
 async function duelSendInvite(){
   const me=_duelMe();
@@ -555,15 +555,17 @@ function _duelChip(d){
 }
 
 // ── kleines Modal (nutzt das Stylesheet der Auth-Dialoge) ──
-function _duelModal(html,wide){
+function _duelModal(html,wide,fixed){
   let m=_duelEl('duel-modal');
   if(!m){
     m=document.createElement('div');m.id='duel-modal';m.className='auth-modal';m.style.display='none';
     m.innerHTML='<div class="auth-box duel-box"><div id="duel-modal-content"></div></div>';
     document.body.appendChild(m);
   }
-  m.querySelector('.duel-box').classList.toggle('wide',!!wide);
+  const box=m.querySelector('.duel-box'),st=box.scrollTop;
+  box.classList.toggle('wide',!!wide);box.classList.toggle('fixed',!!fixed); // fixed: feste Höhe, damit die Kacheln beim Umschalten nicht springen
   _duelEl('duel-modal-content').innerHTML=html;
+  if(fixed)box.scrollTop=st;
   m.style.display='flex';
 }
 function _duelClose(){const m=_duelEl('duel-modal');if(m)m.style.display='none';}

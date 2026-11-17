@@ -704,3 +704,5 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .res-learn-t{font-weight:600;margin-bottom:6px;text-align:center;}
 .res-learn-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
 .res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
+
+.duel-box.wide.fixed{height:min(640px,92vh);}
