@@ -231,14 +231,14 @@ function _duelRenderPicker(){
       <div class="duel-col">
         <div class="duel-sec">${de?'Spiel':'Game'}</div>
         <div class="duel-tiles">${DUEL_MODES.map(tile).join('')}</div>
-        ${_duelScopeUi(_duelSelMode,de)}
+        <div class="duel-scope">${_duelScopeUi(_duelSelMode,de)}</div>
       </div>
       <div class="duel-col">
         <div class="duel-sec">${de?'Mitspieler':'Players'} <span class="duel-sub">${_duelSel.size}/${DUEL_MAX_PLAYERS-1}</span></div>
         <div class="duel-friends tall">${friends}</div>
+        <div class="duel-invite"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'}</button></div>
       </div>
-    </div>
-    <div class="duel-foot"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'}</button></div>`,true,true);
+    </div>`,true);
 }
 async function duelSendInvite(){
   const me=_duelMe();

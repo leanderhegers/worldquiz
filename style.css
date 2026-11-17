@@ -705,10 +705,7 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .res-learn-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
 .res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
 
-.duel-box.wide.fixed{height:min(640px,92vh);}
-/* Auswahlfenster: Kopf oben, Footer (Einladen) unten fest, nur der mittlere Bereich scrollt */
-.duel-box.wide.fixed{overflow:hidden;display:flex;flex-direction:column;}
-.duel-box.wide.fixed #duel-modal-content{display:flex;flex-direction:column;flex:1;min-height:0;}
-.duel-box.wide.fixed .duel-cols{flex:1;min-height:0;overflow:auto;align-content:start;}
-.duel-box.wide.fixed .duel-foot{flex-shrink:0;}
-.duel-box.wide.fixed .duel-foot .duel-btn{min-width:180px;}
+/* Auswahlfenster: der Bereich für Region/Stufe hat immer dieselbe Höhe und bündig unten; der Einladen-Button sitzt unten in der rechten Spalte, auf einer Höhe mit der Unterkante der Stufen-Auswahl */
+.duel-scope{min-height:176px;display:flex;flex-direction:column;justify-content:flex-end;}
+.duel-invite{margin-top:auto;padding-top:10px;display:flex;}
+.duel-invite .duel-btn{width:100%;}
