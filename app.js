@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 P';
+const BUILD_ID='2026-11-17 Q';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -690,7 +690,7 @@ function renderOtherPage(){
       {icon:'⭐',title:t('optDifficulty'),sub:cityDiffs.map(d=>d.label).join(', '),panel:'city-diffs',renderPanel:()=>_cardsPanel(cityDiffs.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,getAllCitiesByDifficulty(d.key).length+' '+t('cities'),'city:'+d.key)),'gs-grid-city')},
       {icon:'🏳️',title:t('landerTitle'),sub:cityCountries.map(d=>d.label).join(', '),panel:'city-countries',renderPanel:()=>_cardsPanel(cityCountries.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,(CITY_COUNTRIES[d.key]?CITY_COUNTRIES[d.key].cities.length:0)+' '+t('cities'),'city:'+d.key)),'gs-grid-city')}
     ]},
-    {cls:'gs-river',head:H[1],gridCls:'gs-grid-river',grid:TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key)).join('')},
+    {cls:'gs-river',head:H[1],gridCls:'gs-grid-river',grid:riverCards()},
     {cls:'gs-lake',head:H[2],gridCls:'gs-grid-lake',grid:TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)).join('')},
     {cls:'gs-mountain',head:H[3],items:[
       {icon:'⛰️',title:t('peaks'),sub:TX[lang].mountainDiffs.map(d=>d.label).join(', '),panel:'mt-peaks',renderPanel:()=>_cardsPanel(TX[lang].mountainDiffs.map(d=>gsCard("startMountainGame('"+d.key+"')",d.label,d.count+' '+t('peaks'),'mountain:'+d.key)),'gs-grid-pin')},
@@ -915,7 +915,7 @@ function sectionInner(key){
   }
   if(key==='region')return REGION_QUIZ_LIST.map(r=>gsCard("startRegionQuiz('"+r.key+"')",r.name[lang],r.count+' '+t('regions'),'region:'+r.key)).join('');
   if(key==='lake')return TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)).join('');
-  if(key==='river')return TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key)).join('');
+  if(key==='river')return riverCards();
   if(key==='city'){
     const diffs=TX[lang].cityDiffs.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,getAllCitiesByDifficulty(d.key).length+' '+t('cities'),'city:'+d.key));
     const countries=TX[lang].cityCountries.map(d=>gsCard("startCityGame('"+d.key+"')",d.label,(CITY_COUNTRIES[d.key]?CITY_COUNTRIES[d.key].cities.length:0)+' '+t('cities'),'city:'+d.key));
@@ -1428,7 +1428,26 @@ function riverDisplayName(feat){
 // Segment/tributary/canal names that happen to carry their own name in the source data but
 // aren't a river a player could reasonably be expected to know as its own thing.
 const RIVER_JUNK=/\b(Fork|Branch|Canal|Channel|Reach)\b/i;
+const RIVER_REGION={
+  EU:['Rhine','Danube','Volga','Elbe','Seine','Loire','Po','Thames','Vistula','Oder','Don','Dnieper','Neva','Tajo','Ebro','Rhône','Garonne','Dniester','Daugava','Kama','Pechora','Tisza','Drava','Duero','Severnaya Dvina','Glomma'],
+  AF:['Nile','Congo','Niger','Zambezi','Limpopo','Orange','Shire','Kasai','Ubangi','Vaal','Benue','Sénégal','Volta','Atbara','Okavango','Chari','Jubba','Omo','Sanaga','Sangha','Kafue','Ruvuma','Sassandra'],
+  AS:['Yangtze','Ganges','Mekong','Euphrates','Tigris','Indus','Yenisey','Ob','Lena','Amur','Brahmaputra','Irrawaddy','Yellow River','Angara','Irtysh','Selenga','Shatt al Arab','Aldan','Kolyma','Salween','Syr Darya','Amu  Darya','Godävari','Krishna','Jordan','Sutlej','Chenab','Helmand','Tobol','Indigirka'],
+  NA:['Mississippi','Missouri','Ohio','Columbia','Yukon','Mackenzie','Peace','Slave','St. Lawrence','Arkansas','Snake','Saskatchewan','Athabasca','Sacramento','Tennessee','Fraser','Hudson','Ottawa','Churchill','Nelson','Winnipeg','Brazos','Usumacinta','Copper','Liard','Niagara','Stikine','Klamath'],
+  SA:['Amazon','Orinoco','Paraná','Madeira','Negro','São  Francisco','Tocantins','Araguaia','Magdalena','Purús','Tapajós','Xingu','Marañón','Uruguay','Pilcomayo','Japurá','Juruena','Branco','Bío-Bío','Neuquén','Chubut'],
+  OC:['Murray','Darling','Waikato','Ord','Daly','Fitzroy','Mitchell','Purari','Waitaki']
+};
+function riverRegionCount(r){return getRiverFeatures(r).length;}
+function riverCards(){
+  const diffs=TX[lang].riverDiffs.map(d=>gsCard("startRiverGame('"+d.key+"')",d.label,d.count+' '+t('rivers'),'river:'+d.key));
+  const regs=Object.keys(RIVER_REGION).map(r=>gsCard("startRiverGame('"+r+"')",MODES[r][lang]||MODES[r].de,(riversData?riverRegionCount(r):RIVER_REGION[r].length)+' '+t('rivers'),'river:'+r));
+  return diffs.join('')+'<div style="grid-column:1/-1;height:1px;background:rgba(240,176,96,.2);margin:.5rem 0;"></div>'+regs.join('');
+}
 function getRiverFeatures(diff){
+  if(RIVER_REGION[diff]&&riversData){
+    const list=RIVER_REGION[diff],byName=new Map();
+    riversData.features.forEach(f=>{const n=f.properties.name;if(n&&f.properties.featurecla!=='Lake Centerline'&&list.includes(n)&&!byName.has(n))byName.set(n,f);});
+    return list.map(n=>byName.get(n)).filter(Boolean);
+  }
   if(!riversData)return[];
   let named=riversData.features.filter(f=>f.properties.name&&f.properties.featurecla!=='Lake Centerline');
   named=named.filter(f=>!RIVER_JUNK.test(f.properties.name));
@@ -2044,6 +2063,7 @@ async function startRiverGame(diff){
   $('target-name').textContent='';showFeedback(t('load'),'#888');
   updateAllText();
   if(worldData)renderMap(worldData);else await loadMap();
+  if(RIVER_REGION[diff]){const g=zoomForMode(diff);zoomToGeo(g.lon,g.lat,g.k);}
   nextCountry();
 }
 
@@ -2196,6 +2216,7 @@ async function _fetchWorldData(){
       'Grande':'Rio Grande',
       'Dnepre':'Dnieper','Dnipro':'Dnieper',
       'Tisa':'Tisza',
+      'Tejo':'Tajo','Bénoué':'Benue', // Tajo/Tejo (Spanien/Portugal), Benue/Bénoué (Nigeria/Kamerun)
     };
     if(riversData){
       // Lake Centerline features mark the stretch of a river that happens to flow through a lake,
