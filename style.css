@@ -706,6 +706,8 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
 
 /* Auswahlfenster: der Bereich für Region/Stufe hat immer dieselbe Höhe und bündig unten; der Einladen-Button sitzt unten in der rechten Spalte, auf einer Höhe mit der Unterkante der Stufen-Auswahl */
-.duel-scope{min-height:176px;display:flex;flex-direction:column;justify-content:flex-end;}
+.duel-scope{min-height:176px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;}
+.duel-rub{display:flex;flex-direction:column;gap:6px;}
+.duel-rub+.duel-rub{margin-top:auto;}
 .duel-invite{margin-top:auto;padding-top:10px;display:flex;}
 .duel-invite .duel-btn{width:100%;}

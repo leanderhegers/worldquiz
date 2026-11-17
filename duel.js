@@ -203,11 +203,11 @@ function _duelLastSet(){try{localStorage.setItem(DUEL_LAST_KEY,JSON.stringify({m
 function _duelScopeUi(mode,de){
   const sc=_duelMode(mode).sc;if(!sc)return '';
   const chip=(on,call,label)=>'<button class="duel-chip'+(on?' on':'')+'" onclick="'+call+'">'+label+'</button>';
-  const row=(title,inner)=>'<div class="duel-sec" style="margin-top:8px;">'+title+'</div><div class="duel-chips">'+inner+'</div>';
+  const row=(title,inner)=>'<div class="duel-rub"><div class="duel-sec">'+title+'</div><div class="duel-chips">'+inner+'</div></div>';
   let h='';
   if(sc==='pr'){
     const cur=_duelSelRegPin;
-    return row(de?'Region':'Region',['EU','AF','AS','NA','SA','OC','world'].map(r=>chip(cur===r,"duelPickReg('"+r+"')",_duelRegName(r))).join(''));
+    return row(de?'Region':'Region',['world','EU','AF','AS','NA','SA','OC'].map(r=>chip(cur===r,"duelPickReg('"+r+"')",_duelRegName(r))).join(''));
   }
   if(sc==='rd'||sc==='rt'){
     h+=row(de?'Region':'Region',['world'].concat(_duelRegs).map(r=>chip(_duelSelReg===r,"duelPickReg('"+r+"')",_duelRegName(r))).join(''));
