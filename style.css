@@ -660,18 +660,17 @@ button,input,select,textarea{font-family:inherit;}
 #flag-screen.iq-size-l #iq-neighbor-wrap img{width:min(170px,40vw)!important;}
 
 /* Lernmodus: farbiger Menühintergrund + Hinweiszeile + Erklärung */
-body.learn-on .home-bg,body.learn-on .cat-bg{background:radial-gradient(ellipse 80% 60% at 50% 30%,#5d3d12 0%,#33220d 45%,#150d06 100%);}
-body.learn-on .home-bg::after{background-image:radial-gradient(circle at 20% 35%,rgba(255,170,60,.14),transparent 25%),radial-gradient(circle at 80% 65%,rgba(255,110,60,.12),transparent 25%);}
-body.learn-on #mode-screen{background:radial-gradient(ellipse 80% 60% at 50% 30%,#5d3d12 0%,#33220d 45%,#150d06 100%)!important;}
-body.learn-on #home-screen::before,body.learn-on #category-screen::before{content:'🎓 Lernmodus';position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;padding:5px 14px;border-radius:999px;background:rgba(255,170,60,.18);border:1px solid rgba(255,190,90,.55);color:#ffd48a;font-size:13px;font-weight:600;pointer-events:none;}
+body.learn-on .home-bg,body.learn-on .cat-bg{background:radial-gradient(ellipse 80% 60% at 50% 30%,#1d4d2c 0%,#14301d 45%,#07140b 100%);}
+body.learn-on .home-bg::after{background-image:radial-gradient(circle at 20% 35%,rgba(60,200,110,.14),transparent 25%),radial-gradient(circle at 80% 65%,rgba(40,170,120,.12),transparent 25%);}
+body.learn-on #mode-screen{background:radial-gradient(ellipse 80% 60% at 50% 30%,#1d4d2c 0%,#14301d 45%,#07140b 100%)!important;}
 #iq-hint:empty{display:none;}
 body.learn-on #iq-hint:empty{display:block;}
-#iq-hint{margin-top:1.4rem;text-align:center;font:600 22px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:#ffd48a;min-height:26px;}
+#iq-hint{margin-top:1.4rem;text-align:center;font:600 22px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:#8ef0b0;min-height:26px;}
 .learn-intro{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(5,8,14,.72);backdrop-filter:blur(3px);}
-.learn-intro-box{width:min(92vw,420px);padding:22px 22px 18px;border-radius:18px;background:#201508;border:1px solid rgba(255,190,90,.5);box-shadow:0 20px 60px rgba(0,0,0,.55);color:#f3e6d0;}
-.learn-intro-t{font-size:22px;font-weight:700;margin-bottom:10px;color:#ffd48a;}
+.learn-intro-box{width:min(92vw,420px);padding:22px 22px 18px;border-radius:18px;background:#0f2216;border:1px solid rgba(90,220,140,.5);box-shadow:0 20px 60px rgba(0,0,0,.55);color:#e3f6e9;}
+.learn-intro-t{font-size:22px;font-weight:700;margin-bottom:10px;color:#8ef0b0;}
 .learn-intro-box ul{margin:0 0 16px 18px;display:flex;flex-direction:column;gap:7px;font-size:15px;line-height:1.4;}
-.learn-intro-ok{width:100%;padding:11px;border-radius:10px;border:0;background:#e0952a;color:#241503;font-weight:700;font-size:15px;cursor:pointer;}
+.learn-intro-ok{width:100%;padding:11px;border-radius:10px;border:0;background:#2fb866;color:#04210f;font-weight:700;font-size:15px;cursor:pointer;}
 
 /* ── Theme Cartoon: knallige Farben, dicke Tinten-Konturen, Comic-Schrift ── */
 body.theme-cartoon{font-family:'Poppins',system-ui,sans-serif;--ink:#1a1a2e;}
@@ -701,7 +700,7 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 /* Lernmodus-Schalter immer oben rechts (auch auf der Spielauswahl, deren Kopfleiste sonst nur so breit wie ihr Inhalt ist) */
 .cat-picker .cat-topbar.cat-topbar-split{right:0;width:100%;box-sizing:border-box;}
 
-#res-learn{margin:0 auto 1.6rem;width:min(88vw,320px);padding:12px 16px;border-radius:12px;background:#201508;border:1px solid rgba(255,190,90,.45);color:#f3e6d0;text-align:left;font-size:14px;}
+#res-learn{margin:0 auto 1.6rem;width:min(88vw,320px);padding:12px 16px;border-radius:12px;background:#0f2216;border:1px solid rgba(90,220,140,.45);color:#e3f6e9;text-align:left;font-size:14px;}
 .res-learn-t{font-weight:600;margin-bottom:6px;text-align:center;}
 .res-learn-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
 .res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
