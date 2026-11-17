@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 D';
+const BUILD_ID='2026-11-17 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -286,7 +286,7 @@ function activeConts(){return game.activeContinents||null;}
 
 const SCREENS=['home-screen','category-screen','mode-screen','game-screen','result-screen','custom-screen','flag-screen','inputcfg-screen','region-screen'];
 function applyLearnClass(){document.body.classList.toggle('learn-on',!!learnMode);}
-function showScreen(id){applyLearnClass();const _gs=$('game-screen');if(_gs)_gs.classList.remove('pin-people');SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'||s==='region-screen'||s==='category-screen'?'flex':'block'):'none';});}
+function showScreen(id){applyLearnClass();if(id==='result-screen')learnResultBox();const _gs=$('game-screen');if(_gs)_gs.classList.remove('pin-people');SCREENS.forEach(s=>{const el=$(s);if(el)el.style.display=s===id?(s==='game-screen'||s==='flag-screen'||s==='home-screen'||s==='region-screen'||s==='category-screen'?'flex':'block'):'none';});}
 function goHome(){showScreen('home-screen');renderHome();}
 
 // ── CATEGORY PICKER ──
@@ -1244,6 +1244,7 @@ function learnStatsApply(pre){
   const keys=game.learnKeys;if(!keys||!keys.length)return false;
   let safe=0,mid=0,neu=0;
   for(const k of keys){const l=getLearnLevel(k);if(l>=3)safe++;else if(l>=1)mid++;else neu++;}
+  if(!game.learnStart)game.learnStart={safe,mid,neu}; // Stand vor der ersten Antwort, für die Übersicht am Ende
   if(learnActive()){
     const li=Math.max(0,['de','en','es','fr'].indexOf(lang));
     const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
@@ -1254,6 +1255,19 @@ function learnStatsApply(pre){
   }
   try{const gk=gameScoreKey();if(gk){const m=JSON.parse(localStorage.getItem('geoquiz_learnsum')||'{}');m[gk]={s:safe,n:keys.length};localStorage.setItem('geoquiz_learnsum',JSON.stringify(m));}}catch(e){}
   return true;
+}
+// Übersicht am Ende eines Quizzes im Lernmodus: Stand vorher → nachher
+function learnResultBox(){
+  const box=$('res-learn');if(!box)return;
+  const g=game;
+  if(!learnMode||!g||g.challengeMode||!g.learnStart||!g.learnKeys||typeof getLearnLevel!=='function'){box.style.display='none';return;}
+  let safe=0,mid=0,neu=0;
+  for(const k of g.learnKeys){const l=getLearnLevel(k);if(l>=3)safe++;else if(l>=1)mid++;else neu++;}
+  const a=g.learnStart,li=Math.max(0,['de','en','es','fr'].indexOf(lang));
+  const row=(lbl,b,n,col)=>{const d=n-b;return '<div class="res-learn-row"><span>'+lbl+'</span><span><b style="color:'+col+'">'+b+' → '+n+'</b> <i>'+(d>0?'+'+d:d<0?String(d):'±0')+'</i></span></div>';};
+  const T=['Dein Lernstand','Your progress','Tu progreso','Ta progression'];
+  box.innerHTML='<div class="res-learn-t">🎓 '+T[li]+'</div>'+row(LEARN_LBL.safe[li],a.safe,safe,'#1D9E75')+row(LEARN_LBL.mid[li],a.mid,mid,'#e0952a')+row(LEARN_LBL.neu[li],a.neu,neu,'#aaa');
+  box.style.display='block';
 }
 function learnSummary(key){try{return (JSON.parse(localStorage.getItem('geoquiz_learnsum')||'{}'))[key]||null;}catch(e){return null;}}
 function recordCorrectForCurrent(){

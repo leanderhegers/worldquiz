@@ -700,3 +700,8 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .duel-friend>div{flex:0 0 auto;}
 /* Lernmodus-Schalter immer oben rechts (auch auf der Spielauswahl, deren Kopfleiste sonst nur so breit wie ihr Inhalt ist) */
 .cat-picker .cat-topbar.cat-topbar-split{right:0;width:100%;box-sizing:border-box;}
+
+#res-learn{margin:0 auto 1.6rem;width:min(88vw,320px);padding:12px 16px;border-radius:12px;background:#201508;border:1px solid rgba(255,190,90,.45);color:#f3e6d0;text-align:left;font-size:14px;}
+.res-learn-t{font-weight:600;margin-bottom:6px;text-align:center;}
+.res-learn-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
+.res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
