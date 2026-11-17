@@ -33,45 +33,63 @@ function _duelEsc(s){return typeof escapeHtml==='function'?escapeHtml(String(s))
 // Alle Spielarten des Multiplayers. diff: Schwierigkeitsstufen wählbar. Ein neuer Modus braucht hier einen Eintrag, einen Pool (_duelPool)
 // und – wenn er die Frage-Maschine der Challenges nutzt (Typen country, flag, capital, wappen, language, currency, neighbor) – sonst nichts.
 const DUEL_MODES=[
-  {k:'flag',ico:'🏳️',de:'Flaggen',en:'Flags',diff:true},
-  {k:'map',ico:'🗺️',de:'Länder anklicken',en:'Click countries',diff:true},
-  {k:'pin',ico:'📍',de:'Drop a Pin Europa',en:'Drop a Pin Europe'},
-  {k:'capital',ico:'🏛️',de:'Hauptstädte',en:'Capitals',diff:true},
-  {k:'wappen',ico:'🛡️',de:'Wappen',en:'Coats of arms'},
+  {k:'flag',ico:'🏳️',de:'Flaggen',en:'Flags',sc:'rd'},
+  {k:'map',ico:'🗺️',de:'Länder anklicken',en:'Click countries',sc:'rt'},
+  {k:'pin',ico:'📍',de:'Drop a Pin',en:'Drop a Pin',sc:'pr'},
+  {k:'capital',ico:'🏛️',de:'Hauptstädte',en:'Capitals',sc:'rd'},
+  {k:'wappen',ico:'🛡️',de:'Wappen',en:'Coats of arms',sc:'rd'},
   {k:'language',ico:'🗣️',de:'Sprachen',en:'Languages'},
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
   {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
-  {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',diff:true},
-  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',diff:true}
+  {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',sc:'rd'},
+  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',sc:'pd'}
 ];
 const _duelPts=m=>m==='pin'||m==='path'; // Punkte-Modi (statt "x von 10 richtig")
 function _duelMode(m){return DUEL_MODES.find(x=>x.k===m)||DUEL_MODES[0];}
 function _duelModeName(m,de){const x=_duelMode(m);return de?x.de:x.en;}
-// Schwierigkeit (nur Flaggen und Karte): all | easy | medium | hard.
-// Flaggen: Leicht = Anfaenger+Einfach, Mittel = Mittel, Schwer = Rest (Stufen aus flagIdsForDifficulty).
-// Karte: nach Bevoelkerung in 5 Stufen (DIFFICULTY_TIERS): Leicht = 1+2, Mittel = 3+4, Schwer = 5.
-let _duelSelDiff='all';
-function _duelDiffName(df,de){return df==='easy'?(de?'Leicht':'Easy'):df==='medium'?(de?'Mittel':'Medium'):df==='hard'?(de?'Schwer':'Hard'):(de?'Alle':'All');}
-function _duelTitle(d,de){const m=_duelModeName(d.mode,de);return(d.diff&&d.diff!=='all'&&_duelMode(d.mode).diff)?m+' · '+_duelDiffName(d.diff,de):m;}
-function _duelKey(mode,diff){return mode+((diff&&diff!=='all'&&_duelMode(mode).diff)?'_'+diff:'');}
-function _duelPool(mode,diff){
-  if(mode==='pin')return getPinCities('EU').map(c=>c.name_en);
+// Umfang wie im Singleplayer. sc: 'rd' = Region (Welt/Kontinent) ODER Stufe Anfänger–Schwer (Flaggen, Hauptstädte, Wappen, Flaggen-Kuchen), 'rt' = Region ODER eine der 5 Stufen
+// nach Einwohnern (Länder anklicken), 'pd' = Leicht/Mittel/Schwer (Kürzester Weg), 'pr' = Region (Drop a Pin). diff und reg stehen im Duell-Dokument.
+// Wie im Singleplayer schließen sich Region und Stufe aus: eine Region gilt mit allen Stufen, eine Stufe mit der ganzen Welt.
+let _duelSelDiff='all',_duelSelReg='world',_duelSelRegPin='EU';
+const _duelRegs=['EU','AF','AS','NA','SA','OC'];
+function _duelL(o){return o?(o[lang]||o.de||o.en||''):'';}
+function _duelHasReg(mode){const sc=_duelMode(mode).sc;return sc==='rd'||sc==='rt'||sc==='pr';}
+function _duelHasDiff(mode){const sc=_duelMode(mode).sc;return sc==='rd'||sc==='rt'||sc==='pd';}
+function _duelRegOf(mode,reg){return mode==='pin'?(reg||'EU'):(_duelHasReg(mode)?(reg||'world'):'world');}
+function _duelRegName(r){return r==='world'?t('regWorld'):_duelL(MODES[r]);}
+function _duelDiffName(df,de,mode){
+  if(df==='all')return typeof t==='function'?t('diffAll'):(de?'Alle':'All');
+  const sc=mode&&_duelMode(mode).sc;
+  if(sc==='rt'&&/^t[1-5]$/.test(df)){const l=t('diffTierLabels');return l&&l[+df[1]-1]||df;}
+  const f=TX[lang]&&TX[lang].flagDiffs&&TX[lang].flagDiffs.find(x=>x.key===df);
+  if(sc!=='pd'&&f)return f.label;
+  return df==='easy'?(de?'Leicht':'Easy'):df==='medium'?(de?'Mittel':'Medium'):df==='hard'?(de?'Schwer':'Hard'):df;
+}
+function _duelScopeName(mode,diff,reg,de){
+  const parts=[];
+  if(_duelHasReg(mode)&&reg&&(mode==='pin'||reg!=='world'))parts.push(_duelRegName(reg));
+  if(_duelHasDiff(mode)&&diff&&diff!=='all')parts.push(_duelDiffName(diff,de,mode));
+  return parts.join(' · ');
+}
+function _duelTitle(d,de){const m=_duelModeName(d.mode,de),sc=_duelScopeName(d.mode,d.diff,_duelRegOf(d.mode,d.reg),de);return sc?m+' · '+sc:m;}
+function _duelKey(mode,diff,reg){
+  const r=_duelRegOf(mode,reg);
+  return mode+((_duelHasDiff(mode)&&diff&&diff!=='all')?'_'+diff:'')+(((_duelHasReg(mode))&&(mode==='pin'||r!=='world'))?'_'+r:'');
+}
+function _duelPool(mode,diff,reg){
+  reg=_duelRegOf(mode,reg);diff=diff||'all';
+  if(mode==='pin')return getPinCities(reg).map(c=>c.name_en);
   if(mode==='map'){
-    const T=DIFFICULTY_TIERS;
-    const ids=diff==='easy'?T[0].concat(T[1]):diff==='medium'?T[2].concat(T[3]):diff==='hard'?T[4]:Object.keys(C).map(Number);
+    const T=DIFFICULTY_TIERS,m=/^t([1-5])$/.exec(diff);
+    let ids=m?T[+m[1]-1]:Object.keys(C).map(Number);
+    if(reg!=='world')ids=ids.filter(id=>C[id]&&C[id].c===reg);
     return ids.filter(id=>C[id]);
   }
   if(mode==='language')return Object.keys(LANGUAGES);
   if(mode==='currency')return Object.keys(CURRENCIES);
   if(mode==='neighbor')return NEIGHBOR_PUZZLES.map(p=>p.id);
-  if(mode==='wappen')return Object.keys(C).map(Number).filter(id=>!WAPPEN_EXCLUDE.has(id));
-  if(mode==='capital'){
-    const ids=diff==='easy'?flagIdsForDifficulty('beginner').concat(flagIdsForDifficulty('easy')):(diff==='medium'||diff==='hard')?flagIdsForDifficulty(diff):flagIdsForDifficulty('all');
-    return ids.filter(id=>CAPITALS[id]);
-  }
-  if(diff==='easy')return flagIdsForDifficulty('beginner').concat(flagIdsForDifficulty('easy'));
-  if(diff==='medium'||diff==='hard')return flagIdsForDifficulty(diff);
-  return flagIdsForDifficulty('all');
+  // Flaggen, Hauptstädte, Wappen, Flaggen-Kuchen: derselbe Pool wie im Einzelspiel (Region ODER Stufe)
+  return iqPoolIds({type:mode,region:reg,diff,dir:'c2cap'});
 }
 const DUEL_ONLINE_MS=100*1000; // so jung muss lastSeen sein, damit ein Freund als online gilt
 function _duelOnline(f){return Date.now()-(f.lastSeen||0)<DUEL_ONLINE_MS;}
@@ -154,6 +172,8 @@ async function duelOpenPicker(preUid){
   _duelSel=new Set(preUid?[preUid]:[]);
   if(last.mode&&DUEL_MODES.some(x=>x.k===last.mode))_duelSelMode=last.mode;
   if(last.diff)_duelSelDiff=last.diff;
+  if(last.reg)_duelSelReg=last.reg;
+  if(last.regPin)_duelSelRegPin=last.regPin;
   const de=_duelDE();
   _duelModal(`<div class="duel-sub">${de?'Lade Freunde…':'Loading friends…'}</div>`);
   try{_duelFriendList=(typeof _loadFriends==='function')?await _loadFriends():[];}catch(e){_duelFriendList=[];}
@@ -163,8 +183,14 @@ async function duelOpenPicker(preUid){
   if(preUid&&!_duelFriendList.some(f=>f.uid===preUid))_duelSel.delete(preUid);
   _duelRenderPicker();
 }
-function duelPickMode(m){_duelSelMode=m;_duelRenderPicker();}
-function duelPickDiff(df){_duelSelDiff=df;_duelRenderPicker();}
+function duelPickMode(m){
+  _duelSelMode=m;const sc=_duelMode(m).sc;
+  // Stufe passend zum Modus (Länder: t1–t5, Flaggen u. a.: Anfänger–Schwer, Weg: Leicht–Schwer)
+  if(sc==='rt'?!/^(all|t[1-5])$/.test(_duelSelDiff):sc==='rd'?!/^(all|beginner|easy|medium|hard)$/.test(_duelSelDiff):sc==='pd'?!/^(all|easy|medium|hard)$/.test(_duelSelDiff):false)_duelSelDiff='all';
+  _duelRenderPicker();
+}
+function duelPickDiff(df){_duelSelDiff=df;if(df!=='all')_duelSelReg='world';_duelRenderPicker();}
+function duelPickReg(r){if(_duelSelMode==='pin')_duelSelRegPin=r;else{_duelSelReg=r;if(r!=='world')_duelSelDiff='all';}_duelRenderPicker();}
 function duelToggleFriend(uid){
   if(_duelSel.has(uid))_duelSel.delete(uid);
   else if(_duelSel.size<DUEL_MAX_PLAYERS-1)_duelSel.add(uid);
@@ -172,7 +198,24 @@ function duelToggleFriend(uid){
 }
 const DUEL_LAST_KEY='geoquiz_duel_last';
 function _duelLastGet(){try{return JSON.parse(localStorage.getItem(DUEL_LAST_KEY))||{};}catch(e){return{};}}
-function _duelLastSet(){try{localStorage.setItem(DUEL_LAST_KEY,JSON.stringify({mode:_duelSelMode,diff:_duelSelDiff,friends:[..._duelSel]}));}catch(e){}}
+function _duelLastSet(){try{localStorage.setItem(DUEL_LAST_KEY,JSON.stringify({mode:_duelSelMode,diff:_duelSelDiff,reg:_duelSelReg,regPin:_duelSelRegPin,friends:[..._duelSel]}));}catch(e){}}
+function _duelScopeUi(mode,de){
+  const sc=_duelMode(mode).sc;if(!sc)return '';
+  const chip=(on,call,label)=>'<button class="duel-chip'+(on?' on':'')+'" onclick="'+call+'">'+label+'</button>';
+  const row=(title,inner)=>'<div class="duel-sec" style="margin-top:8px;">'+title+'</div><div class="duel-chips">'+inner+'</div>';
+  let h='';
+  if(sc==='pr'){
+    const cur=_duelSelRegPin;
+    return row(de?'Region':'Region',['EU','AF','AS','NA','SA','OC','world'].map(r=>chip(cur===r,"duelPickReg('"+r+"')",_duelRegName(r))).join(''));
+  }
+  if(sc==='rd'||sc==='rt'){
+    h+=row(de?'Region':'Region',['world'].concat(_duelRegs).map(r=>chip(_duelSelReg===r,"duelPickReg('"+r+"')",_duelRegName(r))).join(''));
+    const ds=sc==='rt'?['all','t1','t2','t3','t4','t5']:['all','beginner','easy','medium','hard'];
+    h+=row(de?'Schwierigkeit':'Difficulty',ds.map(df=>chip(_duelSelDiff===df,"duelPickDiff('"+df+"')",_duelDiffName(df,de,mode))).join(''));
+    return h;
+  }
+  return row(de?'Schwierigkeit':'Difficulty',['all','easy','medium','hard'].map(df=>chip(_duelSelDiff===df,"duelPickDiff('"+df+"')",_duelDiffName(df,de,mode))).join(''));
+}
 function _duelRenderPicker(){
   const de=_duelDE();
   const tile=x=>`<div class="duel-tile${_duelSelMode===x.k?' selected':''}" onclick="duelPickMode('${x.k}')"><span class="duel-tile-ico">${x.ico}</span><span class="duel-tile-name">${de?x.de:x.en}</span></div>`;
@@ -188,7 +231,7 @@ function _duelRenderPicker(){
       <div class="duel-col">
         <div class="duel-sec">${de?'Spiel':'Game'}</div>
         <div class="duel-tiles">${DUEL_MODES.map(tile).join('')}</div>
-        ${m.diff?`<div class="duel-chips">${['all','easy','medium','hard'].map(df=>`<button class="duel-chip${_duelSelDiff===df?' on':''}" onclick="duelPickDiff('${df}')">${_duelDiffName(df,de)}</button>`).join('')}</div>`:''}
+        ${_duelScopeUi(_duelSelMode,de)}
       </div>
       <div class="duel-col">
         <div class="duel-sec">${de?'Mitspieler':'Players'} <span class="duel-sub">${_duelSel.size}/${DUEL_MAX_PLAYERS-1}</span></div>
@@ -207,20 +250,25 @@ async function duelSendInvite(){
   uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u);names[u]=(f&&f.username)||'?';av[u]=(f&&f.avatar)||null;});
   // Flaggen: Länder-IDs. Pin: Stadtnamen (name_en) aus dem europäischen Pool — alle lösen sie über
   // getPinCities('EU') wieder in dieselben Städte auf.
-  const diff=_duelMode(mode).diff?(_duelSelDiff||'all'):'all';
+  const reg=_duelRegOf(mode,mode==='pin'?_duelSelRegPin:_duelSelReg);
+  let diff=_duelHasDiff(mode)?(_duelSelDiff||'all'):'all';
+  if(_duelMode(mode).sc==='pd'&&!/^(all|easy|medium|hard)$/.test(diff))diff='all';
+  if(_duelMode(mode).sc==='rd'&&/^t[1-5]$/.test(diff))diff='all';
+  if(_duelMode(mode).sc==='rt'&&/^(beginner|easy|medium|hard)$/.test(diff))diff='all';
   _duelLastSet();
   let picked;
   if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
   else if(mode==='pie'){ // nur Kuchen, die eindeutig lösbar sind (jeder darf jedes Land tippen: Antwortmenge = alle Flaggen)
     try{await pieEnsureAll();}catch(e){}
-    const all=_duelPool('pie','all');
-    picked=_duelDraw(_duelKey(mode,diff),pieFilterSync(_duelPool(mode,diff),all));
+    const all=_duelPool('pie','all','world');
+    picked=_duelDraw(_duelKey(mode,diff,reg),pieFilterSync(_duelPool(mode,diff,reg),all));
   }
-  else picked=_duelDraw(_duelKey(mode,diff),_duelPool(mode,diff));
+  else picked=_duelDraw(_duelKey(mode,diff,reg),_duelPool(mode,diff,reg));
+  if(!picked||!picked.length){_duelMessage('⚠️',de?'Für diese Auswahl gibt es keine Fragen.':'There are no questions for this selection.');return;}
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,...uids],host:me,names,av,mode,diff,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{},chat:[]
+      players:[me,...uids],host:me,names,av,mode,diff,reg,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{},chat:[]
     });
     _duelLobbyId=ref.id;
     clearTimeout(_duelWaitTimer);
@@ -359,14 +407,14 @@ async function _duelBegin(d){
   const me=_duelMe();
   const mode=DUEL_MODES.some(x=>x.k===d.mode)?d.mode:'flag';
   _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},av:d.av||{},finished:false};
-  if(d.host!==me&&mode!=='path')_duelRecentAdd(_duelKey(mode,d.diff),d.q||[],_duelPool(mode,d.diff).length);
+  if(d.host!==me&&mode!=='path'){try{_duelRecentAdd(_duelKey(mode,d.diff,d.reg),d.q||[],_duelPool(mode,d.diff,d.reg).length);}catch(e){}}
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
   const de=_duelDE(),isPin=mode==='pin',isPath=mode==='path';
   const queue=(isPin||isPath)?[]:d.q.map(id=>({type:mode==='map'?'country':mode,id}));
-  const cities=isPin?d.q.map(n=>getPinCities('EU').find(c=>c.name_en===n)).filter(Boolean):[];
+  const cities=isPin?d.q.map(n=>getPinCities(d.reg||'EU').find(c=>c.name_en===n)).filter(Boolean):[];
   const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelAvOf(d,u,22)+' '+_duelEsc(_duelCur.names[u]||'?')).join(' &nbsp; ');
-  const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff},de)}</h2>
+  const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff,reg:d.reg},de)}</h2>
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
   // Karten-Modus braucht die geladene Weltkarte, Flaggen ihre Bilder — beides läuft während des Countdowns.
@@ -384,7 +432,7 @@ async function _duelBegin(d){
   if(isPin){
     if(!cities.length){_duelCur=null;_duelMessage('⚠️',de?'Die Städte des Duells konnten nicht geladen werden.':'Could not load the duel cities.');return;}
     _duelChip(d);
-    await startPinGame('EU',cities);
+    await startPinGame(d.reg||'EU',cities);
     return;
   }
   _challenge={queue,pos:0,firstTry:0,total:queue.length,duel:{id:d.id},startTs:Date.now()};
