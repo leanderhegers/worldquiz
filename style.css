@@ -674,23 +674,7 @@ body.learn-on #iq-hint:empty{display:block;}
 
 /* ── Theme Cartoon: knallige Farben, dicke Tinten-Konturen, Comic-Schrift ── */
 body.theme-cartoon{font-family:'Poppins',system-ui,sans-serif;--ink:#1a1a2e;}
-body.theme-cartoon #game-screen,body.theme-cartoon #flag-screen,body.theme-cartoon #region-screen{background:#fff7d6;color:var(--ink);}
-body.theme-cartoon #game-screen>div:first-child,body.theme-cartoon #flag-screen>div:first-child,body.theme-cartoon #region-screen>div:first-child{background:linear-gradient(180deg,#ffe36b,#ffc83a)!important;border-bottom:4px solid var(--ink)!important;color:var(--ink)!important;box-shadow:0 4px 0 rgba(26,26,46,.18);}
-body.theme-cartoon #game-screen>div:first-child *,body.theme-cartoon #flag-screen>div:first-child *{color:var(--ink)!important;}
-body.theme-cartoon #target-name,body.theme-cartoon #reg-target-name{font-weight:900!important;font-size:24px;letter-spacing:.01em;text-shadow:2px 2px 0 rgba(255,255,255,.75);}
-body.theme-cartoon #find-label,body.theme-cartoon #flag-quiz-lbl,body.theme-cartoon #found-label{color:#5a4a00!important;font-weight:800;}
-body.theme-cartoon #game-screen button,body.theme-cartoon #flag-screen button,body.theme-cartoon #region-screen button{background:#fff!important;color:var(--ink)!important;border:3px solid var(--ink)!important;border-radius:12px!important;font-weight:800;box-shadow:3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s;}
-body.theme-cartoon #game-screen button:active,body.theme-cartoon #flag-screen button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);}
-body.theme-cartoon #btn-skip{background:#ffb3e1!important;}
 body.theme-cartoon #map-bg{border-top:4px solid var(--ink);border-bottom:4px solid var(--ink);}
-body.theme-cartoon #flag-img,body.theme-cartoon #iq-outline,body.theme-cartoon #iq-neighbor-wrap img{border:4px solid var(--ink)!important;border-radius:14px!important;box-shadow:6px 6px 0 var(--ink)!important;background:#fff;}
-body.theme-cartoon #flag-input,body.theme-cartoon #fill-input,body.theme-cartoon #path-input{background:#fff!important;color:var(--ink)!important;border:3px solid var(--ink)!important;border-radius:14px!important;font-weight:700;box-shadow:4px 4px 0 var(--ink);}
-body.theme-cartoon #fill-box,body.theme-cartoon #path-box{background:#fff3b0;border:4px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--ink);backdrop-filter:none;}
-body.theme-cartoon #fill-msg,body.theme-cartoon #path-msg{color:var(--ink)!important;font-weight:800;}
-body.theme-cartoon #feedback{background:#fff!important;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);color:var(--ink)!important;font-weight:800;border-radius:16px!important;}
-body.theme-cartoon #prog-bar{height:10px!important;border:2px solid var(--ink);border-radius:8px;}
-body.theme-cartoon #game-screen>div:last-child,body.theme-cartoon #flag-screen>div:last-child{background:#ffc83a!important;border-top:4px solid var(--ink)!important;color:var(--ink)!important;font-weight:800;}
-body.theme-cartoon #iq-hint{color:var(--ink);}
 .tp .dot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}
 
 .duel-chip-row{display:flex;align-items:center;gap:6px;justify-content:center;}
@@ -711,3 +695,6 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .duel-rub+.duel-rub{margin-top:auto;}
 .duel-invite{margin-top:auto;padding-top:10px;display:flex;}
 .duel-invite .duel-btn{width:100%;}
+
+/* Cartoon betrifft nur die Spielkarte (Farben, Umrisse, erhöhte Länder) – Menüs, Kopf- und Fußleisten, Knöpfe und Eingabefelder bleiben wie bei den anderen Themes */
+body.theme-cartoon #iq-outline{border:4px solid var(--ink)!important;border-radius:14px!important;box-shadow:6px 6px 0 var(--ink)!important;background:#fff;}
