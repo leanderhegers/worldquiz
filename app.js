@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-17 S';
+const BUILD_ID='2026-11-18 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3622,7 +3622,17 @@ function flagColorShares(id){
         const W=160,H=100,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d',{willReadFrequently:true});
         x.drawImage(img,0,0,W,H);const d=x.getImageData(0,0,W,H).data,N=PIE_PALETTE.length;
         const cnt=new Array(N).fill(0),sr=new Array(N).fill(0),sg=new Array(N).fill(0),sb=new Array(N).fill(0);let n=0;
-        for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const k=pieClass(d[i],d[i+1],d[i+2]);cnt[k]++;sr[k]+=d[i];sg[k]+=d[i+1];sb[k]+=d[i+2];n++;}
+        // Zuerst jedes Pixel einer Grundfarbe zuordnen. Ein Mischpixel an einer Farbkante (z. B. Gelb|Rot → Orange bei Belgien) hat links/rechts oder oben/unten zwei
+        // verschiedene andere Klassen als Nachbarn – solche Übergangspixel zählen nicht. Dünne echte Details (Linien, Sterne) haben gleiche Nachbarn und bleiben.
+        const cls=new Int8Array(W*H).fill(-1);
+        for(let i=0,p=0;i<d.length;i+=4,p++){if(d[i+3]<128)continue;cls[p]=pieClass(d[i],d[i+1],d[i+2]);}
+        const at=(xx,yy)=>(xx<0||yy<0||xx>=W||yy>=H)?-2:cls[yy*W+xx];
+        for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++){
+          const k=cls[yy*W+xx];if(k<0)continue;
+          const l=at(xx-1,yy),r=at(xx+1,yy),u=at(xx,yy-1),dn=at(xx,yy+1);
+          if((l>=0&&r>=0&&l!==k&&r!==k&&l!==r)||(u>=0&&dn>=0&&u!==k&&dn!==k&&u!==dn))continue;
+          const i=(yy*W+xx)*4;cnt[k]++;sr[k]+=d[i];sg[k]+=d[i+1];sb[k]+=d[i+2];n++;
+        }
         const hex=v=>('0'+Math.round(v).toString(16)).slice(-2);
         let out=cnt.map((v,k)=>({c:v?'#'+hex(sr[k]/v)+hex(sg[k]/v)+hex(sb[k]/v):PIE_PALETTE[k][0],f:v/(n||1),k})).filter(o=>o.f>=PIE_MIN); // auch kleine Anteile (Wappen, Sterne, Embleme) bleiben im Kuchen
         out.sort((a,b)=>b.f-a.f);
@@ -3639,7 +3649,7 @@ function flagColorShares(id){
 // (ab 8 % Anteil) im echten Farbton fast gleich ist (Farbabstand ΔE unter 13,5; Rumänien/Tschad liegen bei 14 und gelten noch als unterscheidbar).
 // Beispiele, die dadurch NICHT vorkommen: Ägypten/Jemen/Irak, Malta/Monaco/Polen/Singapur, Paraguay/Russland, Kirgisistan/Vietnam, Tunesien/Türkei.
 // Frankreich/Slowenien bleiben: gleiche Drittel, aber Marineblau und Rot gegen reines Blau und reines Rot (ΔE über 100).
-const PIE_SHARE_MAX=6,PIE_DE_MIN=13.5,PIE_KEY='geoquiz_pie_v2';
+const PIE_SHARE_MAX=6,PIE_DE_MIN=13.5,PIE_KEY='geoquiz_pie_v3';
 function pieLab(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const f=v=>v>0.04045?Math.pow((v+0.055)/1.055,2.4):v/12.92;r=f(r);g=f(g);b=f(b);
   const X=(r*0.4124+g*0.3576+b*0.1805)/0.95047,Y=r*0.2126+g*0.7152+b*0.0722,Z=(r*0.0193+g*0.1192+b*0.9505)/1.08883,h=v=>v>0.008856?Math.cbrt(v):7.787*v+16/116;
   return[116*h(Y)-16,500*(h(X)-h(Y)),200*(h(Y)-h(Z))];}
@@ -3674,11 +3684,19 @@ function pieFilterSync(ids,scope){
 }
 async function pieFilterIds(ids,scope){await pieEnsureAll();return pieFilterSync(ids,scope);}
 window.pieEnsureAll=pieEnsureAll;window.pieFilterSync=pieFilterSync;
+// Beschriftung eines Stücks: Anteil in Prozent, nur beim Überfahren (oder Antippen) sichtbar, mittig im Stück, Schriftfarbe je nach Helligkeit des Stücks
+function pieLbl(o,am,r,cx,cy){
+  const rr=o.f>=0.999?0:r*(o.f>0.2?0.62:0.7),x=cx+rr*Math.cos(am),y=cy+rr*Math.sin(am);
+  const pct=o.f<0.01?'<1':String(Math.round(o.f*100));
+  const m=/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(o.c),lum=m?(0.2126*parseInt(m[1],16)+0.7152*parseInt(m[2],16)+0.0722*parseInt(m[3],16)):128;
+  const fg=lum>140?'#111':'#fff',bg=lum>140?'rgba(255,255,255,.85)':'rgba(0,0,0,.7)';
+  return '<text class="pie-lbl" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" fill="'+fg+'" stroke="'+bg+'" stroke-width="3" paint-order="stroke">'+pct+' %</text>';
+}
 function pieSvg(parts,size){
   const r=size/2-4,cx=size/2,cy=size/2;let a0=-Math.PI/2,out='';
-  if(parts.length===1)out='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+parts[0].c+'"/>';
+  if(parts.length===1)out='<g class="pie-s"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+parts[0].c+'"/>'+pieLbl(parts[0],0,0,cx,cy)+'</g>';
   else parts.forEach(o=>{const a1=a0+o.f*2*Math.PI,l=o.f>0.5?1:0;
-    out+='<path d="M'+cx+','+cy+' L'+(cx+r*Math.cos(a0)).toFixed(2)+','+(cy+r*Math.sin(a0)).toFixed(2)+' A'+r+','+r+' 0 '+l+' 1 '+(cx+r*Math.cos(a1)).toFixed(2)+','+(cy+r*Math.sin(a1)).toFixed(2)+' Z" fill="'+o.c+'"/>';a0=a1;});
+    out+='<g class="pie-s"><path d="M'+cx+','+cy+' L'+(cx+r*Math.cos(a0)).toFixed(2)+','+(cy+r*Math.sin(a0)).toFixed(2)+' A'+r+','+r+' 0 '+l+' 1 '+(cx+r*Math.cos(a1)).toFixed(2)+','+(cy+r*Math.sin(a1)).toFixed(2)+' Z" fill="'+o.c+'"/>'+pieLbl(o,(a0+a1)/2,r,cx,cy)+'</g>';a0=a1;});
   return '<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" style="max-width:70vw;filter:drop-shadow(0 4px 20px rgba(0,0,0,.5));"><g stroke="#2a2f3a" stroke-width="1.5" stroke-linejoin="round">'+out+'</g></svg>';
 }
 async function flagPieShow(id,wrap){

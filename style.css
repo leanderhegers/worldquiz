@@ -698,3 +698,9 @@ body.theme-cartoon #map-bg{border-top:4px solid var(--ink);border-bottom:4px sol
 
 /* Cartoon betrifft nur die Spielkarte (Farben, Umrisse, erhöhte Länder) – Menüs, Kopf- und Fußleisten, Knöpfe und Eingabefelder bleiben wie bei den anderen Themes */
 body.theme-cartoon #iq-outline{border:4px solid var(--ink)!important;border-radius:14px!important;box-shadow:6px 6px 0 var(--ink)!important;background:#fff;}
+/* Flaggen-Kuchen: Prozentanteil beim Überfahren/Antippen eines Stücks */
+.pie-s{cursor:default;}
+.pie-s path,.pie-s circle{transition:filter .12s;}
+.pie-s:hover path,.pie-s:hover circle{filter:brightness(1.15);}
+.pie-lbl{opacity:0;pointer-events:none;font:700 20px 'Poppins',system-ui,sans-serif;transition:opacity .12s;}
+.pie-s:hover .pie-lbl{opacity:1;}
