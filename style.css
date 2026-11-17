@@ -706,3 +706,9 @@ body.theme-cartoon #iq-hint{color:var(--ink);}
 .res-learn-row i{font-style:normal;color:#aaa;font-size:12px;margin-left:4px;}
 
 .duel-box.wide.fixed{height:min(640px,92vh);}
+/* Auswahlfenster: Kopf oben, Footer (Einladen) unten fest, nur der mittlere Bereich scrollt */
+.duel-box.wide.fixed{overflow:hidden;display:flex;flex-direction:column;}
+.duel-box.wide.fixed #duel-modal-content{display:flex;flex-direction:column;flex:1;min-height:0;}
+.duel-box.wide.fixed .duel-cols{flex:1;min-height:0;overflow:auto;align-content:start;}
+.duel-box.wide.fixed .duel-foot{flex-shrink:0;}
+.duel-box.wide.fixed .duel-foot .duel-btn{min-width:180px;}

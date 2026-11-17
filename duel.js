@@ -238,7 +238,7 @@ function _duelRenderPicker(){
         <div class="duel-friends tall">${friends}</div>
       </div>
     </div>
-    <div class="duel-foot"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'} · ${_duelModeName(_duelSelMode,de)}</button></div>`,true,true);
+    <div class="duel-foot"><button class="duel-btn primary" ${_duelSel.size?'':'disabled'} onclick="duelSendInvite()">${de?'Einladen':'Invite'}</button></div>`,true,true);
 }
 async function duelSendInvite(){
   const me=_duelMe();

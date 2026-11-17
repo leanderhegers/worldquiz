@@ -66,6 +66,10 @@ so anything in it is in the hot path:
 - Programmatic `zoomBehavior.transform()` calls must never run reentrantly from inside d3-zoom's
   own event dispatch — the wrap re-normalization only runs on `end` and defers via `setTimeout(0)`.
 
+## UI-Gebot: kein Layout Shift
+
+Oberflächen dürfen beim Umschalten oder Auswählen nicht springen. Fenster, deren Inhalt je nach Auswahl wechselt, bekommen eine feste Höhe (z. B. `.duel-box.wide.fixed`), Bereiche für später erscheinende Texte reservieren ihren Platz vorab (`min-height`), und beim Neu-Rendern wird die Scroll-Position wiederhergestellt. Klickziele bleiben beim Klick an derselben Stelle. Nach jeder UI-Änderung im Browser prüfen.
+
 ## Layout
 
 - `app.js` — everything gameplay: screens, all quiz modes, `renderMap()` (one ~370-line
