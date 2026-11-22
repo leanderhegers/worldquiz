@@ -54,8 +54,12 @@ h3:first-child{margin-top:0}
 .shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .shapes .chip{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;padding:8px 2px}
 .shapes svg{width:30px;height:30px}
-.emb{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.emb .chip{font-size:24px;padding:4px 0;min-width:0}
+.embq{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px;font:inherit;margin-bottom:8px}
+.emb{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;height:236px;overflow:auto;align-content:start;padding-right:2px}
+.emb .chip{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;min-width:0;height:78px;font-size:10px;line-height:1.15;color:var(--mute)}
+.emb .chip img{width:46px;height:44px;object-fit:contain}
+.emb .chip span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emb .none{grid-column:1/-1;color:var(--mute);font-size:13px;padding:8px 2px}
 .row{display:grid;grid-template-columns:78px 1fr 40px;align-items:center;gap:8px;margin:6px 0;color:var(--mute);font-size:13px}
 .row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
 input[type=range]{width:100%;accent-color:var(--acc)}
@@ -131,7 +135,9 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
           <h3>Grundformen</h3>
           <div class="shapes" id="shapes"></div>
           <h3>Wappen &amp; Emblems</h3>
+          <input class="embq" id="embq" type="search" placeholder="Land suchen …" autocomplete="off">
           <div class="emb" id="emb"></div>
+          <p class="hint" style="margin-top:6px">Original-Wappen und Emblems aus den Flaggen (flag-icons, MIT-Lizenz).</p>
           <h3>Ausgewählte Form</h3>
           <div id="props">
             <div class="row"><span>Breite</span><input type="range" id="pw" min="1" max="120" value="30"><output id="pwo">30</output></div>
@@ -185,7 +191,8 @@ const PAL={
   grau:['Grau','#8A8D8F'],braun:['Braun','#8B5A2B'],lila:['Lila','#6B3FA0'],rosa:['Rosa','#E8A0BF']
 };
 const RATIOS=[[1,1],[4,3],[3,2],[5,3],[8,5],[2,1],[2,3]];
-const EMBLEMS=[['🦅','Adler'],['🦁','Löwe'],['🐉','Drache'],['🛡️','Schild'],['⚔️','Schwerter'],['🌲','Zeder'],['🍁','Ahorn'],['☀️','Sonne'],['✡','Davidstern'],['🕊️','Taube'],['🌴','Palme'],['🏔️','Berg']];
+let EMB=[],EMBMAP={}; // aus data/emblems/index.json: iso, Namen, Seitenverhältnis (ea) und Lage in der 4:3-Original-Flagge (bb)
+const embName=e=>(LG==='de'?e.de:e.en);
 const SHAPE_BTN=[
   ['circle','Kreis','<circle cx="15" cy="15" r="11"/>'],
   ['rect','Rechteck','<rect x="4" y="7" width="22" height="16"/>'],
@@ -205,7 +212,6 @@ const TARGETS=[
   T('Niederlande',[3,2],'h',['rot','weiss','blau']),
   T('Irland',[2,1],'v',['gruen','weiss','orange']),
   T('Österreich',[3,2],'h',['rot','weiss','rot']),
-  T('Ukraine',[3,2],'h',['blau','gelb']),
   T('Polen',[8,5],'h',['weiss','rot']),
   T('Indonesien',[3,2],'h',['rot','weiss']),
   T('Japan',[3,2],'h',['weiss'],[{t:'circle',x:.5,y:.5,w:.4,h:.6,c:'rot'}]),
@@ -214,12 +220,52 @@ const TARGETS=[
   T('Dänemark',[4,3],'h',['rot'],[{t:'rect',x:.36,y:.5,w:.11,h:1,c:'weiss'},{t:'rect',x:.5,y:.5,w:1,h:.15,c:'weiss'}]),
   T('Schweden',[8,5],'h',['blau'],[{t:'rect',x:.375,y:.5,w:.125,h:1,c:'gelb'},{t:'rect',x:.5,y:.5,w:1,h:.2,c:'gelb'}]),
   T('Türkei',[3,2],'h',['rot'],[{t:'cres',x:.36,y:.5,w:.33,h:.5,c:'weiss'},{t:'star',x:.53,y:.5,w:.16,h:.24,c:'weiss'}]),
-  T('Mexiko',[7,4],'v',['gruen','weiss','rot'],[{t:'emb',g:'🦅',x:.5,y:.5,w:.2,h:.34,c:'schwarz'}]),
-  T('Ägypten',[3,2],'h',['rot','weiss','schwarz'],[{t:'emb',g:'🦅',x:.5,y:.5,w:.14,h:.22,c:'schwarz'}])
+  T('Ukraine',[3,2],'h',['blau','gelb'])
 ];
+// Flaggen mit Original-Emblem: [Name, Land-ID, Emblem-Kürzel, Seitenverhältnis, Richtung, Farben]
+const EMB_TARGETS=[
+  ['Mexiko',484,'mx',[7,4],'v',['gruen','weiss','rot']],
+  ['Ägypten',818,'eg',[3,2],'h',['rot','weiss','schwarz']],
+  ['Albanien',8,'al',[7,5],'h',['rot']],
+  ['Moldau',498,'md',[2,1],'v',['blau','gelb','rot']],
+  ['Bolivien',68,'bo',[3,2],'h',['rot','gelb','gruen']],
+  ['Argentinien',32,'ar',[8,5],'h',['hellblau','weiss','hellblau']],
+  ['Kroatien',191,'hr',[2,1],'h',['rot','weiss','blau']],
+  ['Slowenien',705,'si',[2,1],'h',['weiss','blau','rot']],
+  ['Slowakei',703,'sk',[3,2],'h',['weiss','blau','rot']],
+  ['Serbien',688,'rs',[3,2],'h',['rot','blau','weiss']],
+  ['Haiti',332,'ht',[5,3],'h',['blau','rot']],
+  ['Indien',356,'in',[3,2],'h',['orange','weiss','gruen']],
+  ['Iran',364,'ir',[7,4],'h',['gruen','weiss','rot']],
+  ['Irak',368,'iq',[3,2],'h',['rot','weiss','schwarz']],
+  ['Mongolei',496,'mn',[2,1],'v',['rot','blau','rot']],
+  ['Guatemala',320,'gt',[8,5],'v',['hellblau','weiss','hellblau']],
+  ['El Salvador',222,'sv',[5,3],'h',['blau','weiss','blau']],
+  ['Nicaragua',558,'ni',[5,3],'h',['blau','weiss','blau']],
+  ['Kirgistan',417,'kg',[5,3],'h',['rot']],
+  ['Äthiopien',231,'et',[2,1],'h',['gruen','gelb','rot']],
+  ['Marokko',504,'ma',[3,2],'h',['rot']],
+  ['Uganda',800,'ug',[3,2],'h',['schwarz','gelb','rot','schwarz','gelb','rot']],
+  ['Vatikanstadt',336,'va',[1,1],'v',['gelb','weiss']],
+  ['Zypern',196,'cy',[3,2],'h',['weiss']]
+];
+// Emblem-Box so, dass das Original-Seitenverhältnis bei beliebigem Flaggenformat erhalten bleibt (Höhe = Anteil der Flaggenhöhe)
+function embBox(iso,ratio,hFrac){
+  const e=EMBMAP[iso],W=ratio[0]*100,H=ratio[1]*100;
+  return {h:hFrac,w:Math.min(1.2,hFrac*H/W*e.ea)};
+}
+function addEmbTargets(){
+  EMB_TARGETS.forEach(([name,id,iso,ratio,orient,colors])=>{
+    const e=EMBMAP[iso];if(!e)return;
+    const hf=e.bb[3]/480,b=embBox(iso,ratio,hf);
+    const t=T(name,ratio,orient,colors,[{t:'emb',e:iso,x:(e.bb[0]+e.bb[2]/2)/640,y:(e.bb[1]+e.bb[3]/2)/480,w:b.w,h:b.h,c:'schwarz'}]);
+    t.id=id;TARGETS.push(t);
+  });
+}
 
-const IDS={Frankreich:250,Italien:380,Deutschland:276,Niederlande:528,Irland:372,'Österreich':40,Ukraine:804,Polen:616,Indonesien:360,Japan:392,Schweiz:756,Bangladesch:50,'Dänemark':208,Schweden:752,'Türkei':792,Mexiko:484,'Ägypten':818};
+const IDS={Frankreich:250,Italien:380,Deutschland:276,Niederlande:528,Irland:372,'Österreich':40,Ukraine:804,Polen:616,Indonesien:360,Japan:392,Schweiz:756,Bangladesch:50,'Dänemark':208,Schweden:752,'Türkei':792,};
 TARGETS.forEach(t=>{t.id=IDS[t.name];});
+const TARGETS_BASE_N=TARGETS.length;
 
 // ───────────────────────── Sprache ─────────────────────────
 // Läuft die Seite im Spiel (iframe), kommen Sprache und Ländernamen aus der App; sonst Deutsch.
@@ -256,7 +302,7 @@ function shapeSVG(s,W,H,id){
     case 'star':{let p=[];for(let i=0;i<10;i++){const r=i%2?.382:1,a=(-90+36*i)*Math.PI/180;p.push((Math.cos(a)*r*w/2).toFixed(2)+','+(Math.sin(a)*r*h/2).toFixed(2));}return `<polygon ${tr} points="${p.join(' ')}" fill="${fill}"/>`;}
     case 'cross':{const a=.17,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
     case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*.2}" rx="${w*.4}" ry="${h*.4}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
-    case 'emb':return `<text ${tr} font-size="${h*.9}" text-anchor="middle" dominant-baseline="central">${s.g}</text>`;
+    case 'emb':return `<image ${tr} href="data/emblems/${s.e}.svg" x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
   }
   return '';
 }
@@ -306,6 +352,11 @@ function draw(){
 }
 
 // ───────────────────────── Panel: Schritt 1 ─────────────────────────
+function fillEmb(q){
+  q=(q||'').trim().toLowerCase();
+  const list=EMB.filter(e=>!q||e.de.toLowerCase().includes(q)||e.en.toLowerCase().includes(q));
+  $('#emb').innerHTML=list.length?list.map(e=>`<button class="chip" data-emb="${e.iso}" title="${embName(e)}"><img loading="lazy" alt="" src="data/emblems/${e.iso}.svg"><span>${embName(e)}</span></button>`).join(''):'<div class="none">'+(LG==='de'?'Nichts gefunden':'Nothing found')+'</div>';
+}
 function buildStatic(){
   $('#ratios').innerHTML=RATIOS.map(r=>`<button class="chip" data-r="${r[0]}:${r[1]}">${r[0]}:${r[1]}${r[0]<r[1]?' ⬍':''}</button>`).join('');
   $('#counts').innerHTML=[1,2,3,4,5,6,7,8,9].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('');
@@ -313,7 +364,7 @@ function buildStatic(){
   $('#pal').innerHTML=Object.keys(PAL).map(k=>sw(k)).join('');
   $('#spal').innerHTML=Object.keys(PAL).map(k=>`<button class="sw" data-sc="${k}" style="background:${PAL[k][1]};height:28px;border-radius:7px" title="${tr(PAL[k][0])}"></button>`).join('');
   $('#shapes').innerHTML=SHAPE_BTN.map(s=>`<button class="chip" data-add="${s[0]}"><svg viewBox="0 0 30 30" fill="currentColor">${s[2]}</svg>${tr(s[1])}</button>`).join('');
-  $('#emb').innerHTML=EMBLEMS.map(e=>`<button class="chip" data-emb="${e[0]}" title="${tr(e[1])}">${e[0]}</button>`).join('');
+  fillEmb('');
 }
 function syncLayout(){
   const n=S.n<=1?1:S.n;
@@ -356,9 +407,10 @@ function addShape(t,g){
     const a={t:'rect',x:.375,y:.5,w:.125,h:1,c:'weiss',r:0},b={t:'rect',x:.5,y:.5,w:1,h:.2,c:'weiss',r:0};
     S.shapes.push(a,b);S.sel=S.shapes.length-1;
   }else{
-    const h=t==='emb'?.36:t==='rect'?.3:.4,w=t==='rect'?.5*0+h*H/W*1.6:h*H/W;
+    let h=t==='emb'?.4:t==='rect'?.3:.4,w=t==='rect'?h*H/W*1.6:h*H/W;
+    if(t==='emb'){const b=embBox(g,S.ratio,h);w=b.w;h=b.h;if(w>.9){h=h*.9/w;w=.9;}}
     s={t,x:.5,y:.5,w,h,c:t==='emb'?'schwarz':'rot',r:0};
-    if(t==='emb')s.g=g;
+    if(t==='emb')s.e=g;
     if(t==='trif'){s.p=[[.5,.28],[.68,.7],[.32,.64]];}
     S.shapes.push(s);S.sel=S.shapes.length-1;
   }
@@ -468,11 +520,11 @@ window.addEventListener('resize',draw);
 
 // ───────────────────────── Bewertung ─────────────────────────
 function colorAt(f,u,v){const n=f.n<=1?1:f.n;if(n===1)return f.colors[0];return f.colors[Math.min(n-1,Math.floor((f.orient==='v'?u:v)*n))];}
-function descr(s){const b=bbox(s);return{t:s.t,g:s.g,c:s.c,x:b.x,y:b.y,w:b.w,h:b.h};}
+function descr(s){const b=bbox(s);return{t:s.t,e:s.e,c:s.c,x:b.x,y:b.y,w:b.w,h:b.h};}
 function pairScore(a,b){
   let ts=a.t===b.t?1:((a.t==='tri'&&b.t==='trif')||(a.t==='trif'&&b.t==='tri'))?.7:0;
   if(!ts)return 0;
-  if(a.t==='emb'&&a.g!==b.g)ts=.3;
+  if(a.t==='emb'&&a.e!==b.e)ts=.3;
   const cs=a.t==='emb'?1:(a.c===b.c?1:0);
   const ps=Math.max(0,1-Math.hypot(a.x-b.x,a.y-b.y)/.25);
   const ss=Math.max(0,1-(Math.abs(Math.log(a.w/b.w))+Math.abs(Math.log(a.h/b.h)))/1.5);
@@ -537,7 +589,12 @@ function check(){
   };
 }
 
-buildStatic();newRound();translateDom();
+$('#embq').addEventListener('input',e=>fillEmb(e.target.value));
+fetch('data/emblems/index.json').then(r=>r.json()).catch(()=>[]).then(list=>{
+  EMB=list;list.forEach(e=>{EMBMAP[e.iso]=e;});
+  addEmbTargets();
+  buildStatic();newRound();translateDom();
+});
 </script>
 </body>
 </html>
