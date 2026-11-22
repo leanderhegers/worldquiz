@@ -92,6 +92,60 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
 #peek{position:absolute;top:12px;right:12px;background:var(--panel);border:1px solid var(--acc);border-radius:10px;padding:8px;display:none;z-index:3}
 #peek.on{display:block}
 #peek small{display:block;color:var(--acc);margin-bottom:4px;font-size:12px}
+/* Prüfmodus: Seitenleiste mit Prüfliste, Leiste mit aktueller Flagge, Referenzstreifen unter dem Bauplatz */
+body.pruef .wrap{display:grid;grid-template-columns:250px minmax(0,1fr);column-gap:16px;max-width:1500px;align-items:start}
+body.pruef .wrap>*{grid-column:2}
+body.pruef .wrap>#pflist{grid-column:1;grid-row:1/12;position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}
+#pflist{display:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+body.pruef #pflist{display:block}
+#pflist h2{font-size:15px;margin:0 0 8px}
+.pfprog{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;margin:6px 0 4px}
+.pfprog i{display:block;height:100%;background:var(--ok)}
+.pfprog-t{font-size:12px;color:var(--mute);margin-bottom:8px}
+.pffilter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.pffilter .chip{padding:4px 9px;font-size:12px;min-width:0}
+.pfgrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);margin:10px 0 3px;display:flex;justify-content:space-between}
+.pfrow{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-radius:7px;color:var(--text);font:inherit;font-size:13px;text-align:left;padding:4px 6px;cursor:pointer}
+.pfrow:hover{background:var(--panel2)}
+.pfrow.cur{background:var(--panel2);outline:1px solid var(--acc)}
+.pfdot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--mute);flex:0 0 auto}
+.pfdot.ok{background:var(--ok);border-color:var(--ok)}
+.pfdot.bad{background:var(--bad);border-color:var(--bad)}
+.pfdot.mid{background:var(--acc);border-color:var(--acc)}
+.pfact{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.pfact .btn{padding:7px 10px;font-size:13px;flex:1}
+.pfbar{display:none;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:10px 14px;margin-bottom:10px;background:var(--panel);border:1px solid var(--acc-d);border-radius:12px}
+body.pruef .pfbar{display:flex}
+.pfbar .nm{font-size:18px;font-weight:700;color:var(--acc)}
+.pfbar .meta{font-size:12px;color:var(--mute)}
+.pfbar .sp{flex:1}
+.pfbar .btn{padding:6px 11px;font-size:13px}
+.pfbar .note{flex-basis:100%;font-size:12px;color:var(--mute)}
+.pfst{display:inline-block;padding:2px 8px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-size:12px}
+.pfcat{display:inline-block;padding:2px 8px;border-radius:8px;background:var(--panel2);border:1px solid var(--acc-d);font-size:12px;color:var(--acc)}
+.pflistbtn{display:none}
+#pfref{display:none;margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+body.pruef #pfref{display:block}
+#pfref .r{display:flex;gap:16px;flex-wrap:wrap}
+#pfref figure{margin:0;width:230px}
+#pfref figcaption{font-size:12px;color:var(--mute);margin-top:4px}
+#pfref img,#pfref svg{width:100%;display:block;border:1px solid var(--line);border-radius:4px;background:#000}
+#pfref .h{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);margin-bottom:6px}
+.pfst-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.pfst-row .chip{padding:7px 10px;font-size:13px}
+#pfc{width:100%;min-height:64px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px 10px;font:inherit;resize:vertical}
+.cmp3{grid-template-columns:repeat(3,1fr)!important;gap:8px!important}
+.cmp3 img{width:100%;display:block;border:1px solid var(--line);border-radius:4px;background:#000}
+@media(max-width:900px){
+  body.pruef .wrap{display:block}
+  .pflistbtn{display:inline-block}
+  body.pruef #pflist{display:none}
+  body.pruef.pflist-open #pflist{display:block;position:fixed;inset:0;z-index:20;max-height:none;border-radius:0;overflow:auto}
+}
+.undo{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:3}
+.undo button{width:38px;height:34px;font-size:18px;line-height:1;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text);cursor:pointer}
+.undo button:hover:not([disabled]){border-color:var(--acc)}
+.undo button[disabled]{opacity:.35;cursor:default}
 .dlg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
 .dlg.on{display:flex}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(560px,100%);max-height:92vh;overflow:auto}
@@ -114,11 +168,13 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
 </head>
 <body>
 <div class="wrap">
+  <aside id="pflist"></aside>
   <header>
     <div class="task"><small>Baue die Flagge von</small><b id="tname">–</b></div>
     <div class="score"><span>Flagge <b id="tnum">1/5</b></span><span>Schnitt <b id="ttot">–</b></span><button class="btn" id="bSkip" style="padding:6px 10px;font-size:13px">Überspringen ⏭</button></div>
   </header>
 
+  <div class="pfbar" id="pfbar"></div>
   <nav class="tabs" id="tabs">
     <button class="tab on" data-step="1">1 · Layout</button>
     <button class="tab" data-step="2">2 · Farben</button>
@@ -162,12 +218,13 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
               </div>
             </div>
           </div>
-          <p class="hint">Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.</p>
+          <p class="hint">Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du im zweiten Schritt (Farben). Sonderformen kommen im dritten Schritt dazu.</p>
         </section>
         <!-- Schritt 2 -->
         <section class="sec" id="sec2">
           <h3 id="stripeTitle">Streifen wählen</h3>
           <div class="stripes" id="stripeList"></div>
+          <div id="swBox" style="display:none"><div class="row"><span>Breite</span><input type="range" id="psw" min="5" max="90" value="50"><output id="pswo">50</output></div><button class="btn" id="swEq" style="padding:6px 10px;font-size:13px">Alle gleich breit</button></div>
           <h3>Farbe</h3>
           <div class="pal names" id="pal"></div>
           <p class="hint">Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.</p>
@@ -188,6 +245,8 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
           <div id="props">
             <div class="row"><span>Breite</span><input type="range" id="pw" min="1" max="120" value="30"><output id="pwo">30</output></div>
             <div class="row"><span>Höhe</span><input type="range" id="ph" min="1" max="120" value="30"><output id="pho">30</output></div>
+            <div class="row cresrow" style="display:none"><span>Dicke</span><input type="range" id="pct" min="8" max="48" value="30"><output id="pcto">30</output></div>
+            <div class="row cresrow" style="display:none"><span>Schließen</span><input type="range" id="pcr" min="25" max="49" value="40"><output id="pcro">40</output></div>
             <div class="row"><span>Drehung</span><input type="range" id="pr" min="-180" max="180" value="0"><output id="pro">0°</output></div>
             <label class="chk"><input type="checkbox" id="plock" checked> Proportion beibehalten</label>
             <div class="pal" id="spal" style="grid-template-columns:repeat(8,1fr);gap:6px"></div>
@@ -230,9 +289,11 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
     </div>
 
     <div class="stagebox">
+      <div class="undo"><button id="bUndo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button><button id="bRedo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button></div>
       <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </main>
+  <div id="pfref"></div>
 </div>
 
 <div class="dlg" id="dlg"><div class="card" id="card"></div></div>
@@ -243,9 +304,9 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
 const PAL={
   weiss:['Weiß','#FFFFFF'],hellgrau:['Hellgrau','#CCCCCC'],grau:['Grau','#8A8D8F'],schwarz:['Schwarz','#000000'],
   hellgelb:['Hellgelb','#FFE600'],gelb:['Gelb','#FCD116'],gold:['Gold','#D4A017'],orange:['Orange','#F57F20'],
-  hellrot:['Hellrot','#ED2939'],rot:['Rot','#C8102E'],dunkelrot:['Dunkelrot','#8A1538'],rosa:['Rosa','#E8A0BF'],
+  hellrot:['Hellrot','#ED2939'],rot:['Rot','#C8102E'],karminrot:['Karminrot','#A51931'],dunkelrot:['Dunkelrot','#8A1538'],rosa:['Rosa','#E8A0BF'],
   hellgruen:['Hellgrün','#5BBF4A'],gruen:['Grün','#009A44'],dunkelgruen:['Dunkelgrün','#006B3F'],tuerkis:['Türkis','#00A19C'],
-  hellblau:['Hellblau','#75AADB'],himmelblau:['Himmelblau','#00A1DE'],blau:['Blau','#0055A4'],dunkelblau:['Dunkelblau','#012169'],
+  hellblau:['Hellblau','#75AADB'],himmelblau:['Himmelblau','#00A1DE'],blau:['Blau','#0055A4'],mittelblau:['Mittelblau','#003893'],dunkelblau:['Dunkelblau','#012169'],
   lila:['Lila','#6B3FA0'],hellbraun:['Hellbraun','#B5651D'],braun:['Braun','#6B3A26']
 };
 const RATIOS=[[1,1],[4,3],[3,2],[5,3],[8,5],[2,1],[2,3]];
@@ -260,6 +321,7 @@ const SHAPE_BTN=[
   ['star','Stern','<polygon points="15,3 18.5,11 27,11.5 20.5,17 22.5,26 15,21 7.5,26 9.5,17 3,11.5 11.5,11"/>'],
   ['cres','Halbmond','<path d="M20 4A12 12 0 1 0 20 26A9.5 9.5 0 1 1 20 4Z"/>'],
   ['cross','Kreuz','<polygon points="11,3 19,3 19,11 27,11 27,19 19,19 19,27 11,27 11,19 3,19 3,11 11,11"/>'],
+  ['bcross','Bolnisi-Kreuz','<polygon points="12,12 9,3 21,3 18,12 27,9 27,21 18,18 21,27 9,27 12,18 3,21 3,9"/>'],
   ['nord','Nord. Kreuz','<g><rect x="9" y="2" width="5" height="26"/><rect x="2" y="12.5" width="26" height="5"/></g>']
 ];
 // Zielflaggen im gleichen Datenmodell wie die gebaute Flagge. Positionen/Größen sind Anteile von Breite/Höhe.
@@ -276,9 +338,9 @@ const TARGETS=[
   T('Japan',[3,2],'h',['weiss'],[{t:'circle',x:.5,y:.5,w:.4,h:.6,c:'rot'}]),
   T('Schweiz',[1,1],'h',['rot'],[{t:'cross',x:.5,y:.5,w:.6,h:.6,c:'weiss'}]),
   T('Bangladesch',[5,3],'h',['dunkelgruen'],[{t:'circle',x:.45,y:.5,w:.4,h:.667,c:'rot'}]),
-  T('Dänemark',[4,3],'h',['rot'],[{t:'rect',x:.36,y:.5,w:.11,h:1,c:'weiss'},{t:'rect',x:.5,y:.5,w:1,h:.15,c:'weiss'}]),
+  T('Dänemark',[37,28],'h',['rot'],[{t:'rect',x:.378,y:.5,w:.108,h:1,c:'weiss'},{t:'rect',x:.5,y:.5,w:1,h:.143,c:'weiss'}]),
   T('Schweden',[8,5],'h',['blau'],[{t:'rect',x:.375,y:.5,w:.125,h:1,c:'gelb'},{t:'rect',x:.5,y:.5,w:1,h:.2,c:'gelb'}]),
-  T('Türkei',[3,2],'h',['rot'],[{t:'cres',x:.375,y:.5,w:.4,h:.6,c:'weiss'},{t:'star',x:.585,y:.5,w:.167,h:.25,c:'weiss'}]),
+  T('Türkei',[3,2],'h',['rot'],[{t:'cres',x:.375,y:.5,w:.4,h:.6,c:'weiss'},{t:'star',x:.585,y:.5,w:.167,h:.25,c:'weiss',r:-18}]),
   T('Ukraine',[3,2],'h',['blau','gelb'])
 ];
 // Flaggen mit Original-Emblem: [Name, Land-ID, Emblem-Kürzel, Seitenverhältnis, Richtung, Farben]
@@ -314,7 +376,9 @@ function embBox(iso,ratio,hFrac){
   return {h:hFrac,w:Math.min(1.2,hFrac*H/W*e.ea)};
 }
 // Farbzuordnung der Vorlagen zur nächstliegenden Palettenfarbe der echten Flagge (automatisch ermittelt)
-const COLOR_FIX={"Frankreich":{"s":{"0":"dunkelblau"},"h":{}},"Deutschland":{"s":{"1":"hellrot"},"h":{}},"Schweiz":{"s":{"0":"hellrot"},"h":{}},"Bangladesch":{"s":{},"h":{"0":"hellrot"}},"Ukraine":{"s":{"1":"hellgelb"},"h":{}},"Ungarn":{"s":{"0":"hellrot"},"h":{}},"Litauen":{"s":{"1":"dunkelgruen"},"h":{}},"Estland":{"s":{"0":"himmelblau"},"h":{}},"Luxemburg":{"s":{"0":"hellrot","2":"himmelblau"},"h":{}},"Armenien":{"s":{"2":"gold"},"h":{}},"Gabun":{"s":{"1":"hellgelb"},"h":{}},"Rumänien":{"s":{"1":"hellgelb"},"h":{}},"Belgien":{"s":{"2":"hellrot"},"h":{}},"Mali":{"s":{"1":"hellgelb","2":"hellrot"},"h":{}},"Guinea":{"s":{"0":"hellrot","1":"hellgelb"},"h":{}},"Tschad":{"s":{"0":"dunkelblau"},"h":{}},"Mauritius":{"s":{"0":"hellrot","1":"dunkelblau"},"h":{}},"Kolumbien":{"s":{"0":"hellgelb","1":"hellgelb","2":"dunkelblau"},"h":{}},"Thailand":{"s":{"0":"dunkelrot","2":"dunkelblau","3":"dunkelblau","5":"dunkelrot"},"h":{}},"Costa Rica":{"s":{"0":"dunkelblau","5":"dunkelblau"},"h":{}},"Laos":{"s":{"1":"dunkelblau","2":"dunkelblau"},"h":{}},"Kuba":{"s":{"0":"dunkelblau","2":"dunkelblau","4":"dunkelblau"},"h":{}},"Finnland":{"s":{},"h":{"1":"dunkelblau"}},"Norwegen":{"s":{"0":"hellrot"},"h":{}},"Island":{"s":{},"h":{"3":"hellrot"}},"Vietnam":{"s":{},"h":{"0":"hellgelb"}},"China":{"s":{"0":"hellrot"},"h":{}},"Algerien":{"s":{"0":"dunkelgruen"},"h":{}},"Palau":{"s":{},"h":{"0":"hellgelb"}},"Bosnien und Herzegowina":{"s":{"0":"dunkelblau"},"h":{}},"Tuvalu":{"s":{"0":"himmelblau"},"h":{}},"Südafrika":{"s":{"0":"hellrot","1":"dunkelblau"},"h":{"5":"dunkelgruen"}},"Kuwait":{"s":{"2":"hellrot"},"h":{}},"Kasachstan":{"s":{"0":"himmelblau"},"h":{}},"Sri Lanka":{"s":{},"h":{"0":"dunkelgruen"}},"Venezuela":{"s":{"1":"dunkelblau"},"h":{}},"Honduras":{"s":{"0":"himmelblau","2":"himmelblau"},"h":{"0":"himmelblau"}},"Mexiko":{"s":{"0":"dunkelgruen"},"h":{}},"Albanien":{"s":{"0":"hellrot"},"h":{}},"Moldau":{"s":{"1":"hellgelb"},"h":{}},"Bolivien":{"s":{"1":"hellgelb","2":"dunkelgruen"},"h":{}},"Kroatien":{"s":{"0":"hellrot","2":"dunkelblau"},"h":{}},"Slowakei":{"s":{"2":"hellrot"},"h":{}},"Serbien":{"s":{"1":"dunkelblau"},"h":{}},"Indien":{"s":{"2":"dunkelgruen"},"h":{}},"Mongolei":{"s":{"0":"hellrot","2":"hellrot"},"h":{}},"Kirgistan":{"s":{"0":"hellrot"},"h":{}},"Äthiopien":{"s":{"2":"hellrot"},"h":{}},"Uganda":{"s":{"1":"hellgelb","2":"hellrot","4":"hellgelb","5":"hellrot"},"h":{}},"Vatikanstadt":{"s":{"0":"hellgelb"},"h":{}},"Kenia":{"s":{"14":"dunkelgruen","15":"dunkelgruen","16":"dunkelgruen","17":"dunkelgruen","18":"dunkelgruen","19":"dunkelgruen"},"h":{}},"Montenegro":{"s":{"0":"gold"},"h":{}},"Portugal":{"s":{"0":"dunkelgruen","1":"dunkelgruen","2":"hellrot","3":"hellrot","4":"hellrot"},"h":{}},"Libanon":{"s":{"0":"hellrot","3":"hellrot"},"h":{}},"Ecuador":{"s":{"0":"hellgelb","1":"hellgelb","2":"dunkelblau"},"h":{}},"Angola":{"s":{"0":"hellrot"},"h":{}},"Andorra":{"s":{"1":"hellgelb"},"h":{}},"Liechtenstein":{"s":{"0":"dunkelblau"},"h":{}},"San Marino":{"s":{"1":"himmelblau"},"h":{}},"Tadschikistan":{"s":{"5":"dunkelgruen","6":"dunkelgruen"},"h":{}},"Äquatorialguinea":{"s":{"0":"hellgruen","2":"hellrot"},"h":{"0":"himmelblau"}},"Simbabwe":{"s":{"0":"dunkelgruen","1":"hellgelb","5":"hellgelb","6":"dunkelgruen"},"h":{}}};
+const COLOR_FIX={"Frankreich":{"s":{"0":"dunkelblau","1":"weiss","2":"rot"},"h":{}},"Italien":{"s":{"0":"gruen","1":"weiss","2":"rot"},"h":{}},"Deutschland":{"s":{"0":"schwarz","1":"hellrot","2":"gelb"},"h":{}},"Niederlande":{"s":{"0":"karminrot","1":"weiss","2":"mittelblau"},"h":{}},"Irland":{"s":{"0":"gruen","1":"weiss","2":"orange"},"h":{}},"Österreich":{"s":{"0":"rot","1":"weiss","2":"rot"},"h":{}},"Polen":{"s":{"0":"weiss","1":"rot"},"h":{}},"Indonesien":{"s":{"0":"rot","1":"weiss"},"h":{}},"Japan":{"s":{"0":"weiss"},"h":{}},"Schweiz":{"s":{"0":"hellrot"},"h":{}},"Bangladesch":{"s":{"0":"dunkelgruen"},"h":{"0":"hellrot"}},"Dänemark":{"s":{"0":"rot"},"h":{}},"Schweden":{"s":{"0":"blau"},"h":{}},"Ukraine":{"s":{"0":"blau","1":"hellgelb"},"h":{}},"Russland":{"s":{"0":"weiss","1":"mittelblau","2":"rot"},"h":{}},"Ungarn":{"s":{"0":"hellrot","1":"weiss","2":"gruen"},"h":{}},"Bulgarien":{"s":{"0":"weiss","1":"gruen","2":"rot"},"h":{}},"Litauen":{"s":{"0":"gelb","1":"dunkelgruen","2":"rot"},"h":{}},"Estland":{"s":{"0":"himmelblau","1":"schwarz","2":"weiss"},"h":{}},"Luxemburg":{"s":{"0":"hellrot","1":"weiss","2":"himmelblau"},"h":{}},"Armenien":{"s":{"0":"rot","1":"mittelblau","2":"gold"},"h":{}},"Gabun":{"s":{"0":"gruen","1":"hellgelb","2":"blau"},"h":{}},"Rumänien":{"s":{"0":"mittelblau","1":"hellgelb","2":"rot"},"h":{}},"Belgien":{"s":{"0":"schwarz","1":"gelb","2":"hellrot"},"h":{}},"Mali":{"s":{"0":"gruen","1":"hellgelb","2":"hellrot"},"h":{}},"Guinea":{"s":{"0":"hellrot","1":"hellgelb","2":"gruen"},"h":{}},"Nigeria":{"s":{"0":"gruen","1":"weiss","2":"gruen"},"h":{}},"Elfenbeinküste":{"s":{"0":"orange","1":"weiss","2":"gruen"},"h":{}},"Tschad":{"s":{"0":"dunkelblau","1":"gelb","2":"rot"},"h":{}},"Peru":{"s":{"0":"rot","1":"weiss","2":"rot"},"h":{}},"Jemen":{"s":{"0":"rot","1":"weiss","2":"schwarz"},"h":{}},"Sierra Leone":{"s":{"0":"gruen","1":"weiss","2":"mittelblau"},"h":{}},"Mauritius":{"s":{"0":"hellrot","1":"dunkelblau","2":"gelb","3":"gruen"},"h":{}},"Kolumbien":{"s":{"0":"gelb","1":"mittelblau","2":"rot"},"h":{}},"Lettland":{"s":{"0":"karminrot","1":"weiss","2":"karminrot"},"h":{}},"Thailand":{"s":{"0":"karminrot","1":"weiss","2":"dunkelblau","3":"weiss","4":"karminrot"},"h":{}},"Costa Rica":{"s":{"0":"mittelblau","1":"weiss","2":"rot","3":"weiss","4":"mittelblau"},"h":{}},"Laos":{"s":{"0":"rot","1":"dunkelblau","2":"rot"},"h":{}},"Tschechien":{"s":{"0":"weiss","1":"rot"},"h":{}},"Kuba":{"s":{"0":"mittelblau","1":"weiss","2":"mittelblau","3":"weiss","4":"mittelblau"},"h":{}},"Griechenland":{"s":{"0":"blau","1":"weiss","2":"blau","3":"weiss","4":"blau","5":"weiss","6":"blau","7":"weiss","8":"blau"},"h":{}},"Liberia":{"s":{"0":"rot","1":"weiss","2":"rot","3":"weiss","4":"rot","5":"weiss","6":"rot","7":"weiss","8":"rot","9":"weiss","10":"rot"},"h":{}},"USA":{"s":{"0":"karminrot","1":"weiss","2":"karminrot","3":"weiss","4":"karminrot","5":"weiss","6":"karminrot","7":"weiss","8":"karminrot","9":"weiss","10":"karminrot","11":"weiss","12":"karminrot"},"h":{}},"Chile":{"s":{"0":"weiss","1":"rot"},"h":{}},"Finnland":{"s":{"0":"weiss"},"h":{"0":"dunkelblau","1":"dunkelblau"}},"Norwegen":{"s":{"0":"rot"},"h":{}},"Island":{"s":{"0":"mittelblau"},"h":{"2":"hellrot","3":"hellrot"}},"Georgien":{"s":{"0":"weiss"},"h":{"0":"rot","1":"rot","2":"rot","3":"rot","4":"rot","5":"rot"}},"Tonga":{"s":{"0":"rot"},"h":{}},"Somalia":{"s":{"0":"hellblau"},"h":{}},"Vietnam":{"s":{"0":"rot"},"h":{"0":"hellgelb"}},"China":{"s":{"0":"hellrot"},"h":{}},"Pakistan":{"s":{"0":"dunkelgruen"},"h":{}},"Tunesien":{"s":{"0":"rot"},"h":{}},"Algerien":{"s":{"0":"dunkelgruen","1":"weiss"},"h":{}},"Palau":{"s":{"0":"hellblau"},"h":{"0":"hellgelb"}},"Jamaika":{"s":{"0":"gelb"},"h":{}},"Bosnien und Herzegowina":{"s":{"0":"mittelblau"},"h":{}},"Australien":{"s":{"0":"dunkelblau"},"h":{}},"Neuseeland":{"s":{"0":"dunkelblau"},"h":{}},"Tuvalu":{"s":{"0":"himmelblau"},"h":{}},"Südafrika":{"s":{"0":"hellrot","1":"dunkelblau"},"h":{"5":"dunkelgruen"}},"Nepal":{"s":{"0":"weiss"},"h":{}},"Katar":{"s":{"0":"dunkelrot"},"h":{}},"Bahrain":{"s":{"0":"rot"},"h":{}},"Jordanien":{"s":{"0":"schwarz","1":"weiss","2":"gruen"},"h":{}},"Kuwait":{"s":{"0":"gruen","1":"weiss","2":"hellrot"},"h":{}},"Südkorea":{"s":{"0":"weiss"},"h":{}},"Israel":{"s":{"0":"weiss"},"h":{}},"Kasachstan":{"s":{"0":"himmelblau"},"h":{}},"Sri Lanka":{"s":{"0":"gelb"},"h":{"0":"dunkelgruen"}},"Saudi-Arabien":{"s":{"0":"dunkelgruen"},"h":{}},"Venezuela":{"s":{"0":"gelb","1":"dunkelblau","2":"rot"},"h":{}},"Honduras":{"s":{"0":"himmelblau","1":"weiss","2":"himmelblau"},"h":{"0":"himmelblau"}},"Mexiko":{"s":{"0":"dunkelgruen","1":"weiss","2":"rot"},"h":{}},"Ägypten":{"s":{"0":"rot","1":"weiss","2":"schwarz"},"h":{}},"Albanien":{"s":{"0":"hellrot"},"h":{}},"Moldau":{"s":{"0":"mittelblau","1":"hellgelb","2":"rot"},"h":{}},"Bolivien":{"s":{"0":"rot","1":"hellgelb","2":"dunkelgruen"},"h":{}},"Argentinien":{"s":{"0":"hellblau","1":"weiss","2":"hellblau"},"h":{}},"Kroatien":{"s":{"0":"hellrot","1":"weiss","2":"mittelblau"},"h":{}},"Slowenien":{"s":{"0":"weiss","1":"mittelblau","2":"rot"},"h":{}},"Slowakei":{"s":{"0":"weiss","1":"blau","2":"hellrot"},"h":{}},"Serbien":{"s":{"0":"rot","1":"mittelblau","2":"weiss"},"h":{}},"Haiti":{"s":{"0":"mittelblau","1":"rot"},"h":{}},"Indien":{"s":{"0":"orange","1":"weiss","2":"dunkelgruen"},"h":{}},"Iran":{"s":{"0":"gruen","1":"weiss","2":"rot"},"h":{}},"Irak":{"s":{"0":"rot","1":"weiss","2":"schwarz"},"h":{}},"Mongolei":{"s":{"0":"hellrot","1":"blau","2":"hellrot"},"h":{}},"Guatemala":{"s":{"0":"hellblau","1":"weiss","2":"hellblau"},"h":{}},"El Salvador":{"s":{"0":"blau","1":"weiss","2":"blau"},"h":{}},"Nicaragua":{"s":{"0":"blau","1":"weiss","2":"blau"},"h":{}},"Kirgistan":{"s":{"0":"hellrot"},"h":{}},"Äthiopien":{"s":{"0":"gruen","1":"gelb","2":"hellrot"},"h":{}},"Marokko":{"s":{"0":"rot"},"h":{}},"Uganda":{"s":{"0":"schwarz","1":"hellgelb","2":"hellrot","3":"schwarz","4":"hellgelb","5":"hellrot"},"h":{}},"Vatikanstadt":{"s":{"0":"hellgelb","1":"weiss"},"h":{}},"Zypern":{"s":{"0":"weiss"},"h":{}},"Mosambik":{"s":{"0":"gruen","1":"schwarz","2":"gelb"},"h":{}},"Fidschi":{"s":{"0":"hellblau"},"h":{}},"Brasilien":{"s":{"0":"gruen"},"h":{}},"Kenia":{"s":{"0":"schwarz","1":"weiss","2":"rot","3":"weiss","4":"dunkelgruen"},"h":{}},"Montenegro":{"s":{"0":"gold"},"h":{}},"Spanien":{"s":{"0":"karminrot","1":"gelb","2":"karminrot"},"h":{}},"Portugal":{"s":{"0":"dunkelgruen","1":"hellrot"},"h":{}},"Kanada":{"s":{"0":"rot","1":"weiss","2":"rot"},"h":{}},"Libanon":{"s":{"0":"hellrot","1":"weiss","2":"hellrot"},"h":{}},"Ecuador":{"s":{"0":"hellgelb","1":"mittelblau","2":"rot"},"h":{}},"Angola":{"s":{"0":"hellrot","1":"schwarz"},"h":{}},"Malta":{"s":{"0":"weiss","1":"rot"},"h":{}},"Andorra":{"s":{"0":"mittelblau","1":"hellgelb","2":"rot"},"h":{}},"Liechtenstein":{"s":{"0":"mittelblau","1":"rot"},"h":{}},"San Marino":{"s":{"0":"weiss","1":"himmelblau"},"h":{}},"Tadschikistan":{"s":{"0":"rot","1":"weiss","2":"dunkelgruen"},"h":{}},"Lesotho":{"s":{"0":"mittelblau","1":"weiss","2":"gruen"},"h":{}},"Kambodscha":{"s":{"0":"mittelblau","1":"rot","2":"mittelblau"},"h":{}},"Paraguay":{"s":{"0":"rot","1":"weiss","2":"mittelblau"},"h":{}},"Äquatorialguinea":{"s":{"0":"hellgruen","1":"weiss","2":"hellrot"},"h":{"0":"himmelblau"}},"Simbabwe":{"s":{"0":"dunkelgruen","1":"hellgelb","2":"rot","3":"schwarz","4":"rot","5":"hellgelb","6":"dunkelgruen"},"h":{}}};
+const SW_FIX={Spanien:[['rot','gelb','rot'],[1,2,1]],Portugal:[['gruen','rot'],[2,3]],Kanada:[['rot','weiss','rot'],[1,2,1]],Libanon:[['rot','weiss','rot'],[1,2,1]],Ecuador:[['gelb','blau','rot'],[2,1,1]],Kolumbien:[['gelb','blau','rot'],[2,1,1]],Lettland:[['karminrot','weiss','karminrot'],[2,1,2]],Thailand:[['karminrot','weiss','dunkelblau','weiss','karminrot'],[1,1,2,1,1]],'Costa Rica':[['blau','weiss','rot','weiss','blau'],[1,1,2,1,1]],Laos:[['rot','blau','rot'],[1,2,1]],Kambodscha:[['blau','rot','blau'],[1,2,1]],Tadschikistan:[['rot','weiss','gruen'],[2,3,2]],Lesotho:[['blau','weiss','gruen'],[3,4,3]],Kenia:[['schwarz','weiss','rot','weiss','gruen'],[6,1,6,1,6]]};
+function applySwFix(){TARGETS.forEach(t=>{const f=SW_FIX[t.name];if(f){t.colors=[...f[0]];t.n=f[0].length;t.sw=[...f[1]];}});}
 function applyColorFix(){TARGETS.forEach(t=>{const f=COLOR_FIX[t.name];if(!f)return;for(const i in f.s)t.colors[i]=f.s[i];for(const j in f.h)if(t.shapes[j])t.shapes[j].c=f.h[j];});}
 function addEmbTargets(){
   EMB_TARGETS.forEach(([name,id,iso,ratio,orient,colors,extra])=>{
@@ -358,7 +422,6 @@ add('Mauritius',480,[3,2],'h',['rot','blau','gelb','gruen']);
 add('Kolumbien',170,[3,2],'h',['gelb','gelb','blau','rot']);
 add('Lettland',428,[2,1],'h',['dunkelrot','dunkelrot','weiss','dunkelrot','dunkelrot']);
 add('Thailand',764,[3,2],'h',['rot','weiss','blau','blau','weiss','rot']);
-add('Costa Rica',188,[5,3],'h',['blau','weiss','rot','rot','weiss','blau']);
 add('Laos',418,[3,2],'h',['rot','blau','blau','rot'],sq=>[sq('circle',.5,.5,.4,'weiss')]);
 add('Tschechien',203,[3,2],'h',['weiss','rot'],()=>[TFR([[0,0],[.5,.5],[0,1]],'blau')]);
 add('Kuba',192,[2,1],'h',['blau','weiss','blau','weiss','blau'],sq=>[TFR([[0,0],[.433,.5],[0,1]],'rot'),sq('star',.145,.5,.3,'weiss')]);
@@ -373,10 +436,10 @@ add('USA',840,[19,10],'h',alt(13,'rot','weiss'),sq=>{
   return o;
 });
 add('Chile',152,[3,2],'h',['weiss','rot'],sq=>[R(.1667,.25,.3333,.5,'blau'),sq('star',.1667,.25,.25,'weiss')]);
-add('Finnland',246,[18,11],'h',['weiss'],()=>[R(.389,.5,.1667,1,'blau'),R(.5,.5,1,.2727,'blau')]);
+add('Finnland',246,[18,11],'h',['weiss'],()=>[R(.361,.5,.1667,1,'mittelblau'),R(.5,.5,1,.2727,'mittelblau')]);
 add('Norwegen',578,[11,8],'h',['rot'],()=>[R(.3636,.5,.1818,1,'weiss'),R(.5,.5,1,.25,'weiss'),R(.3636,.5,.0909,1,'dunkelblau'),R(.5,.5,1,.125,'dunkelblau')]);
 add('Island',352,[25,18],'h',['blau'],()=>[R(.36,.5,.16,1,'weiss'),R(.5,.5,1,.2222,'weiss'),R(.36,.5,.08,1,'rot'),R(.5,.5,1,.1111,'rot')]);
-add('Georgien',268,[3,2],'h',['weiss'],sq=>[R(.5,.5,.1333,1,'rot'),R(.5,.5,1,.2,'rot'),sq('cross',.25,.25,.16,'rot'),sq('cross',.75,.25,.16,'rot'),sq('cross',.25,.75,.16,'rot'),sq('cross',.75,.75,.16,'rot')]);
+add('Georgien',268,[3,2],'h',['weiss'],sq=>[R(.5,.5,.1333,1,'rot'),R(.5,.5,1,.2,'rot'),sq('bcross',.2167,.2,.16,'rot'),sq('bcross',.7833,.2,.16,'rot'),sq('bcross',.2167,.8,.16,'rot'),sq('bcross',.7833,.8,.16,'rot')]);
 add('Tonga',776,[2,1],'h',['rot'],sq=>[R(.1875,.25,.375,.5,'weiss'),sq('cross',.1875,.25,.36,'rot')]);
 add('Somalia',706,[3,2],'h',['hellblau'],sq=>[sq('star',.5,.5,.5,'weiss')]);
 add('Vietnam',704,[3,2],'h',['rot'],sq=>[sq('star',.5,.5,.6,'gelb')]);
@@ -444,6 +507,7 @@ EMB_TARGETS.push(
   ['Montenegro',499,'me',[2,1],'h',['gelb'],[R(.5,.5,.96,.92,'rot')]]
 );
 EMB_TARGETS.push(
+  ['Costa Rica',188,'cr',[5,3],'h',['blau','weiss','rot','weiss','blau'],[{t:'circle',x:.3,y:.5,w:.21,h:.52,c:'weiss',r:0}]],
   ['Spanien',724,'es',[3,2],'h',['rot','gelb','gelb','rot']],
   ['Portugal',620,'pt',[3,2],'v',['gruen','gruen','rot','rot','rot']],
   ['Kanada',124,'ca',[2,1],'v',['rot','weiss','weiss','rot']],
@@ -468,7 +532,7 @@ EMB_TARGETS.push(
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const pev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}}; // lang und C sind let/const der App, also nicht als window-Eigenschaft sichtbar
 const LG=pev('lang')||'de',PC=pev('C');
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.":"All stripes are equally wide. Unequal stripes are built from several equal ones (e.g. 1:2:1 is four stripes, the middle two the same color). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Karminrot":"Crimson","Mittelblau":"Medium blue","Bolnisi-Kreuz":"Bolnisi cross","Dicke":"Thickness","Schließen":"Closing","Rückgängig":"Undo","Wiederholen":"Redo","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du im zweiten Schritt (Farben). Sonderformen kommen im dritten Schritt dazu.":"All stripes start equally wide. You change each stripe's width in step 2 (colors). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PC&&PC[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -480,7 +544,7 @@ function translateDom(){
 }
 
 // ───────────────────────── Zustand ─────────────────────────
-const S={ratio:[3,2],orient:'h',n:1,colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
+const S={ratio:[3,2],orient:'h',n:1,sw:Array(20).fill(1),colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
          round:{list:[],i:0,total:0,hints:0,results:[]}};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const svg=$('#stage');
@@ -499,19 +563,24 @@ function shapeSVG(s,W,H,id){
     case 'trif':case 'quad':case 'poly':return `<polygon points="${s.p.map(q=>(q[0]*W)+','+(q[1]*H)).join(' ')}" fill="${fill}"/>`;
     case 'star':{let p=[];for(let i=0;i<10;i++){const r=i%2?.382:1,a=(-90+36*i)*Math.PI/180;p.push((Math.cos(a)*r*w/2).toFixed(2)+','+(Math.sin(a)*r*h/2).toFixed(2));}return `<polygon ${tr} points="${p.join(' ')}" fill="${fill}"/>`;}
     case 'cross':{const a=.17,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
-    case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*.2}" rx="${w*.4}" ry="${h*.4}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
+    case 'bcross':{const a=.1,b=.28,P=[[-a,-a],[-b,-.5],[b,-.5],[a,-a],[.5,-b],[.5,b],[a,a],[b,.5],[-b,.5],[-a,a],[-.5,b],[-.5,-b]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
+    case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*((s.ct??.3)-.5+(s.cr??.4))}" rx="${w*(s.cr??.4)}" ry="${h*(s.cr??.4)}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
     case 'emb':return `<image ${tr} href="data/emblems/${s.e}.svg" x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
   }
   return '';
 }
+function stripeEdges(f){
+  const n=f.n<=1?1:f.n,w=(f.sw&&f.sw.length>=n)?f.sw.slice(0,n):Array(n).fill(1),sum=w.reduce((a,b)=>a+b,0)||1;
+  let acc=0;const e=[0];for(let i=0;i<n;i++){acc+=w[i]/sum;e.push(acc);}e[n]=1;return e;
+}
 function flagInner(f,pfx){
   const {W,H}=dims(f);let o='';
-  const n=f.n<=1?1:f.n,or=n===1?'h':f.orient;
+  const n=f.n<=1?1:f.n,or=n===1?'h':f.orient,E=stripeEdges(f);
   for(let i=0;i<n;i++){
     const last=i===n-1,e=last?0:.4;
     o+= or==='v'
-      ? `<rect class="stp" data-s="${i}" x="${i*W/n}" y="0" width="${W/n+e}" height="${H}" fill="${colOf(f.colors[i])}"/>`
-      : `<rect class="stp" data-s="${i}" x="0" y="${i*H/n}" width="${W}" height="${H/n+e}" fill="${colOf(f.colors[i])}"/>`;
+      ? `<rect class="stp" data-s="${i}" x="${E[i]*W}" y="0" width="${(E[i+1]-E[i])*W+e}" height="${H}" fill="${colOf(f.colors[i])}"/>`
+      : `<rect class="stp" data-s="${i}" x="0" y="${E[i]*H}" width="${W}" height="${(E[i+1]-E[i])*H+e}" fill="${colOf(f.colors[i])}"/>`;
   }
   f.shapes.forEach((s,i)=>{let sv=shapeSVG(s,W,H,pfx+i);if(s.clip){const cid='cl'+pfx+i,[a,b,c,d]=s.clip;sv=`<clipPath id="${cid}"><rect x="${a*W}" y="${b*H}" width="${(c-a)*W}" height="${(d-b)*H}"/></clipPath><g clip-path="url(#${cid})">${sv}</g>`;}o+=`<g class="shp" data-i="${i}">${sv}</g>`;});
   return o;
@@ -531,15 +600,15 @@ function draw(){
   o+=`<svg x="0" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">${flagInner(S,'e')}</svg>`;
   // Schritt 1: Streifengrenzen gestrichelt andeuten
   if(S.step===1&&S.n>1){
-    for(let k=1;k<S.n;k++){
-      const l=S.orient==='v'?[k*W/S.n,0,k*W/S.n,H]:[0,k*H/S.n,W,k*H/S.n];
+    const E1=stripeEdges(S);for(let k=1;k<S.n;k++){
+      const l=S.orient==='v'?[E1[k]*W,0,E1[k]*W,H]:[0,E1[k]*H,W,E1[k]*H];
       o+=`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#14110e" stroke-width="${u*3.5}" stroke-opacity=".55" pointer-events="none"/><line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*9} ${u*6}" pointer-events="none"/>`;
     }
   }
   // Auswahl
   if(S.step===2){
     const n=S.n<=1?1:S.n,i=Math.min(S.selStripe,n-1),or=n===1?'h':S.orient;
-    const b=or==='v'?[i*W/n,0,W/n,H]:[0,i*H/n,W,H/n];
+    const E2=stripeEdges(S),b=or==='v'?[E2[i]*W,0,(E2[i+1]-E2[i])*W,H]:[0,E2[i]*H,W,(E2[i+1]-E2[i])*H];
     o+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="none" stroke="#f0b060" stroke-width="${u*3}" stroke-dasharray="${u*10} ${u*6}" pointer-events="none"/>`;
   }
   if(S.step>=3&&S.sel!=null&&S.shapes[S.sel]){
@@ -578,11 +647,12 @@ function buildStatic(){
   $('#shapes').innerHTML=SHAPE_BTN.map(s=>`<button class="chip" data-add="${s[0]}"><svg viewBox="0 0 30 30" fill="currentColor">${s[2]}</svg>${tr(s[1])}</button>`).join('');
   fillEmb('');
 }
-let countCustom=false;
+let countCustom=false,LASTN=1;
 function openAcc(name){$$('.ai').forEach(e=>e.classList.toggle('open',e.dataset.a===name));}
 function setVal(sel,v){const e=$(sel);if(document.activeElement!==e)e.value=v;}
 function syncLayout(){
-  const n=S.n<=1?1:S.n,key=S.ratio[0]+':'+S.ratio[1],pre=RATIOS.some(r=>r[0]+':'+r[1]===key),cr=!pre||customOn;
+  const n=S.n<=1?1:S.n;if(n!==LASTN){S.sw=Array(20).fill(1);LASTN=n;}
+  const key=S.ratio[0]+':'+S.ratio[1],pre=RATIOS.some(r=>r[0]+':'+r[1]===key),cr=!pre||customOn;
   $$('#ratios .chip').forEach(b=>b.classList.toggle('on',b.dataset.r==='custom'?cr:(!cr&&b.dataset.r===key)));
   $('#customR').style.display=cr?'block':'none';
   setVal('#rw',S.ratio[0]);setVal('#rh',S.ratio[1]);setVal('#rws',S.ratio[0]);setVal('#rhs',S.ratio[1]);
@@ -601,6 +671,8 @@ function syncColors(){
   $('#stripeTitle').textContent=tr(n===1?'Hintergrundfarbe':'Streifen wählen');
   $('#stripeList').innerHTML=Array.from({length:n},(_,i)=>`<button class="stripe${i===S.selStripe?' on':''}" data-st="${i}" style="background:${colOf(S.colors[i])}" title="Streifen ${i+1}"></button>`).join('');
   $$('#pal .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.colors[S.selStripe]));
+  $('#swBox').style.display=n>1?'':'none';
+  if(n>1){const E=stripeEdges(S),v=Math.round((E[S.selStripe+1]-E[S.selStripe])*100);$('#psw').value=v;$('#pswo').textContent=v+'%';}
 }
 function syncProps(){
   const s=S.sel!=null?S.shapes[S.sel]:null,off=!s;
@@ -612,6 +684,8 @@ function syncProps(){
   $('#ph').value=Math.round(bb.h*100);$('#pho').textContent=Math.round(bb.h*100)+'%';
   $('#pr').value=s.r||0;$('#pro').textContent=(s.r||0)+'°';
   $('#pr').disabled=isP(s);
+  $$('.cresrow').forEach(e=>{e.style.display=s.t==='cres'?'':'none';});
+  if(s.t==='cres'){$('#pct').value=Math.round((s.ct??.3)*100);$('#pcto').textContent=$('#pct').value;$('#pcr').value=Math.round((s.cr??.4)*100);$('#pcro').textContent=$('#pcr').value;}
   const emb=s.t==='emb';const pl=$('#plock');
   if(emb){if(!S.embLock){S.lockPref=pl.checked;S.embLock=true;}pl.checked=true;pl.disabled=true;}
   else{if(S.embLock){pl.checked=S.lockPref!==false;S.embLock=false;}pl.disabled=false;}
@@ -649,7 +723,7 @@ function moveBy(s,dx,dy){if(isP(s))s.p=s.p.map(q=>[q[0]+dx,q[1]+dy]);else{s.x+=d
 function moveTo(s,cx,cy){const b=bbox(s);moveBy(s,cx-b.x,cy-b.y);}
 function cands(){
   const X=[0,.5,1],Y=[0,.5,1],n=S.n<=1?1:S.n;
-  if(n>1){for(let k=1;k<n;k++){(S.orient==='v'?X:Y).push(k/n);}}
+  if(n>1){const E=stripeEdges(S);for(let k=1;k<n;k++){(S.orient==='v'?X:Y).push(E[k]);}}
   return{X,Y};
 }
 function snapVal(v,list,offs,thr){
@@ -734,6 +808,13 @@ $('#cnums').addEventListener('input',e=>setN(+e.target.value));
   const pre=RATIOS.some(r=>r[0]===w&&r[1]===h);customOn=true;syncLayout();
   draw();
 }));
+// Streifenbreite: der gewählte Streifen wird breiter/schmaler, die übrigen teilen den Rest im bisherigen Verhältnis
+$('#psw').addEventListener('input',e=>{
+  const n=S.n;if(n<=1)return;const E=stripeEdges(S),p=Array.from({length:n},(_,i)=>E[i+1]-E[i]),i=S.selStripe,f=+e.target.value/100,rest=1-p[i];
+  for(let j=0;j<n;j++)S.sw[j]=j===i?f:(rest>1e-6?p[j]*(1-f)/rest:(1-f)/(n-1));
+  syncColors();draw();
+});
+$('#swEq').onclick=()=>{S.sw=Array(20).fill(1);syncColors();draw();};
 // Regler
 function slider(id,fn){$('#'+id).addEventListener('input',e=>{const s=S.shapes[S.sel];if(!s)return;fn(s,+e.target.value);syncProps();draw();});}
 function resize(s,w,h){
@@ -744,6 +825,8 @@ function resize(s,w,h){
 slider('pw',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nw=v/100;let nh=b.h;if($('#plock').checked||s.t==='emb')nh=nw*W*b.h*H/(b.w*W*H);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
 slider('ph',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nh=v/100;let nw=b.w;if($('#plock').checked||s.t==='emb')nw=nh*H*b.w*W/(b.h*H*W);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
 slider('pr',(s,v)=>{s.r=v;});
+slider('pct',(s,v)=>{s.ct=v/100;});
+slider('pcr',(s,v)=>{s.cr=v/100;});
 $('#cgap').addEventListener('input',e=>{$('#cgo').textContent=e.target.value+'%';});
 // Ziehen
 let drag=null;
@@ -834,7 +917,7 @@ function pairScore(a,b){
 //   Farben  (40): RGB-Übereinstimmung Pixel für Pixel, kleine Verschiebungen werden verziehen
 //   Details (35): Übereinstimmung der Kanten (Formen, Wappen, Sterne) mit Toleranz
 // Jede Farbe der Vorlage zählt gleich viel, egal wie groß ihre Fläche ist, damit Nichtstun kaum Punkte bringt.
-const FAM={hellrot:'r',hellgelb:'y',gold:'y',tuerkis:'g',himmelblau:'b',hellgrau:'a',hellbraun:'n',rot:'r',dunkelrot:'r',orange:'o',gelb:'y',hellgruen:'g',gruen:'g',dunkelgruen:'g',hellblau:'b',blau:'b',dunkelblau:'b',weiss:'w',schwarz:'k',grau:'a',braun:'n',lila:'p',rosa:'s'};
+const FAM={karminrot:'r',mittelblau:'b',hellrot:'r',hellgelb:'y',gold:'y',tuerkis:'g',himmelblau:'b',hellgrau:'a',hellbraun:'n',rot:'r',dunkelrot:'r',orange:'o',gelb:'y',hellgruen:'g',gruen:'g',dunkelgruen:'g',hellblau:'b',blau:'b',dunkelblau:'b',weiss:'w',schwarz:'k',grau:'a',braun:'n',lila:'p',rosa:'s'};
 const EMBURI={};
 async function loadEmbUris(f){
   for(const sh of f.shapes){if(sh.t!=='emb'||EMBURI[sh.e])continue;
@@ -871,18 +954,19 @@ function colorSim(U,Tg){
 // Struktur: Korrelation der Helligkeitsverteilung (Farbe egal, nur wo hell und dunkel ist)
 function structSim(U,Tg){
   const n=Tg.w*Tg.h,L=A=>{const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=.299*A.o[i*3]+.587*A.o[i*3+1]+.114*A.o[i*3+2];return o;};
-  const a=L(U),b=L(Tg);let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
+  const blur=(o)=>{const r=new Float32Array(n),W=Tg.w,Hh=Tg.h;for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){let sum=0,c=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=W||yy>=Hh)continue;sum+=o[yy*W+xx];c++;}r[y*W+x]=sum/c;}return r;};
+  const a=blur(L(U)),b=blur(L(Tg));let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
   let sab=0,saa=0,sbb=0;for(let i=0;i<n;i++){sab+=(a[i]-ma)*(b[i]-mb);saa+=(a[i]-ma)**2;sbb+=(b[i]-mb)**2;}
   if(sbb<1)return saa<1?1:.5;if(saa<1)return 0;
-  return Math.max(0,sab/Math.sqrt(saa*sbb));
+  return Math.pow(Math.max(0,sab/Math.sqrt(saa*sbb)),.7);
 }
 function edges(d){const e=new Uint8Array(RW*RH);for(let y=0;y<RH;y++)for(let x=0;x<RW;x++){const i=(y*RW+x)*4;let m=0;if(x+1<RW)m=Math.max(m,cd(d,i,d,i+4));if(y+1<RH)m=Math.max(m,cd(d,i,d,i+RW*4));e[y*RW+x]=m>70?1:0;}return e;}
 // Details: Kanten (Umrisse von Formen, Wappen, Sternen) der Flagge gegen die der Vorlage; je näher, desto besser (bis 8 Pixel Abstand)
 function edgeSim(eu,et){
   const nu=eu.reduce((a,b)=>a+b,0),nt=et.reduce((a,b)=>a+b,0);if(!nu&&!nt)return 1;if(!nu||!nt)return 0;
-  const R=8,near=(A,B)=>{let sum=0,n=0;for(let y=0;y<RH;y++)for(let x=0;x<RW;x++)if(A[y*RW+x]){n++;let best=R;
+  const R=12,near=(A,B)=>{let sum=0,n=0;for(let y=0;y<RH;y++)for(let x=0;x<RW;x++)if(A[y*RW+x]){n++;let best=R;
     for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=RW||yy>=RH||!B[yy*RW+xx])continue;const dd=Math.hypot(dx,dy);if(dd<best)best=dd;}
-    sum+=1-best/R;}return sum/n;};
+    sum+=1-Math.pow(best/R,1.5);}return sum/n;};
   const p=near(eu,et),r=near(et,eu);return p+r?2*p*r/(p+r):0;
 }
 async function scoreFlag(b,t){
@@ -896,8 +980,8 @@ async function scoreFlag(b,t){
 
 // ───────────────────────── Spielablauf ─────────────────────────
 function resetBuild(){
-  customOn=false;countCustom=false;openAcc('ratio');S.batch=null;S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.shapes=[];S.sel=null;S.selStripe=0;S.guides=[];
-  syncLayout();setStep(1);
+  customOn=false;countCustom=false;openAcc('ratio');S.batch=null;S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.sel=null;S.selStripe=0;S.guides=[];
+  syncLayout();setStep(1);histReset();
 }
 function newRound(){
   const list=[...TARGETS].sort(()=>Math.random()-.5).slice(0,5);
@@ -906,7 +990,7 @@ function newRound(){
 function loadTarget(){
   const r=S.round;S.round.hints=0;
   $('#tname').textContent=nm(r.list[r.i]);$('#tnum').textContent=(r.i+1)+'/'+r.list.length;$('#ttot').textContent=avg();
-  resetBuild();
+  resetBuild();if(PRUEF)pfBar();
 }
 $('#bReset').onclick=()=>{
   if(S.step===1){resetBuild();return;}
@@ -940,6 +1024,7 @@ function showEnd(){
 // Flagge überspringen: zählt 0 Punkte
 $('#bSkip').onclick=()=>{
   const r=S.round,t=r.list[r.i];
+  if(PRUEF){if(r.i<r.list.length-1){r.i++;loadTarget();}else pfExport();return;}
   r.results.push({name:nm(t),pts:0});
   if(r.i<r.list.length-1){r.i++;loadTarget();}else showEnd();
 };
@@ -954,6 +1039,7 @@ async function check(){
     <div class="total fly"><span class="totv" data-v="${pts}">0 %</span> <small>${tr('richtig')}</small></div>
     <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${tr(last?'Ergebnis ansehen':'Nächste Flagge →')}</button>`;
   $('#dlg').classList.add('on');animateBars();
+  if(PRUEF){$('.cmp').classList.add('cmp3');$('.cmp').insertAdjacentHTML('beforeend','<figure>'+pfOrig(t)+'<figcaption>Original</figcaption></figure>');$('#bNext').remove();pfFeedback(t,pts);return;}
   $('#bNext').onclick=()=>{
     $('#dlg').classList.remove('on');
     if(!last){r.i++;loadTarget();return;}
@@ -961,10 +1047,154 @@ async function check(){
   };
 }
 
+
+// ───────────────────────── Rückgängig / Wiederholen ─────────────────────────
+// Schnappschüsse des Bauzustands; ein Schritt endet beim Loslassen (Ziehen), Klick oder nach kurzer Eingabepause (Regler).
+const HIST={u:[],r:[],last:null,t:null};
+const histSnap=()=>JSON.stringify({ratio:S.ratio,orient:S.orient,n:S.n,sw:S.sw,colors:S.colors,shapes:S.shapes});
+function histUi(){const u=$('#bUndo'),r=$('#bRedo');if(u)u.disabled=!HIST.u.length;if(r)r.disabled=!HIST.r.length;}
+function histReset(){HIST.u=[];HIST.r=[];HIST.last=histSnap();histUi();}
+function histCommit(){
+  if(HIST.last==null)return;const cur=histSnap();
+  if(cur!==HIST.last){HIST.u.push(HIST.last);if(HIST.u.length>150)HIST.u.shift();HIST.last=cur;HIST.r=[];histUi();}
+}
+function histRestore(str){
+  const o=JSON.parse(str);S.ratio=o.ratio;S.orient=o.orient;S.n=o.n;S.sw=o.sw||Array(20).fill(1);LASTN=o.n<=1?1:o.n;S.colors=o.colors;S.shapes=o.shapes;
+  if(S.sel!=null&&!S.shapes[S.sel])S.sel=null;S.batch=null;S.guides=[];
+  syncLayout();if(S.step===2)syncColors();syncProps();draw();histUi();
+}
+function undo(){clearTimeout(HIST.t);histCommit();if(!HIST.u.length)return;HIST.r.push(HIST.last);HIST.last=HIST.u.pop();histRestore(HIST.last);}
+function redo(){clearTimeout(HIST.t);histCommit();if(!HIST.r.length)return;HIST.u.push(HIST.last);HIST.last=HIST.r.pop();histRestore(HIST.last);}
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
+['pointerup','click','keyup','change'].forEach(ev=>document.addEventListener(ev,()=>setTimeout(histCommit,0),true));
+document.addEventListener('input',()=>{clearTimeout(HIST.t);HIST.t=setTimeout(histCommit,450);},true);
+document.addEventListener('keydown',e=>{
+  if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
+  const el=document.activeElement,txt=el&&/TEXTAREA|INPUT/.test(el.tagName)&&!/range|checkbox/.test(el.type||'');if(txt)return;
+  if(k==='z'&&!e.shiftKey){undo();e.preventDefault();}
+  else if(k==='y'||(k==='z'&&e.shiftKey)){redo();e.preventDefault();}
+});
+
+// ───────────────────────── Prüfmodus (?pruefen) ─────────────────────────
+// Leander prüft damit die nicht ganz einfachen Zielflaggen (mit Symbol oder unklarem Layout) einzeln und gibt Rückmeldung.
+// Links die Prüfliste nach Gruppen, oben die aktuelle Flagge, unter dem Bauplatz Vorlage und Original. Stand im Browser (localStorage), Export als Text.
+const PRUEF=new URLSearchParams(location.search).has('pruefen');
+const VERIFIED=new Set(["Frankreich","Italien","Deutschland","Niederlande","Irland","Österreich","Polen","Indonesien","Ukraine","Russland","Ungarn","Bulgarien","Litauen","Estland","Luxemburg","Armenien","Gabun","Rumänien","Belgien","Mali","Guinea","Nigeria","Elfenbeinküste","Tschad","Peru","Jemen","Sierra Leone","Mauritius","Japan","Schweiz","Bangladesch","Kirgistan"]);
+const PRUEF_ISO={"Frankreich":"fr","Italien":"it","Deutschland":"de","Niederlande":"nl","Irland":"ie","Österreich":"at","Polen":"pl","Indonesien":"id","Japan":"jp","Schweiz":"ch","Bangladesch":"bd","Dänemark":"dk","Schweden":"se","Türkei":"tr","Ukraine":"ua","Russland":"ru","Ungarn":"hu","Bulgarien":"bg","Litauen":"lt","Estland":"ee","Luxemburg":"lu","Armenien":"am","Gabun":"ga","Rumänien":"ro","Belgien":"be","Mali":"ml","Guinea":"gn","Nigeria":"ng","Elfenbeinküste":"ci","Tschad":"td","Peru":"pe","Jemen":"ye","Sierra Leone":"sl","Mauritius":"mu","Kolumbien":"co","Lettland":"lv","Thailand":"th","Costa Rica":"cr","Laos":"la","Tschechien":"cz","Kuba":"cu","Griechenland":"gr","Liberia":"lr","USA":"us","Chile":"cl","Finnland":"fi","Norwegen":"no","Island":"is","Georgien":"ge","Tonga":"to","Somalia":"so","Vietnam":"vn","China":"cn","Pakistan":"pk","Tunesien":"tn","Algerien":"dz","Niger":"ne","Palau":"pw","Jamaika":"jm","Seychellen":"sc","Namibia":"na","Tansania":"tz","Republik Kongo":"cg","Trinidad und Tobago":"tt","Bosnien und Herzegowina":"ba","Vereinigtes Königreich":"gb","Australien":"au","Neuseeland":"nz","Tuvalu":"tv","Südafrika":"za","Nepal":"np","Katar":"qa","Bahrain":"bh","Jordanien":"jo","Kuwait":"kw","Südkorea":"kr","Israel":"il","Kasachstan":"kz","Sri Lanka":"lk","Saudi-Arabien":"sa","Venezuela":"ve","Honduras":"hn","Mexiko":"mx","Ägypten":"eg","Albanien":"al","Moldau":"md","Bolivien":"bo","Argentinien":"ar","Kroatien":"hr","Slowenien":"si","Slowakei":"sk","Serbien":"rs","Haiti":"ht","Indien":"in","Iran":"ir","Irak":"iq","Mongolei":"mn","Guatemala":"gt","El Salvador":"sv","Nicaragua":"ni","Kirgistan":"kg","Äthiopien":"et","Marokko":"ma","Uganda":"ug","Vatikanstadt":"va","Zypern":"cy","Mosambik":"mz","Fidschi":"fj","Brasilien":"br","Kenia":"ke","Montenegro":"me","Spanien":"es","Portugal":"pt","Kanada":"ca","Libanon":"lb","Ecuador":"ec","Angola":"ao","Malta":"mt","Andorra":"ad","Liechtenstein":"li","San Marino":"sm","Tadschikistan":"tj","Lesotho":"ls","Kambodscha":"kh","Paraguay":"py","Äquatorialguinea":"gq","Simbabwe":"zw"};
+const PF_ST={ok:'✓ Passt',vorlage:'✎ Vorlage falsch',baubar:'⚠ Nicht baubar',wertung:'⚖ Wertung unfair',weg:'✗ Muss raus'};
+const PF_KIND={ok:'ok',vorlage:'bad',baubar:'bad',wertung:'mid',weg:'bad'};
+const PF_SONDER=['Jamaika','Seychellen','Namibia','Tansania','Republik Kongo','Trinidad und Tobago','Bosnien und Herzegowina','Vereinigtes Königreich','Australien','Neuseeland','Tuvalu','Südafrika','Nepal','Katar','Bahrain','Südkorea','Kasachstan','Sri Lanka','Saudi-Arabien','Fidschi','Brasilien','Mosambik'];
+const PF_GROUPS=[
+  ['Kreuze',['Dänemark','Schweden','Finnland','Norwegen','Island','Georgien','Tonga']],
+  ['Ungleiche Streifen',['Kolumbien','Lettland','Thailand','Costa Rica']],
+  ['Formen & Sterne',['Türkei','Laos','Tschechien','Kuba','Griechenland','Liberia','USA','Chile','Somalia','Vietnam','China','Pakistan','Tunesien','Algerien','Niger','Palau','Jordanien','Kuwait','Israel','Venezuela','Honduras']],
+  ['Wappen & Emblems','emb'],
+  ['Schräg & Sonderformen',PF_SONDER]
+];
+const PF_NOTE={'Nepal':'Nur angenähert: ohne blauen Rand.','Kasachstan':'Nur angenähert: Ornament und Adler fehlen.','Sri Lanka':'Nur angenähert: Löwe und Ecken fehlen.','Saudi-Arabien':'Nur angenähert: Schrift und Schwert vereinfacht.','Südkorea':'Wirbel und Trigramme angenähert.','Katar':'Vorlage nutzt ein Vieleck: so nicht nachbaubar.','Bahrain':'Vorlage nutzt ein Vieleck: so nicht nachbaubar.','Vereinigtes Königreich':'Union Jack mit Zuschnitt in der Vorlage.','Australien':'Union Jack mit Zuschnitt in der Vorlage.','Neuseeland':'Union Jack mit Zuschnitt in der Vorlage.','Tuvalu':'Union Jack mit Zuschnitt in der Vorlage.','Fidschi':'Union Jack mit Zuschnitt in der Vorlage.','Südafrika':'Y-Form angenähert.','Mosambik':'Emblem angenähert.'};
+const pfGroupOf=t=>{
+  for(const [g,v] of PF_GROUPS){if(Array.isArray(v)&&v.includes(t.name))return g;}
+  return t.shapes.some(x=>x.t==='emb')?'Wappen & Emblems':'Weitere';
+};
+let PF={};try{PF=JSON.parse(localStorage.getItem('flagFeedback')||'{}')||{};}catch(e){PF={};}
+// Sofort-Übermittlung: Die Rückmeldungen liegen zusätzlich in einem Firestore-Dokument (nicht erratbare ID), das Claude lesen kann.
+const PF_API='https://firestore.googleapis.com/v1/projects/geo-quiz-b59a8/databases/(default)/documents/flagFeedback/pf-3c53b446e467a52cfce2',PF_KEY='AIzaSyAi-PgkqVuAaRvbj6nyC5ypTSce6rI8ru4';
+let pfNet='';let pfBusy=false,pfAgain=false;
+const pfMerge=(a,b)=>{const o={...a};for(const k of Object.keys(b||{}))if(!o[k]||(b[k].t||0)>(o[k].t||0))o[k]=b[k];return o;};
+async function pfRemoteGet(){const r=await fetch(PF_API+'?key='+PF_KEY);if(r.status===404)return{};if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();return JSON.parse((j.fields&&j.fields.d&&j.fields.d.stringValue)||'{}');}
+async function pfRemotePut(o){const r=await fetch(PF_API+'?key='+PF_KEY+'&updateMask.fieldPaths=d&updateMask.fieldPaths=u',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{d:{stringValue:JSON.stringify(o)},u:{integerValue:String(Date.now())}}})});if(!r.ok)throw new Error('HTTP '+r.status);}
+function pfNetShow(){const e=document.getElementById('pfsync');if(e)e.innerHTML=pfNet;}
+async function pfSync(){
+  if(pfBusy){pfAgain=true;return;}pfBusy=true;pfNet='<span style="color:var(--mute)">☁ sendet …</span>';pfNetShow();
+  try{const rem=await pfRemoteGet();PF=pfMerge(PF,rem);try{localStorage.setItem('flagFeedback',JSON.stringify(PF));}catch(e){}await pfRemotePut(PF);pfNet='<span style="color:var(--ok)">☁ bei Claude gespeichert ('+Object.keys(PF).length+')</span>';}
+  catch(e){pfNet='<span style="color:var(--bad)">☁ nicht übertragen – bleibt im Browser, wird beim nächsten Speichern erneut gesendet</span>';}
+  pfBusy=false;pfNetShow();if(typeof S!=='undefined'&&S.round&&S.round.list&&document.body.classList.contains('pruef')){try{pfList();}catch(e){}}
+  if(pfAgain){pfAgain=false;pfSync();}
+}
+const pfSave=()=>{try{localStorage.setItem('flagFeedback',JSON.stringify(PF));}catch(e){}pfSync();};
+window.addEventListener('online',()=>{if(document.body.classList.contains('pruef'))pfSync();});
+let pfSel=null,pfFilter='all';
+const pfOrig=t=>PRUEF_ISO[t.name]?'<img alt="" src="data/flags/w320/'+PRUEF_ISO[t.name]+'.png">':'';
+const pfDone=()=>S.round.list.filter(x=>PF[x.name]).length;
+function pfList(){
+  const r=S.round,list=r.list,done=pfDone(),pct=Math.round(100*done/list.length);
+  const show=t=>pfFilter==='all'||(pfFilter==='open'&&!PF[t.name])||(pfFilter==='bad'&&PF[t.name]&&PF[t.name].st!=='ok');
+  const groups={};list.forEach((t,i)=>{(groups[t._g]=groups[t._g]||[]).push([t,i]);});
+  let h='<h2>Prüfliste</h2><div class="pfprog"><i style="width:'+pct+'%"></i></div><div class="pfprog-t">'+done+' von '+list.length+' geprüft ('+pct+' %)</div>'
+    +'<div class="pffilter">'+[['all','Alle'],['open','Offen'],['bad','Probleme']].map(f=>'<button class="chip'+(pfFilter===f[0]?' on':'')+'" data-pff="'+f[0]+'">'+f[1]+'</button>').join('')+'</div>';
+  PF_GROUPS.map(g=>g[0]).concat(['Weitere']).forEach(g=>{
+    const rows=(groups[g]||[]).filter(([t])=>show(t));if(!rows.length)return;
+    const dn=(groups[g]||[]).filter(([t])=>PF[t.name]).length;
+    h+='<div class="pfgrp"><span>'+g+'</span><span>'+dn+'/'+groups[g].length+'</span></div>'
+      +rows.map(([t,i])=>'<button class="pfrow'+(i===r.i?' cur':'')+'" data-pfi="'+i+'"><span class="pfdot '+(PF[t.name]?PF_KIND[PF[t.name].st]:'')+'"></span>'+nm(t)+'</button>').join('');
+  });
+  h+='<div class="pfact"><button class="btn pri" id="pfExp">Export</button></div><div id="pfsync" style="font-size:12px;margin-top:8px">'+pfNet+'</div>';
+  $('#pflist').innerHTML=h;
+  $$('#pflist [data-pfi]').forEach(b=>b.onclick=()=>{r.i=+b.dataset.pfi;document.body.classList.remove('pflist-open');loadTarget();});
+  $$('#pflist [data-pff]').forEach(b=>b.onclick=()=>{pfFilter=b.dataset.pff;pfList();});
+  $('#pfExp').onclick=pfExport;
+  const cur=$('#pflist .pfrow.cur');if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:'nearest'});
+}
+function pfBar(){
+  const r=S.round,t=r.list[r.i],f=PF[t.name];
+  $('#pfbar').innerHTML='<button class="btn pflistbtn" id="pfMenu">☰ Liste</button><span class="nm">'+(r.i+1)+'. '+nm(t)+'</span><span class="pfcat">'+t._g+'</span>'
+    +(f?'<span class="pfst">'+PF_ST[f.st]+'</span>':'<span class="meta">noch nicht geprüft</span>')
+    +'<span class="sp"></span><button class="btn" id="pfPrev">← Zurück</button><button class="btn" id="pfNext">Nächste offene →</button>'
+    +(PF_NOTE[t.name]?'<span class="note">Hinweis: '+PF_NOTE[t.name]+'</span>':'');
+  $('#pfMenu').onclick=()=>document.body.classList.add('pflist-open');
+  $('#pfPrev').onclick=()=>{if(r.i>0){r.i--;loadTarget();}};
+  $('#pfNext').onclick=pfNextOpen;
+  $('#pfref').innerHTML='<div class="h"><span>So sieht die Vorlage aus (zum Vergleichen beim Bauen)</span></div><div class="r"><figure>'+thumb(t,'pk')+'<figcaption>Vorlage im Spiel</figcaption></figure><figure>'+pfOrig(t)+'<figcaption>Original</figcaption></figure></div>';
+  pfList();
+}
+function pfNextOpen(){
+  const r=S.round,n=r.list.length;
+  for(let k=1;k<=n;k++){const j=(r.i+k)%n;if(!PF[r.list[j].name]){r.i=j;loadTarget();return;}}
+  pfExport();
+}
+function pfText(){
+  const list=S.round.list,groups={};let n=0;
+  list.forEach(t=>{const f=PF[t.name];if(!f)return;n++;(groups[f.st]=groups[f.st]||[]).push(t.name+(f.c?' ('+f.c.replace(/\n+/g,' ')+')':'')+' ['+f.score+' %]');});
+  let o='Flaggen-Prüfung, '+n+' von '+list.length+' geprüft\n';
+  Object.keys(PF_ST).forEach(k=>{if(groups[k])o+='\n'+PF_ST[k]+' ('+groups[k].length+'):\n'+groups[k].map(x=>'- '+x).join('\n')+'\n';});
+  const open=list.filter(t=>!PF[t.name]).map(t=>t.name);if(open.length)o+='\nNoch offen ('+open.length+'): '+open.join(', ')+'\n';
+  return o;
+}
+function pfExport(){
+  $('#card').innerHTML='<h2 style="margin:0 0 6px">Export</h2><p class="hint" style="margin:0 0 8px">Kopiere den Text und füge ihn im Chat ein.</p>'
+    +'<textarea id="pfexp" style="width:100%;height:220px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;font:12px monospace;padding:8px" readonly></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:8px"><button class="btn pri grow" id="pfCopy">Kopieren</button><button class="btn" id="pfClose">Schließen</button></div>';
+  $('#pfexp').value=pfText();$('#dlg').classList.add('on');
+  $('#pfCopy').onclick=()=>{const ta=$('#pfexp');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}$('#pfCopy').textContent='Kopiert ✓';};
+  $('#pfClose').onclick=()=>$('#dlg').classList.remove('on');
+}
+function pfFeedback(t,pts){
+  const f=PF[t.name]||{};pfSel=f.st||null;
+  $('#card').insertAdjacentHTML('beforeend','<div id="pf"><div class="pfst-row">'+Object.keys(PF_ST).map(k=>'<button class="chip'+(pfSel===k?' on':'')+'" data-pfs="'+k+'">'+PF_ST[k]+'</button>').join('')+'</div>'
+    +'<textarea id="pfc" placeholder="Kommentar (optional): was stimmt nicht, was fehlt, wie könnte es gehen?">'+(f.c||'')+'</textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="pfRetry" style="padding:12px">Nochmal bauen</button><button class="btn pri grow" id="pfSave" style="padding:12px">Speichern &amp; nächste offene Flagge →</button></div></div>');
+  $$('#card [data-pfs]').forEach(b=>b.onclick=()=>{pfSel=b.dataset.pfs;$$('#card [data-pfs]').forEach(x=>x.classList.toggle('on',x===b));});
+  $('#pfRetry').onclick=()=>$('#dlg').classList.remove('on');
+  $('#pfSave').onclick=()=>{
+    if(!pfSel){$('#pfSave').textContent='Bitte zuerst eine Bewertung wählen';return;}
+    PF[t.name]={st:pfSel,c:$('#pfc').value.trim(),score:pts,t:Date.now()};pfSave();
+    $('#dlg').classList.remove('on');pfBar();pfNextOpen();
+  };
+}
+function pruefStart(){
+  document.body.classList.add('pruef');pfSync().then(()=>{try{if(S.round&&S.round.list)pfBar();}catch(e){}});
+  const order=PF_GROUPS.map(g=>g[0]).concat(['Weitere']);
+  const list=TARGETS.filter(t=>!VERIFIED.has(t.name)).map(t=>{t._g=pfGroupOf(t);return t;});
+  list.sort((a,b)=>order.indexOf(a._g)-order.indexOf(b._g));
+  const first=list.findIndex(t=>!PF[t.name]);
+  S.round={list,i:first<0?0:first,total:0,hints:0,results:[]};
+  loadTarget();
+}
+
 fetch('data/emblems/index.json').then(r=>r.json()).catch(()=>[]).then(list=>{
   EMB=list;list.forEach(e=>{EMBMAP[e.iso]=e;});
-  addEmbTargets();applyColorFix();
-  buildStatic();newRound();translateDom();
+  addEmbTargets();applySwFix();applyColorFix();
+  buildStatic();if(PRUEF)pruefStart();else newRound();translateDom();
 });
 </script>
 </body>

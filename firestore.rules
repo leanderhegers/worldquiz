@@ -47,5 +47,15 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null &&
         request.auth.uid in resource.data.players;
     }
+
+    // Pruefseite fuer "Spass mit Flaggen" (spass-flaggen.html?pruefen=1): EIN Dokument mit nicht erratbarer ID. Wer die ID nicht kennt, kommt
+    // nicht heran (kein list). Nur die Felder d (JSON-Text) und u (Zeit), hoechstens 200 KB. Nach der Pruefung kann dieser Block entfernt werden.
+    match /flagFeedback/{docId} {
+      allow get: if docId == 'pf-3c53b446e467a52cfce2';
+      allow create, update: if docId == 'pf-3c53b446e467a52cfce2'
+        && request.resource.data.keys().hasOnly(['d','u'])
+        && request.resource.data.d is string
+        && request.resource.data.d.size() < 200000;
+    }
   }
 }
