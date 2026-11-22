@@ -21,7 +21,7 @@ header h1{font-size:20px;margin:0;font-weight:700}
 .task{flex:1;min-width:220px}
 .task small{color:var(--mute);display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
 .task b{font-size:22px;color:var(--acc)}
-.score{display:flex;gap:16px;color:var(--mute);font-size:13px}
+.score{display:flex;align-items:center;gap:16px;color:var(--mute);font-size:13px}
 .score b{color:var(--text);font-size:16px;font-variant-numeric:tabular-nums}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
 .tab{padding:10px 4px;font-size:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}
@@ -44,6 +44,7 @@ h3:first-child{margin-top:0}
 .custom.on{visibility:visible}
 select,.sel{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:9px 10px;font:inherit}
 select:disabled{opacity:.4}
+.row.rr{grid-template-columns:78px 1fr 64px}
 .row.c2{grid-template-columns:78px 1fr}
 .row input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:7px;font:inherit}
 #wrap34{display:none}#wrap34.on{display:block}
@@ -62,8 +63,8 @@ select:disabled{opacity:.4}
 .shapes svg{width:30px;height:30px}
 .embq{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 10px;font:inherit;margin-bottom:8px}
 .emb{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;height:236px;overflow:auto;align-content:start;padding-right:2px}
-.emb .chip{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;min-width:0;height:78px;font-size:10px;line-height:1.15;color:var(--mute)}
-.emb .chip img{width:46px;height:44px;object-fit:contain}
+.emb .chip{display:flex;align-items:center;justify-content:center;padding:6px;min-width:0;height:72px}
+.emb .chip img{width:100%;height:100%;object-fit:contain}
 .emb .chip span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .emb .none{grid-column:1/-1;color:var(--mute);font-size:13px;padding:8px 2px}
 .row{display:grid;grid-template-columns:78px 1fr 40px;align-items:center;gap:8px;margin:6px 0;color:var(--mute);font-size:13px}
@@ -92,6 +93,10 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
 .bar i{display:block;height:9px;border-radius:5px;background:var(--panel2);overflow:hidden}
 .bar i b{display:block;height:100%;background:var(--acc)}
 .bar span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.fly{opacity:0;transform:translateX(-28px);transition:opacity .35s,transform .35s}
+.fly.in{opacity:1;transform:none}
+.bar .pc{text-align:right;font-variant-numeric:tabular-nums}
+.bar i b{transition:width .7s cubic-bezier(.2,.7,.2,1)}
 .total{font-size:34px;font-weight:800;color:var(--acc);margin:14px 0 4px}
 .total small{font-size:14px;color:var(--mute);font-weight:500}
 @media(max-width:820px){main{grid-template-columns:1fr}.panel{height:auto;max-height:none}.pbody{max-height:46vh}.stagebox{order:-1;height:min(52vh,420px)}}
@@ -101,7 +106,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
 <div class="wrap">
   <header>
     <div class="task"><small>Baue die Flagge von</small><b id="tname">–</b></div>
-    <div class="score"><span>Flagge <b id="tnum">1/5</b></span><span>Punkte <b id="ttot">0</b></span></div>
+    <div class="score"><span>Flagge <b id="tnum">1/5</b></span><span>Schnitt <b id="ttot">–</b></span><button class="btn" id="bSkip" style="padding:6px 10px;font-size:13px">Überspringen ⏭</button></div>
   </header>
 
   <nav class="tabs" id="tabs">
@@ -118,7 +123,8 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
         <section class="sec on" id="sec1">
           <h3>Seitenverhältnis (Breite : Höhe)</h3>
           <select id="ratioSel"></select>
-          <div class="custom" id="custom">Eigene Angabe <input id="rw" type="number" min="1" max="20" step="0.5"> : <input id="rh" type="number" min="1" max="20" step="0.5"></div>
+          <div class="row rr"><span>Breite</span><input type="range" id="rws" min="1" max="20" step="0.5"><input id="rw" type="number" min="1" max="20" step="0.5"></div>
+          <div class="row rr"><span>Höhe</span><input type="range" id="rhs" min="1" max="20" step="0.5"><input id="rh" type="number" min="1" max="20" step="0.5"></div>
           <h3>Streifen</h3>
           <select id="orientSel">
             <option value="none">Einfarbig</option>
@@ -145,7 +151,6 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
         <!-- Schritt 4 -->
         <section class="sec" id="sec4">
           <h3>Wappen &amp; Emblems</h3>
-          <input class="embq" id="embq" type="search" placeholder="Land suchen …" autocomplete="off">
           <div class="emb" id="emb"></div>
           <p class="hint" style="margin-top:6px">Original-Wappen und Emblems aus den Flaggen (flag-icons, MIT-Lizenz).</p>
         </section>
@@ -183,7 +188,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
             </div>
           </div>
           <label class="chk"><input type="checkbox" id="snap" checked> Einrasten (Mitte, Rand, Streifenkanten)</label>
-          <p class="hint">Formen ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
+          <p class="hint">Form antippen, an den Quadraten am Rand die Größe ändern, am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
         </div>
       </div>
       <div class="pfoot">
@@ -291,7 +296,7 @@ const TARGETS_BASE_N=TARGETS.length;
 // Läuft die Seite im Spiel (iframe), kommen Sprache und Ländernamen aus der App; sonst Deutsch.
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const LG=(PA&&PA.lang)||'de';
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Sonderformen (z. B. Kanada) baust du im dritten Schritt mit Formen.":"All stripes are equally wide. Special layouts (e.g. Canada) are built with shapes in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Formen ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Drag shapes to move them. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Sonderformen (z. B. Kanada) baust du im dritten Schritt mit Formen.":"All stripes are equally wide. Special layouts (e.g. Canada) are built with shapes in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern, am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge, rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PA&&PA.C&&PA.C[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -351,6 +356,13 @@ function draw(){
   const r=svg.getBoundingClientRect(),u=Math.max(vb[2]/(r.width||1),vb[3]/(r.height||1)); // 1 Pixel in Zeichen-Einheiten
   let o=`<rect x="-1" y="-1" width="${W+2}" height="${H+2}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="${u*2}"/>`;
   o+=`<svg x="0" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">${flagInner(S,'e')}</svg>`;
+  // Schritt 1: Streifengrenzen gestrichelt andeuten
+  if(S.step===1&&S.n>1){
+    for(let k=1;k<S.n;k++){
+      const l=S.orient==='v'?[k*W/S.n,0,k*W/S.n,H]:[0,k*H/S.n,W,k*H/S.n];
+      o+=`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#14110e" stroke-width="${u*3.5}" stroke-opacity=".55" pointer-events="none"/><line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*9} ${u*6}" pointer-events="none"/>`;
+    }
+  }
   // Auswahl
   if(S.step===2){
     const n=S.n<=1?1:S.n,i=Math.min(S.selStripe,n-1),or=n===1?'h':S.orient;
@@ -362,6 +374,13 @@ function draw(){
     const tr=s.t==='trif'?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
     const rx=s.t==='trif'?(bb.x-bb.w/2)*W:-s.w*W/2,ry=s.t==='trif'?(bb.y-bb.h/2)*H:-s.h*H/2;
     o+=`<rect ${tr} x="${rx}" y="${ry}" width="${bb.w*W}" height="${bb.h*H}" fill="none" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*8} ${u*5}" pointer-events="none"/>`;
+    if(s.t!=='trif'){
+      const hw=s.w*W/2,hh=s.h*H/2,hs=u*5.5,cur={nw:'nwse',se:'nwse',ne:'nesw',sw:'nesw',n:'ns',s:'ns',e:'ew',w:'ew'};
+      const P={nw:[-hw,-hh],n:[0,-hh],ne:[hw,-hh],e:[hw,0],se:[hw,hh],s:[0,hh],sw:[-hw,hh],w:[-hw,0]};
+      o+=`<g ${tr}><line x1="0" y1="${-hh}" x2="0" y2="${-hh-u*26}" stroke="#f0b060" stroke-width="${u*1.5}" pointer-events="none"/>`;
+      Object.keys(P).forEach(k=>{o+=`<rect data-rh="${k}" x="${P[k][0]-hs}" y="${P[k][1]-hs}" width="${hs*2}" height="${hs*2}" rx="${u*2}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:${cur[k]}-resize"/>`;});
+      o+=`<circle data-rh="rot" cx="0" cy="${-hh-u*26}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:grab"/></g>`;
+    }
     if(s.t==='trif')s.p.forEach((q,k)=>{o+=`<circle data-h="${k}" cx="${q[0]*W}" cy="${q[1]*H}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*2}" style="cursor:move"/>`;});
   }
   S.guides.forEach(g=>{o+= g.x!=null
@@ -372,10 +391,10 @@ function draw(){
 }
 
 // ───────────────────────── Panel: Schritt 1 ─────────────────────────
-function fillEmb(q){
-  q=(q||'').trim().toLowerCase();
-  const list=EMB.filter(e=>!q||e.de.toLowerCase().includes(q)||e.en.toLowerCase().includes(q));
-  $('#emb').innerHTML=list.length?list.map(e=>`<button class="chip" data-emb="${e.iso}" title="${embName(e)}"><img loading="lazy" alt="" src="data/emblems/${e.iso}.svg"><span>${embName(e)}</span></button>`).join(''):'<div class="none">'+(LG==='de'?'Nichts gefunden':'Nothing found')+'</div>';
+// Ohne Ländernamen und ohne Suche (sonst wäre es kein Quiz); Reihenfolge einmal gemischt, damit sie nichts verrät
+function fillEmb(){
+  if(!EMB.shuf)EMB.shuf=[...EMB].sort(()=>Math.random()-.5);
+  $('#emb').innerHTML=EMB.shuf.map(e=>`<button class="chip" data-emb="${e.iso}" aria-label="${LG==='de'?'Wappen':'Emblem'}"><img loading="lazy" alt="" src="data/emblems/${e.iso}.svg"></button>`).join('');
 }
 function buildStatic(){
   $('#ratioSel').innerHTML=RATIOS.map(r=>`<option value="${r[0]}:${r[1]}">${r[0]} : ${r[1]}${r[0]<r[1]?' (hochkant)':''}</option>`).join('')+`<option value="custom">${tr('Eigene Angabe')} …</option>`;
@@ -389,8 +408,7 @@ function buildStatic(){
 function syncLayout(){
   const n=S.n<=1?1:S.n,key=S.ratio[0]+':'+S.ratio[1],pre=RATIOS.some(r=>r[0]+':'+r[1]===key);
   $('#ratioSel').value=(pre&&!customOn)?key:'custom';
-  $('#custom').classList.toggle('on',$('#ratioSel').value==='custom');
-  $('#rw').value=S.ratio[0];$('#rh').value=S.ratio[1];
+  $('#rw').value=S.ratio[0];$('#rh').value=S.ratio[1];$('#rws').value=S.ratio[0];$('#rhs').value=S.ratio[1];
   $('#orientSel').value=n===1?'none':S.orient;
   $('#countSel').disabled=n===1;
   $('#countSel').value=String(n===1?3:n);
@@ -411,7 +429,7 @@ function syncProps(){
   $('#ph').value=Math.round(bb.h*100);$('#pho').textContent=Math.round(bb.h*100)+'%';
   $('#pr').value=s.r||0;$('#pro').textContent=(s.r||0)+'°';
   $('#pr').disabled=s.t==='trif'||s.t==='emb'&&false;
-  const emb=s.t==='emb';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
+  const emb=s.t==='emb';$('#spal').style.visibility=emb?'hidden':'visible';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
 }
 function setStep(n){
   S.step=n;
@@ -513,7 +531,15 @@ $('#orientSel').addEventListener('change',e=>{
   syncLayout();draw();
 });
 $('#countSel').addEventListener('change',e=>{S.n=+e.target.value;if(S.orient==='none')S.orient='h';syncLayout();draw();});
-['rw','rh'].forEach(id=>$('#'+id).addEventListener('input',()=>{const w=+$('#rw').value,h=+$('#rh').value;if(w>0&&h>0&&w<=20&&h<=20){S.ratio=[w,h];draw();}}));
+['rw','rh','rws','rhs'].forEach(id=>$('#'+id).addEventListener('input',e=>{
+  const w0=id==='rw'||id==='rws'?'w':'h',v=+e.target.value;
+  if(!(v>0&&v<=20))return;
+  const w=w0==='w'?v:S.ratio[0],h=w0==='h'?v:S.ratio[1];
+  S.ratio=[w,h];
+  $(w0==='w'?'#rw':'#rh').value=v;$(w0==='w'?'#rws':'#rhs').value=v;
+  const pre=RATIOS.some(r=>r[0]===w&&r[1]===h);customOn=!pre;$('#ratioSel').value=pre?w+':'+h:'custom';
+  draw();
+}));
 // Regler
 function slider(id,fn){$('#'+id).addEventListener('input',e=>{const s=S.shapes[S.sel];if(!s)return;fn(s,+e.target.value);syncProps();draw();});}
 function resize(s,w,h){
@@ -529,6 +555,8 @@ $('#cgap').addEventListener('input',e=>{$('#cgo').textContent=e.target.value+'%'
 let drag=null;
 function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse()),{W,H}=dims(S);return{x:q.x/W,y:q.y/H};}
 svg.addEventListener('pointerdown',e=>{
+  const rh=e.target.closest('[data-rh]');
+  if(rh&&S.sel!=null){drag={k:'z',hd:rh.dataset.rh,o:JSON.parse(JSON.stringify(S.shapes[S.sel]))};svg.setPointerCapture(e.pointerId);return;}
   const hd=e.target.closest('[data-h]');
   if(hd){drag={k:'v',vi:+hd.dataset.h};svg.setPointerCapture(e.pointerId);return;}
   const g=S.step>=3&&e.target.closest('[data-i]');
@@ -539,6 +567,25 @@ svg.addEventListener('pointerdown',e=>{
 });
 svg.addEventListener('pointermove',e=>{
   if(!drag)return;const p=pt(e);
+  if(drag.k==='z'){
+    const s=S.shapes[S.sel],o=drag.o,{W,H}=dims(S),a=(o.r||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
+    const dx=(p.x-o.x)*W,dy=(p.y-o.y)*H;
+    if(drag.hd==='rot'){
+      let r=Math.atan2(dy,dx)*180/Math.PI+90;if(r>180)r-=360;
+      const q=Math.round(r/15)*15;if(Math.abs(r-q)<4)r=q;
+      s.r=Math.round(r);
+    }else{
+      const lx=dx*co+dy*si,ly=-dx*si+dy*co,hd=drag.hd;
+      const sx=hd.includes('e')?1:hd.includes('w')?-1:0,sy=hd.includes('s')?1:hd.includes('n')?-1:0;
+      const ow=o.w*W,oh=o.h*H;
+      let nw=sx?Math.max(W*.01,sx*lx+ow/2):ow,nh=sy?Math.max(H*.01,sy*ly+oh/2):oh;
+      if(sx&&sy&&$('#plock').checked){const f=Math.max(nw/ow,nh/oh);nw=ow*f;nh=oh*f;}
+      const cl={x:sx?-sx*ow/2+sx*nw/2:0,y:sy?-sy*oh/2+sy*nh/2:0};
+      s.w=nw/W;s.h=nh/H;
+      s.x=o.x+(cl.x*co-cl.y*si)/W;s.y=o.y+(cl.x*si+cl.y*co)/H;
+    }
+    syncProps();draw();return;
+  }
   if(drag.k==='m'){const s=S.shapes[drag.i],r=snapMove(s,p.x-drag.dx,p.y-drag.dy);moveTo(s,r.cx,r.cy);}
   else{
     const s=S.shapes[S.sel];let x=p.x,y=p.y;S.guides=[];
@@ -570,14 +617,17 @@ function pairScore(a,b){
   const ss=Math.max(0,1-(Math.abs(Math.log(a.w/b.w))+Math.abs(Math.log(a.h/b.h)))/1.5);
   return .3*ts+.2*cs+.3*ps+.2*ss;
 }
+const FAM={rot:'r',dunkelrot:'r',orange:'o',gelb:'y',hellgruen:'g',gruen:'g',dunkelgruen:'g',hellblau:'b',blau:'b',dunkelblau:'b',weiss:'w',schwarz:'k',grau:'a',braun:'n',lila:'p',rosa:'s'};
 function scoreFlag(b,t){
   const d=Math.abs(Math.log((b.ratio[0]/b.ratio[1])/(t.ratio[0]/t.ratio[1])));
   const ratio=d<.03?1:Math.max(0,1-(d-.03)/.35);
   const ob=b.n<=1?'none':b.orient,ot=t.n<=1?'none':t.orient,nb=b.n<=1?1:b.n,nt=t.n<=1?1:t.n;
   const layout=(ob===ot?.5:0)+(nb===nt?.5:Math.max(0,.5-.15*Math.abs(nb-nt)));
-  let eq=0,N=12;
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const u=(i+.5)/N,v=(j+.5)/N;if(colorAt(b,u,v)===colorAt(t,u,v))eq++;}
-  const colors=eq/(N*N);
+  // Farben: halb "richtige Farbe an der richtigen Stelle" (ähnlicher Farbton zählt halb), halb "richtige Farben in passenden Anteilen"
+  let eq=0,N=12;const hb={},ht={};
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const u=(i+.5)/N,v=(j+.5)/N,cb=colorAt(b,u,v),ct=colorAt(t,u,v);eq+=cb===ct?1:(FAM[cb]&&FAM[cb]===FAM[ct]?.5:0);hb[cb]=(hb[cb]||0)+1;ht[ct]=(ht[ct]||0)+1;}
+  let ov=0;Object.keys(ht).forEach(k=>{ov+=Math.min(ht[k],hb[k]||0);});
+  const colors=.5*eq/(N*N)+.5*ov/(N*N);
   const A=t.shapes.map(descr),B=b.shapes.map(descr),used=new Set();let sum=0;
   A.forEach(a=>{let best=0,bi=-1;B.forEach((q,i)=>{if(used.has(i))return;const sc=pairScore(a,q);if(sc>best){best=sc;bi=i;}});if(bi>=0){used.add(bi);sum+=best;}});
   const den=Math.max(A.length,B.length);
@@ -596,7 +646,7 @@ function newRound(){
 }
 function loadTarget(){
   const r=S.round;S.round.hints=0;
-  $('#tname').textContent=nm(r.list[r.i]);$('#tnum').textContent=(r.i+1)+'/'+r.list.length;$('#ttot').textContent=r.total;
+  $('#tname').textContent=nm(r.list[r.i]);$('#tnum').textContent=(r.i+1)+'/'+r.list.length;$('#ttot').textContent=avg();
   resetBuild();
 }
 $('#bReset').onclick=()=>{
@@ -609,28 +659,48 @@ $('#bReset').onclick=()=>{
 };
 $('#bBack').onclick=()=>{if(S.step>1)setStep(S.step-1);};
 $('#bCheck').onclick=()=>{if(S.step<4)setStep(S.step+1);else check();};
-function bar(l,v,max){return `<div class="bar"><span>${tr(l)}</span><i><b style="width:${v*100}%"></b></i><span>${Math.round(v*max)} / ${max}</span></div>`;}
+const avg=()=>{const r=S.round;return r.results.length?Math.round(r.total/r.results.length)+' %':'–';};
+function bar(l,v){return `<div class="bar fly" data-v="${Math.round(v*100)}"><span>${tr(l)}</span><i><b style="width:0"></b></i><span class="pc">0 %</span></div>`;}
+// Balken fliegen nacheinander ein, füllen sich und zählen ihre Prozentzahl hoch; zuletzt das Gesamtergebnis
+function animateBars(){
+  const rows=[...document.querySelectorAll('#card .fly')],tot=document.querySelector('#card .totv');
+  const count=(el,to,ms,suffix)=>{const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/ms);el.textContent=Math.round(to*(1-Math.pow(1-k,3)))+suffix;if(k<1)requestAnimationFrame(f);})(t0);};
+  rows.forEach((row,i)=>setTimeout(()=>{
+    row.classList.add('in');const v=+row.dataset.v;
+    row.querySelector('b').style.width=v+'%';count(row.querySelector('.pc'),v,700,' %');
+  },300+i*650));
+  if(tot)setTimeout(()=>{tot.parentNode.classList.add('in');count(tot,+tot.dataset.v,900,' %');},300+rows.length*650+100);
+}
+function showEnd(){
+  const r=S.round;
+    $('#card').innerHTML=`<h2 style="margin:0 0 4px">${tr('Runde beendet')}</h2><div class="total">${avg()} <small>${tr('im Schnitt richtig')}</small></div>
+      ${r.results.map(x=>`<div class="bar" style="grid-template-columns:1fr 56px"><span>${x.name}</span><span style="text-align:right">${x.pts} %</span></div>`).join('')}
+      <button class="btn pri" style="width:100%;margin-top:14px;padding:12px" id="bAgain">${tr('Neue Runde')}</button>`;
+    $('#dlg').classList.add('on');$('#bAgain').onclick=()=>{$('#dlg').classList.remove('on');newRound();};
+}
+// Flagge überspringen: zählt 0 Punkte
+$('#bSkip').onclick=()=>{
+  const r=S.round,t=r.list[r.i];
+  r.results.push({name:nm(t),pts:0});
+  if(r.i<r.list.length-1){r.i++;loadTarget();}else showEnd();
+};
 function check(){
   const r=S.round,t=r.list[r.i],sc=scoreFlag(S,t),pen=0,pts=sc.total;
-  r.total+=pts;r.results.push({name:nm(t),pts});$('#ttot').textContent=r.total;
+  r.total+=pts;r.results.push({name:nm(t),pts});$('#ttot').textContent=avg();
   const last=r.i===r.list.length-1;
   $('#card').innerHTML=`
     <div class="cmp"><figure>${thumb(S,'a')}<figcaption>${tr('Deine Flagge')}</figcaption></figure><figure>${thumb(t,'b')}<figcaption>${nm(t)}</figcaption></figure></div>
-    ${bar('Format',sc.ratio,10)}${bar('Streifen',sc.layout,15)}${bar('Farben',sc.colors,45)}${bar('Symbole',sc.symbols,30)}
-    <div class="total">${pts} <small>${tr('von 100 Punkten')}</small></div>
+    ${bar('Format',sc.ratio)}${bar('Streifen',sc.layout)}${bar('Farben',sc.colors)}${bar('Symbole',sc.symbols)}
+    <div class="total fly"><span class="totv" data-v="${pts}">0 %</span> <small>${tr('richtig')}</small></div>
     <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${tr(last?'Ergebnis ansehen':'Nächste Flagge →')}</button>`;
-  $('#dlg').classList.add('on');
+  $('#dlg').classList.add('on');animateBars();
   $('#bNext').onclick=()=>{
     $('#dlg').classList.remove('on');
     if(!last){r.i++;loadTarget();return;}
-    $('#card').innerHTML=`<h2 style="margin:0 0 4px">${tr('Runde beendet')}</h2><div class="total">${r.total} <small>${LG==='de'?'von '+r.list.length*100+' Punkten':'of '+r.list.length*100+' points'}</small></div>
-      ${r.results.map(x=>`<div class="bar" style="grid-template-columns:1fr 56px"><span>${x.name}</span><span style="text-align:right">${x.pts}</span></div>`).join('')}
-      <button class="btn pri" style="width:100%;margin-top:14px;padding:12px" id="bAgain">${tr('Neue Runde')}</button>`;
-    $('#dlg').classList.add('on');$('#bAgain').onclick=()=>{$('#dlg').classList.remove('on');newRound();};
+    showEnd();
   };
 }
 
-$('#embq').addEventListener('input',e=>fillEmb(e.target.value));
 fetch('data/emblems/index.json').then(r=>r.json()).catch(()=>[]).then(list=>{
   EMB=list;list.forEach(e=>{EMBMAP[e.iso]=e;});
   addEmbTargets();
