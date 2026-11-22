@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ähnliche Flaggen</title>
+<style>
+/* Gleiche Optik wie die anderen Texteingabe-Quizzes der App: schwarzer Grund, #1a1a1a-Flächen, #333-Linien, Poppins, Grün für richtig */
+:root{--bg:#111;--panel:#1a1a1a;--line:#333;--line2:#444;--text:#eee;--mute:#888;--ok:#1D9E75;--bad:#e8593c}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:16px/1.4 "Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column}
+@font-face{font-family:"Poppins";font-weight:400;src:url(fonts/poppins-latin-400.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-weight:500;src:url(fonts/poppins-latin-500.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-weight:600;src:url(fonts/poppins-latin-600.woff2) format("woff2")}
+button,input{font-family:inherit}
+.top{text-align:center;padding:8px 16px;border-bottom:.5px solid var(--line);flex:0 0 auto}
+.top small{display:block;color:var(--mute);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.top b{font-size:16px;font-weight:500}
+main{flex:1;overflow:auto;padding:18px 16px}
+.wrap{max-width:980px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:0}
+.fl{height:150px;display:flex;align-items:center;justify-content:center}
+.fl img{max-width:100%;max-height:100%;display:block;border:.5px solid var(--line);border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+input.ans{width:100%;max-width:300px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:10px 14px;font-size:16px;outline:none;transition:border-color .15s}
+input.ans:focus{border-color:#888}
+input.ans:disabled{color:var(--text);opacity:1}
+.card.ok input.ans{border-color:var(--ok)}
+.card.bad input.ans{border-color:var(--bad)}
+.fb{min-height:46px;font-size:14px;text-align:center}
+.fb .y{color:var(--ok);font-weight:500}.fb .n{color:var(--bad);font-weight:500}
+.fb small{display:block;color:var(--mute);font-size:12px}
+.actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:20px}
+.btn{padding:10px 28px;background:var(--ok);border:none;color:#fff;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;transition:background .15s}
+.btn:hover{background:#17855f}
+.btn[disabled]{opacity:.4;cursor:default}
+.hint{color:var(--mute);font-size:13px;text-align:center;min-height:20px}
+.stats{display:flex;gap:18px;padding:10px 16px;border-top:.5px solid var(--line);color:var(--mute);font-size:13px;flex:0 0 auto}
+.stats b{font-weight:500}.stats .g{color:var(--ok)}.stats .r{color:var(--bad)}
+.stats .sp{margin-left:auto}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.dlg.on{display:flex}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(480px,100%);max-height:92vh;overflow:auto}
+.box h2{font-size:18px;font-weight:600}
+.total{font-size:32px;font-weight:600;color:var(--ok);margin:10px 0}
+.total small{font-size:14px;color:var(--mute);font-weight:400}
+.rr{display:flex;justify-content:space-between;gap:12px;margin:6px 0;font-size:14px;font-variant-numeric:tabular-nums;border-top:.5px solid var(--line);padding-top:6px}
+.rr span:first-child{color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="top"><small id="t-lbl">Benenne alle Flaggen</small><b id="t-round">Runde 1/6</b></div>
+<main>
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+    <div class="actions"><button class="btn" id="go" disabled>Abschicken</button><span class="hint" id="hint">Schreibe unter jede Flagge das Land. Sind alle Felder ausgefüllt, kannst du abschicken.</span></div>
+  </div>
+</main>
+<div class="stats"><span><b class="g" id="t-ok">0</b> <span id="t-ok-l">richtig</span></span><span><b class="r" id="t-bad">0</b> <span id="t-bad-l">falsch</span></span><span class="sp" id="t-left"></span></div>
+<div class="dlg" id="dlg"><div class="box" id="box"></div></div>
+
+<script>
+// Läuft im Spiel als iframe (gleiche Herkunft): Sprache, Ländernamen, Flaggenbilder und die Namenserkennung (fill.js) kommen aus der App.
+let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
+const ev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}};
+const C=ev('C')||{},ISO2=ev('ISO2')||{},LG=ev('lang')||'de';
+const resolve=(t,f)=>{try{return PA&&PA.fillResolve?PA.fillResolve(t,f):null;}catch(e){return null;}};
+const nm=id=>{const c=C[id];return c?(c[LG]||c.de):String(id);};
+const T={de:{lbl:'Benenne alle Flaggen',round:'Runde',ok:'richtig',bad:'falsch',left:'verbleibend',go:'Abschicken',next:'Nächste Runde →',fin:'Ergebnis ansehen',hint:'Schreibe unter jede Flagge das Land. Sind alle Felder ausgefüllt, kannst du abschicken.',ph:'Land eingeben …',done:'Runde beendet',again:'Neue Runde',rightLbl:'richtig',yours:'Deine Antwort',correct:'Richtig wäre',none:'(leer)',of:'von',flags:'Flaggen',nohint:'Gleich weiter mit Enter.'},
+         en:{lbl:'Name all flags',round:'Round',ok:'correct',bad:'wrong',left:'left',go:'Submit',next:'Next round →',fin:'See result',hint:'Write the country under each flag. Once all fields are filled you can submit.',ph:'Enter a country …',done:'Game over',again:'New game',rightLbl:'correct',yours:'Your answer',correct:'Correct is',none:'(empty)',of:'of',flags:'flags',nohint:''}};
+const L=(T[LG]||T.en);
+// Gruppen ähnlicher Flaggen (Länder-IDs wie in countries.js). Je Runde werden 3 (manchmal 4) davon gezeigt.
+const GROUPS=[
+  [360,492,616],[372,384],[380,484],[642,148,20,498],[528,442,643],[703,705,688,191,600],[36,554],[752,578,208,352,246],[686,466,324,120,288],[862,170,218],[40,428],[124,604],[203,608],[50,392,585],[12,792,788,586],[818,368,887],[400,729,414,784,275],[188,764],[430,840,458],[340,558,222],[48,634],[356,562],[706,583,340]
+].map(g=>g.filter(id=>C[id]&&ISO2[id])).filter(g=>g.length>=2);
+const ROUNDS=6;
+const $=s=>document.querySelector(s);
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+let G={list:[],i:0,ok:0,all:0,rows:[],cur:null,locked:false};
+function newGame(){
+  const gs=shuf(GROUPS).slice(0,ROUNDS);
+  G={list:gs.map(g=>shuf(g).slice(0,g.length>3&&Math.random()<.4?4:3)).map(a=>shuf(a).slice(0,Math.max(2,a.length))),i:0,ok:0,all:0,rows:[],cur:null,locked:false};
+  load();
+}
+function stats(){
+  $('#t-ok-l').textContent=L.ok;$('#t-bad-l').textContent=L.bad;
+  $('#t-ok').textContent=G.ok;$('#t-bad').textContent=G.all-G.ok;
+  const left=G.list.slice(G.locked?G.i+1:G.i).reduce((n,a)=>n+a.length,0);
+  $('#t-left').textContent=left+' '+L.left;
+}
+function load(){
+  const ids=G.list[G.i];G.cur=ids;G.locked=false;
+  $('#t-lbl').textContent=L.lbl;$('#t-round').textContent=L.round+' '+(G.i+1)+'/'+G.list.length;
+  stats();
+  $('#grid').innerHTML=ids.map((id,k)=>`<div class="card" id="c${k}"><div class="fl"><img alt="" src="data/flags/w320/${ISO2[id]}.png"></div><input class="ans" id="a${k}" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${L.ph}"><div class="fb" id="f${k}"></div></div>`).join('');
+  $('#go').textContent=L.go;$('#go').disabled=true;$('#hint').textContent=L.hint;
+  ids.forEach((_,k)=>{
+    const el=$('#a'+k);
+    el.addEventListener('input',upd);
+    el.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'||G.locked)return;e.preventDefault();
+      const nxt=ids.map((_,j)=>j).find(j=>j>k&&!$('#a'+j).value.trim())??ids.map((_,j)=>j).find(j=>!$('#a'+j).value.trim());
+      if(nxt!=null)$('#a'+nxt).focus();else if(!$('#go').disabled)submit();
+    });
+  });
+  $('#a0').focus();
+}
+const filled=()=>G.cur.every((_,k)=>$('#a'+k).value.trim());
+function upd(){if(!G.locked)$('#go').disabled=!filled();}
+function submit(){
+  if(G.locked||!filled())return;G.locked=true;
+  let ok=0;
+  G.cur.forEach((id,k)=>{
+    const txt=$('#a'+k).value.trim(),rid=resolve(txt,true),good=rid===id;
+    $('#c'+k).classList.add(good?'ok':'bad');$('#a'+k).disabled=true;
+    $('#f'+k).innerHTML=good?`<span class="y">✓ ${nm(id)}</span>`:`<span class="n">✗ ${L.correct}: ${nm(id)}</span><small>${L.yours}: ${txt.replace(/</g,'&lt;')}${rid&&rid!==id?' ('+nm(rid)+')':''}</small>`;
+    if(good)ok++;
+  });
+  G.ok+=ok;G.all+=G.cur.length;G.rows.push(ok+' / '+G.cur.length);
+  stats();
+  const last=G.i===G.list.length-1;
+  $('#go').disabled=false;$('#go').textContent=last?L.fin:L.next;$('#hint').textContent='';
+}
+$('#go').onclick=()=>{
+  if(!G.locked){submit();return;}
+  if(G.i<G.list.length-1){G.i++;load();return;}
+  const pct=G.all?Math.round(100*G.ok/G.all):0;
+  $('#box').innerHTML=`<h2 style="margin:0 0 4px">${L.done}</h2><div class="total">${pct} %<small> ${L.rightLbl} (${G.ok} ${L.of} ${G.all} ${L.flags})</small></div>`
+    +G.rows.map((r,i)=>`<div class="rr"><span>${L.round} ${i+1}</span><span>${r}</span></div>`).join('')
+    +`<button class="btn" style="width:100%;margin-top:16px" id="again">${L.again}</button>`;
+  $('#dlg').classList.add('on');$('#again').onclick=()=>{$('#dlg').classList.remove('on');newGame();};
+};
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&G.locked&&!$('#dlg').classList.contains('on')&&document.activeElement.tagName!=='BUTTON'){$('#go').click();}});
+newGame();
+</script>
+</body>
+</html>
