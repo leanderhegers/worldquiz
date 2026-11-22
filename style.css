@@ -717,3 +717,4 @@ body.theme-cartoon #iq-outline{border:4px solid var(--ink)!important;border-radi
 .fun-screen.look .fun-bar{border-bottom:.5px solid #333;}
 .fun-screen.look .fun-title{color:#eee;font-size:16px;font-weight:500;}
 .fun-screen.look .fun-frame{background:#111;}
+.gs-desert{--accent:#d9b877;--cardBg:rgba(217,184,119,.08);--cardBorder:rgba(217,184,119,.18);--cardHov:rgba(217,184,119,.16);}

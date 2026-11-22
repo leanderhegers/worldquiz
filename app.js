@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-22 H';
+const BUILD_ID='2026-11-22 I';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -312,7 +312,7 @@ const CATEGORY_META={
   fun:{head:()=>t('catFunTitle'),sub:()=>t('catFunSub')},
   soon:{head:()=>t('catSoonTitle'),sub:()=>t('catSoonSub')}
 };
-const SECTION_TO_CATEGORY={pin:'pin',flag:'input',city:'other',river:'other',lake:'other',mountain:'other'};
+const SECTION_TO_CATEGORY={pin:'pin',flag:'input',city:'other',river:'other',lake:'other',mountain:'other',desert:'other'};
 let _activeSections=['pin'];
 let _modeScreenBackOnclick="openCategoryPicker()";
 
@@ -358,7 +358,7 @@ function openCategory(catKey,focusSection){
   if(catKey==='other'){renderOtherPage();_maybeShowModeInfo('other');return;}
   if(catKey==='fun'){openFunFlags();_maybeShowModeInfo('fun');return;}
   if(catKey==='soon')return;
-  const sections={pin:['pin'],input:['flag'],other:['city','river','lake','mountain']}[catKey]||['pin'];
+  const sections={pin:['pin'],input:['flag'],other:['city','river','lake','mountain','desert']}[catKey]||['pin'];
   openSections(sections,'openCategoryPicker()',focusSection);
 }
 // Opens the section-swipe view (mode-screen) for an explicit list of sections — still used as-is
@@ -395,28 +395,28 @@ const MODE_INFO={
     click:{text:'Oben erscheint ein Name. Du suchst das passende Land, die Region oder den Ort auf der Weltkarte und tippst darauf.'},
     pin:{text:'Setze die Stecknadel so nah wie möglich an den gesuchten Ort. Je kleiner die Entfernung, desto mehr Punkte; ein Treffer im richtigen Land bringt einen Bonus.'},
     input:{text:'Ein Bild oder Begriff wird gezeigt, zum Beispiel eine Flagge, ein Wappen, ein Umriss oder ein Land. Du tippst die Lösung ein oder wählst sie aus den Vorschlägen.'},
-    other:{text:'Hier suchst du Städte, Flüsse, Seen oder Berge. Der Name erscheint oben, du tippst das Ziel auf der Karte an.'},
+    other:{text:'Hier suchst du Städte, Flüsse, Seen, Berge oder Wüsten. Der Name erscheint oben, du tippst das Ziel auf der Karte an.'},
     look:{text:'Zwei bis vier Flaggen sehen fast gleich aus, zum Beispiel Polen, Monaco und Indonesien. Schreibe unter jede Flagge das Land und schicke ab, sobald alle benannt sind.'},
     fun:{text:'Ein Land wird genannt, und du baust seine Flagge aus dem Gedächtnis nach: erst das Layout, dann die Farben, dann Symbole und Wappen. Je Flagge gibt es bis zu 100 Punkte.'}},
   en:{
     click:{text:'A name appears at the top. You look for the matching country, region or place on the world map and tap it.'},
     pin:{text:'Place the pin as close as you can to the place you are asked for. The smaller the distance, the more points; hitting the right country earns a bonus.'},
     input:{text:'A picture or term is shown, for example a flag, a coat of arms, an outline or a country. You type the answer or pick it from the suggestions.'},
-    other:{text:'Here you look for cities, rivers, lakes or mountains. The name appears at the top and you tap the target on the map.'},
+    other:{text:'Here you look for cities, rivers, lakes, mountains or deserts. The name appears at the top and you tap the target on the map.'},
     look:{text:'Two to four flags look almost the same, for example Poland, Monaco and Indonesia. Write the country under each flag and submit once all are named.'},
     fun:{text:'A country is named and you rebuild its flag from memory: first the layout, then the colors, then symbols and emblems. Each flag earns up to 100 points.'}},
   es:{
     click:{text:'Arriba aparece un nombre. Buscas el país, la región o el lugar correspondiente en el mapa mundial y lo tocas.'},
     pin:{text:'Coloca la chincheta lo más cerca posible del lugar pedido. Cuanto menor la distancia, más puntos; acertar el país correcto da una bonificación.'},
     input:{text:'Se muestra una imagen o un término, por ejemplo una bandera, un escudo, un contorno o un país. Escribes la respuesta o la eliges de las sugerencias.'},
-    other:{text:'Aquí buscas ciudades, ríos, lagos o montañas. El nombre aparece arriba y tocas el objetivo en el mapa.'},
+    other:{text:'Aquí buscas ciudades, ríos, lagos, montañas o desiertos. El nombre aparece arriba y tocas el objetivo en el mapa.'},
     look:{text:'De dos a cuatro banderas se parecen casi igual, por ejemplo Polonia, Mónaco e Indonesia. Escribe el país bajo cada bandera y envía cuando estén todas nombradas.'},
     fun:{text:'Se nombra un país y reconstruyes su bandera de memoria: primero el diseño, luego los colores, después símbolos y escudos. Cada bandera da hasta 100 puntos.'}},
   fr:{
     click:{text:'Un nom apparaît en haut. Tu cherches le pays, la région ou le lieu correspondant sur la carte du monde et tu le touches.'},
     pin:{text:'Place l’épingle le plus près possible du lieu demandé. Plus la distance est petite, plus tu gagnes de points ; viser le bon pays donne un bonus.'},
     input:{text:'Une image ou un terme est affiché, par exemple un drapeau, des armoiries, un contour ou un pays. Tu tapes la réponse ou tu la choisis dans les suggestions.'},
-    other:{text:'Ici tu cherches des villes, des fleuves, des lacs ou des montagnes. Le nom apparaît en haut et tu touches la cible sur la carte.'},
+    other:{text:'Ici tu cherches des villes, des fleuves, des lacs, des montagnes ou des déserts. Le nom apparaît en haut et tu touches la cible sur la carte.'},
     look:{text:'Deux à quatre drapeaux se ressemblent presque, par exemple la Pologne, Monaco et l’Indonésie. Écris le pays sous chaque drapeau et envoie quand tous sont nommés.'},
     fun:{text:'Un pays est nommé et tu reconstruis son drapeau de mémoire : d’abord la mise en page, puis les couleurs, puis symboles et armoiries. Chaque drapeau rapporte jusqu’à 100 points.'}}
 };
@@ -726,7 +726,7 @@ function renderInputPage(){
   ]);
 }
 const CONT_LBL={de:'Kontinente',en:'Continents',es:'Continentes',fr:'Continents'};
-const OTHER_HEADS={de:['Städte','Flüsse','Seen','Gebirge'],en:['Cities','Rivers','Lakes','Mountains'],es:['Ciudades','Ríos','Lagos','Montañas'],fr:['Villes','Fleuves','Lacs','Montagnes']};
+const OTHER_HEADS={de:['Städte','Flüsse','Seen','Gebirge','Wüsten'],en:['Cities','Rivers','Lakes','Mountains','Deserts'],es:['Ciudades','Ríos','Lagos','Montañas','Desiertos'],fr:['Villes','Fleuves','Lacs','Montagnes','Déserts']};
 function renderOtherPage(){
   // Städte-Quiz nur für Länder mit eigener Städteliste (CITY_COUNTRIES); die längere Länderliste gilt für Drop-a-Pin
   const cityDiffs=TX[lang].cityDiffs,cityCountries=TX[lang].cityCountries.filter(d=>CITY_COUNTRIES[d.key]),H=OTHER_HEADS[lang]||OTHER_HEADS.de;
@@ -741,6 +741,10 @@ function renderOtherPage(){
     ]},
     {cls:'gs-lake',head:H[2],items:[
       {icon:'⭐',title:t('optDifficulty'),sub:TX[lang].lakeDiffs.map(d=>d.label).join(', '),panel:'lake-diffs',renderPanel:()=>_cardsPanel(TX[lang].lakeDiffs.map(d=>gsCard("startLakeGame('"+d.key+"')",d.label,d.count+' '+t('lakes'),'lake:'+d.key)),'gs-grid-lake')}
+    ]},
+    {cls:'gs-desert',head:H[4],items:[
+      {icon:'⭐',title:t('optDifficulty'),sub:desertDiffs().map(d=>d.label).join(', '),panel:'ds-diffs',renderPanel:()=>_cardsPanel(desertDiffs().map(d=>gsCard("startDesertGame('"+d.key+"')",d.label,d.count+' '+dsrt().many,'desert:'+d.key)))},
+      {icon:'🌍',title:CONT_LBL[lang]||CONT_LBL.de,sub:DESERT_CONTS.map(r=>MODES[r][lang]||MODES[r].de).join(', '),panel:'ds-regions',renderPanel:()=>_cardsPanel(DESERT_CONTS.map(r=>gsCard("startDesertGame('"+r+"')",MODES[r][lang]||MODES[r].de,DESERT_CONT_N[r]+' '+dsrt().many,'desert:'+r)))}
     ]},
     {cls:'gs-mountain',head:H[3],items:[
       {icon:'⛰️',title:t('peaks'),sub:TX[lang].mountainDiffs.map(d=>d.label).join(', '),panel:'mt-peaks',renderPanel:()=>_cardsPanel(TX[lang].mountainDiffs.map(d=>gsCard("startMountainGame('"+d.key+"')",d.label,d.count+' '+t('peaks'),'mountain:'+d.key)),'gs-grid-pin')},
@@ -879,7 +883,7 @@ function gameScoreKey(){
   if(game.riverMode)return 'river:'+game.difficulty;
   if(game.lakeMode)return 'lake:'+game.difficulty;
   if(game.mountainMode)return 'mountain:'+game.difficulty;
-  if(game.rangeMode)return 'range:'+game.difficulty;
+  if(game.rangeMode)return (game.desert?'desert:':'range:')+game.difficulty;
   if(game.triviaMode)return 'trivia:'+(game.triviaCat&&game.triviaCat!=='all'?game.triviaCat:'world');
   if(game.mode&&game.mode!=='custom')return 'map:'+game.mode;
   return null;
@@ -900,7 +904,7 @@ function learnKeyCur(){
   else if(game.riverMode&&game.current!=null)k='river:'+riverDisplayName(game.riverFeatures[game.current]);
   else if(game.lakeMode&&game.current!=null)k='lake:'+lakeDisplayName(game.lakeFeatures[game.current]);
   else if(game.mountainMode&&game.current!=null)k='mountain:'+mountainDisplayName(game.mountainFeatures[game.current]);
-  else if(game.rangeMode&&game.current!=null)k='range:'+rangeDisplayName(game.rangeFeatures[game.current]);
+  else if(game.rangeMode&&game.current!=null)k=(game.desert?'desert:':'range:')+rangeDisplayName(game.rangeFeatures[game.current]);
   else if(game.current)k='country:'+game.current;
   return k;
 }
@@ -941,7 +945,7 @@ function updateAllText(){
   renderHome();
   if($('mode-screen').style.display!=='none')renderModeScreen();
   if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none')_catRerender();
-  setTxt('btn-back',t('back'));setTxt('find-label',game.riverMode?t('findRiver'):game.lakeMode?t('findLake'):game.cityMode?t('findCity'):game.mountainMode?t('findMountain'):game.rangeMode?t('findRange'):game.pinMode?pinFindLabel():game.triviaMode?(game.currentGroup&&game.currentGroup.size>1?t('findTriviaN'):t('findTrivia')):t('find'));setTxt('found-label',t('foundLbl'));setTxt('lbl-c',t('correctLbl'));setTxt('lbl-w',t('wrongLbl'));setTxt('btn-skip',t('skipLbl'));setTxt('res-title',t('resTitle'));setTxt('btn-again',t('again'));setTxt('btn-new',t('newgame'));setTxt('btn-share',t('shareBtn'));setTxt('opts-title',t('optionsLbl'));setTxt('flag-btn-back',t('back'));setTxt('flag-lbl-c',t('correctLbl'));setTxt('flag-lbl-w',t('wrongLbl'));
+  setTxt('btn-back',t('back'));setTxt('find-label',game.riverMode?t('findRiver'):game.lakeMode?t('findLake'):game.cityMode?t('findCity'):game.mountainMode?t('findMountain'):game.rangeMode?(game.desert?dsrt().find:t('findRange')):game.pinMode?pinFindLabel():game.triviaMode?(game.currentGroup&&game.currentGroup.size>1?t('findTriviaN'):t('findTrivia')):t('find'));setTxt('found-label',t('foundLbl'));setTxt('lbl-c',t('correctLbl'));setTxt('lbl-w',t('wrongLbl'));setTxt('btn-skip',t('skipLbl'));setTxt('res-title',t('resTitle'));setTxt('btn-again',t('again'));setTxt('btn-new',t('newgame'));setTxt('btn-share',t('shareBtn'));setTxt('opts-title',t('optionsLbl'));setTxt('flag-btn-back',t('back'));setTxt('flag-lbl-c',t('correctLbl'));setTxt('flag-lbl-w',t('wrongLbl'));
   // Only the plain country quiz shows the target's own name — every other mode (lake/river/city/
   // pin/population) shows a question instead, which must survive a language switch untouched
   // rather than being clobbered back into a country name here.
@@ -950,7 +954,7 @@ function updateAllText(){
   if(typeof _renderSrc==='function'&&$('sources-modal')&&$('sources-modal').style.display!=='none')_renderSrc();
 }
 
-const SECTIONS=['map','region','flag','pin','city','river','lake','mountain'];
+const SECTIONS=['map','region','flag','pin','city','river','lake','mountain','desert'];
 function gsCard(onclick,title,sub,key){
   let badge='';
   if(key&&learnMode&&typeof learnSummary==='function'){const ls=learnSummary(key);if(ls)badge='<span class="gs-card-best">🎓 '+ls.s+'/'+ls.n+'</span>';}
@@ -982,6 +986,11 @@ function sectionInner(key){
   if(key==='flag'){
     return INPUT_QUIZZES.map(q=>gsCard("openInputCfg('"+q.type+"')",t(q.titleKey),t(q.subKey),null)).join('');
   }
+  if(key==='desert'){
+    return desertDiffs().map(d=>gsCard("startDesertGame('"+d.key+"')",d.label,d.count+' '+dsrt().many,'desert:'+d.key)).join('')
+      +'<div style="grid-column:1/-1;height:1px;background:rgba(217,184,119,.2);margin:.5rem 0;"></div>'
+      +DESERT_CONTS.map(r=>gsCard("startDesertGame('"+r+"')",MODES[r][lang]||MODES[r].de,DESERT_CONT_N[r]+' '+dsrt().many,'desert:'+r)).join('');
+  }
   if(key==='mountain'){
     const groupLabel=txt=>`<div style="grid-column:1/-1;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin:.3rem 0 -.2rem;">${txt}</div>`;
     const ranges=TX[lang].rangeDiffs.map(d=>gsCard("startRangeGame('"+d.key+"')",d.label,d.count+' '+t('mountainRanges'),'range:'+d.key)).join('');
@@ -1000,7 +1009,8 @@ const SECTION_META={
   city:{icon:'🏙️',head:()=>t('cityQuiz'),sub:()=>t('citySub')},
   pin:{icon:'📍',head:()=>t('pinQuiz'),sub:()=>t('pinSub')},
   flag:{icon:'✏️',head:()=>t('inputQuiz'),sub:()=>t('inputSub')},
-  mountain:{icon:'⛰️',head:()=>t('mountainQuiz'),sub:()=>t('mountainSub')}
+  mountain:{icon:'⛰️',head:()=>t('mountainQuiz'),sub:()=>t('mountainSub')},
+  desert:{icon:'🏜️',head:()=>dsrt().quiz,sub:()=>dsrt().sub}
 };
 const INPUT_QUIZZES=[
   {type:'flag',titleKey:'flagQuiz',subKey:'flagCardSub'},
@@ -1228,11 +1238,11 @@ async function startGame(mode){
   zoomToGeo(g.lon,g.lat,g.k);
   nextCountry();
 }
-function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame(game.triviaCat);else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
+function restart(){if(game.fillMode)return void startFillGame(game.fillKey);if(_regGame)return void startRegionQuiz(_regGame.key);if(game.challengeMode)return void(_challenge&&_challenge.daily?openDailyChallenge():startRandomChallenge());if(game.flagMode)startInputQuiz(game.iqCfg||{type:'flag',region:'world',diff:'all',dir:'c2cap'});else if(game.riverMode)startRiverGame(game.difficulty);else if(game.lakeMode)startLakeGame(game.difficulty);else if(game.cityMode)startCityGame(game.difficulty);else if(game.mountainMode)startMountainGame(game.difficulty);else if(game.desert)startDesertGame(game.difficulty);else if(game.rangeMode)startRangeGame(game.difficulty);else if(game.pinMode)startPinGame(game.pinRegion||game.difficulty);else if(game.triviaMode)startTriviaGame(game.triviaCat);else if(lastMode==='custom')startCustom();else if(lastMode&&lastMode.startsWith('diff'))startDifficultyGame(+lastMode.slice(4));else startGame(lastMode);}
 // flag/pin/city/river/lake reopen their own (unchanged) section via goToGames(); everything else
 // reached through "click"'s drill-down (world/continent/custom/population) returns to whichever
 // page launched it, tracked in _quizBackAction (see the CATEGORY PICKER block above).
-function back(){if(game.fillMode){if(game.fillPath&&game.fillPath.duel&&typeof duelLeave==='function')duelLeave();if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
+function back(){if(game.fillMode){if(game.fillPath&&game.fillPath.duel&&typeof duelLeave==='function')duelLeave();if(typeof fillStop==='function')fillStop();game={};renderInputPage();return;}if(_regGame)return void regionBack();if(game.pinDuel&&typeof duelLeave==='function')duelLeave();if(game.challengeMode){if(typeof duelLeave==='function')duelLeave();_stopDailyTimer();game={};_challenge=null;goHome();return;}const key=game.flagMode?'flag':game.pinMode?'pin':game.cityMode?'city':game.riverMode?'river':game.lakeMode?'lake':game.desert?'desert':(game.mountainMode||game.rangeMode)?'mountain':null;game={};if(key){goToGames(key);return;}_quizBackAction();}
 function setQuizRoundLimit(v){quizRoundLimit=Math.max(1,Math.min(9999,parseInt(v)||10));document.querySelectorAll('.gs-round-input').forEach(el=>{el.value=quizRoundLimit;});persistSettings();}
 function setAllTargets(v){allTargets=v;renderOptions();persistSettings();}
 function setLearnMode(v){if(v&&!window._authUser)return;learnMode=v;_learnNormal=false;applyLearnClass();if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();persistSettings();return;}const sc=$('mode-screen');const st=sc?sc.scrollTop:0;renderModeScreen();if(sc)sc.scrollTop=st;persistSettings();}
@@ -1653,7 +1663,7 @@ function getRangeFeatures(diff){
   const sorted=named.slice().sort((a,b)=>fameIdx(a.properties.name_en)-fameIdx(b.properties.name_en));
   return sorted.slice(0,n);
 }
-function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.found.has(rep))return th.found;}return th.mtn;}
+function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.found.has(rep))return th.found;}return game.desert?'#c9a46a':th.mtn;}
 function updateRangeColors(){if(!rangePaths)return;const th=THEMES[theme];rangePaths.attr('fill',d=>getRangeColor(d._i)).attr('stroke',th.border);}
 async function startRangeGame(diff){
   await ensureRangesData();
@@ -1671,6 +1681,52 @@ async function startRangeGame(diff){
   $('target-name').textContent='';showFeedback(t('load'),'#888');
   updateAllText();
   if(worldData)renderMap(worldData);else await loadMap();
+  nextCountry();
+}
+// ── WÜSTEN ── Flächen aus Natural Earth, Mechanik wie bei den Gebirgszügen (game.rangeMode, game.desert)
+const DESERT_TXT={
+  de:{quiz:'Wüsten-Quiz',sub:'Ein Wüstenname erscheint — finde und klicke sie auf der Karte.',find:'Finde diese Wüste',many:'Wüsten'},
+  en:{quiz:'Desert Quiz',sub:'A desert name appears — find and click it on the map.',find:'Find this desert',many:'deserts'},
+  es:{quiz:'Quiz de Desiertos',sub:'Aparece el nombre de un desierto — encuéntralo y haz clic en el mapa.',find:'Encuentra este desierto',many:'desiertos'},
+  fr:{quiz:'Quiz des Déserts',sub:'Le nom d’un désert apparaît — trouve-le et clique dessus sur la carte.',find:'Trouve ce désert',many:'déserts'}
+};
+const dsrt=()=>DESERT_TXT[lang]||DESERT_TXT.de;
+const DESERT_DIFFS={
+  de:['Einfach','Mittel','Schwer'],en:['Easy','Medium','Hard'],es:['Fácil','Medio','Difícil'],fr:['Facile','Moyen','Difficile']
+};
+const DESERT_N={easy:12,medium:26,hard:46};
+const desertDiffs=()=>{const l=DESERT_DIFFS[lang]||DESERT_DIFFS.de;return ['easy','medium','hard'].map((k,i)=>({key:k,label:l[i],count:DESERT_N[k]}));};
+const DESERT_CONTS=['AF','AS','NA','OC'];
+const DESERT_CONT_N={AF:19,AS:16,NA:4,OC:6};
+let desertsData=null;
+async function ensureDesertsData(){
+  if(desertsData)return desertsData;
+  try{desertsData=await fetch('data/deserts.geojson').then(r=>r.json());}catch(e){desertsData={type:'FeatureCollection',features:[]};}
+  return desertsData;
+}
+function getDesertFeatures(key){
+  const all=(desertsData&&desertsData.features||[]).filter(f=>f.properties.name_en);
+  const lv={easy:1,medium:2,hard:3}[key];
+  const list=lv?all.filter(f=>f.properties.lvl<=lv):all.filter(f=>f.properties.cont===key);
+  return list.slice().sort((a,b)=>a.properties.lvl-b.properties.lvl);
+}
+async function startDesertGame(key){
+  await ensureDesertsData();
+  const feats=getDesertFeatures(key);
+  const rangeRep={};const order=[];
+  feats.forEach((f,i)=>{const n=rangeDisplayName(f);if(!(n in rangeRep)){rangeRep[n]=i;order.push(i);}});
+  const queue=learnSortIdx(order,feats,rangeDisplayName,'desert:','desert:'+key).slice(0,(allTargets||learnOn())?Infinity:quizRoundLimit);
+  game={mode:'desert',rangeMode:true,desert:true,difficulty:key,
+    rangeFeatures:feats,rangeRep,
+    queue,
+    current:null,found:new Set(),correct:0,wrong:0,firstTry:0,
+    total:queue.length,wrongOnCurrent:false,skipped:0};
+  lastMode='desert';canClick=true;optsOpen=false;
+  showScreen('game-screen');$('opts-panel').style.display='none';
+  $('target-name').textContent='';showFeedback(t('load'),'#888');
+  updateAllText();
+  if(worldData)renderMap(worldData);else await loadMap();
+  if(DESERT_CONTS.includes(key)){const g=zoomForMode(key);zoomToGeo(g.lon,g.lat,g.k);}
   nextCountry();
 }
 function handleRangeClick(idx){
