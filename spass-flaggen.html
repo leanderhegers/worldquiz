@@ -462,7 +462,7 @@ EMB_TARGETS.push(
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const pev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}}; // lang und C sind let/const der App, also nicht als window-Eigenschaft sichtbar
 const LG=pev('lang')||'de',PC=pev('C');
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.":"All stripes are equally wide. Unequal stripes are built from several equal ones (e.g. 1:2:1 is four stripes, the middle two the same color). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.":"All stripes are equally wide. Unequal stripes are built from several equal ones (e.g. 1:2:1 is four stripes, the middle two the same color). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PC&&PC[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -541,12 +541,12 @@ function draw(){
     const tr=isP(s)?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
     const rx=isP(s)?(bb.x-bb.w/2)*W:-s.w*W/2,ry=isP(s)?(bb.y-bb.h/2)*H:-s.h*H/2;
     o+=`<rect ${tr} x="${rx}" y="${ry}" width="${bb.w*W}" height="${bb.h*H}" fill="none" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*8} ${u*5}" pointer-events="none"/>`;
-    if(!isP(s)){
-      const hw=s.w*W/2,hh=s.h*H/2,hs=u*5.5,cur={nw:'nwse',se:'nwse',ne:'nesw',sw:'nesw',n:'ns',s:'ns',e:'ew',w:'ew'};
+    {
+      const poly=isP(s),hw=bb.w*W/2,hh=bb.h*H/2,hs=u*5.5,gt=poly?`transform="translate(${bb.x*W} ${bb.y*H})"`:tr,cur={nw:'nwse',se:'nwse',ne:'nesw',sw:'nesw',n:'ns',s:'ns',e:'ew',w:'ew'};
       const P={nw:[-hw,-hh],n:[0,-hh],ne:[hw,-hh],e:[hw,0],se:[hw,hh],s:[0,hh],sw:[-hw,hh],w:[-hw,0]};
-      o+=`<g ${tr}><line x1="0" y1="${-hh}" x2="0" y2="${-hh-u*26}" stroke="#f0b060" stroke-width="${u*1.5}" pointer-events="none"/>`;
+      o+=`<g ${gt}>`+(poly?'':`<line x1="0" y1="${-hh}" x2="0" y2="${-hh-u*26}" stroke="#f0b060" stroke-width="${u*1.5}" pointer-events="none"/>`);
       Object.keys(P).forEach(k=>{o+=`<rect data-rh="${k}" x="${P[k][0]-hs}" y="${P[k][1]-hs}" width="${hs*2}" height="${hs*2}" rx="${u*2}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:${cur[k]}-resize"/>`;});
-      o+=`<circle data-rh="rot" cx="0" cy="${-hh-u*26}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:grab"/></g>`;
+      o+=(poly?'':`<circle data-rh="rot" cx="0" cy="${-hh-u*26}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:grab"/>`)+'</g>';
     }
     if(s.t==='trif'||s.t==='quad')s.p.forEach((q,k)=>{o+=`<circle data-h="${k}" cx="${q[0]*W}" cy="${q[1]*H}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*2}" style="cursor:move"/>`;});
   }
@@ -756,8 +756,9 @@ svg.addEventListener('pointerdown',e=>{
 svg.addEventListener('pointermove',e=>{
   if(!drag)return;const p=pt(e);
   if(drag.k==='z'){
-    const s=S.shapes[S.sel],o=drag.o,{W,H}=dims(S),a=(o.r||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
-    const dx=(p.x-o.x)*W,dy=(p.y-o.y)*H;
+    const s=S.shapes[S.sel],o=drag.o,{W,H}=dims(S),poly=isP(o),ob=poly?bbox(o):{x:o.x,y:o.y,w:o.w,h:o.h};
+    const a=poly?0:(o.r||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
+    const dx=(p.x-ob.x)*W,dy=(p.y-ob.y)*H;
     if(drag.hd==='rot'){
       let r=Math.atan2(dy,dx)*180/Math.PI+90;if(r>180)r-=360;
       const q=Math.round(r/15)*15;if(Math.abs(r-q)<4)r=q;
@@ -765,24 +766,25 @@ svg.addEventListener('pointermove',e=>{
     }else{
       const lx=dx*co+dy*si,ly=-dx*si+dy*co,hd=drag.hd;
       const sx=hd.includes('e')?1:hd.includes('w')?-1:0,sy=hd.includes('s')?1:hd.includes('n')?-1:0;
-      const ow=o.w*W,oh=o.h*H;
+      const ow=Math.max(ob.w*W,1e-6),oh=Math.max(ob.h*H,1e-6);
       const cen=e.ctrlKey||e.metaKey; // Strg: von der Mitte aus vergrößern
       let nw=sx?Math.max(W*.01,cen?2*sx*lx:sx*lx+ow/2):ow,nh=sy?Math.max(H*.01,cen?2*sy*ly:sy*ly+oh/2):oh;
       // Einrasten der bewegten Kante an Rand, Mitte und Streifenkanten (nur bei ungedrehten Formen)
       S.guides=[];let sxS=false,syS=false;
       if($('#snap').checked&&!cen&&Math.abs((o.r||0)%180)<.5){
         const {X,Y}=cands(),thr=.022;
-        if(sx){const ax=o.x*W-sx*ow/2,r=snapVal((ax+sx*nw)/W,X,[0],thr);if(r){nw=Math.max(W*.01,nw+sx*r.d*W);sxS=true;}}
-        if(sy){const ay=o.y*H-sy*oh/2,r=snapVal((ay+sy*nh)/H,Y,[0],thr);if(r){nh=Math.max(H*.01,nh+sy*r.d*H);syS=true;}}
+        if(sx){const ax=ob.x*W-sx*ow/2,r=snapVal((ax+sx*nw)/W,X,[0],thr);if(r){nw=Math.max(W*.01,nw+sx*r.d*W);sxS=true;}}
+        if(sy){const ay=ob.y*H-sy*oh/2,r=snapVal((ay+sy*nh)/H,Y,[0],thr);if(r){nh=Math.max(H*.01,nh+sy*r.d*H);syS=true;}}
       }
       const emb=o.t==='emb';
       if(emb&&sx&&!sy){nh=oh*(nw/ow);}else if(emb&&sy&&!sx){nw=ow*(nh/oh);}
       else if(sx&&sy&&($('#plock').checked||emb)){const f=sxS?nw/ow:syS?nh/oh:Math.max(nw/ow,nh/oh);nw=ow*f;nh=oh*f;}
-      if(sx&&!cen){const ex=(o.x*W-sx*ow/2+sx*nw)/W;for(const c of cands().X)if(Math.abs(ex-c)<1e-4)S.guides.push({x:c});}
-      if(sy&&!cen){const ey=(o.y*H-sy*oh/2+sy*nh)/H;for(const c of cands().Y)if(Math.abs(ey-c)<1e-4)S.guides.push({y:c});}
+      if(sx&&!cen){const ex=(ob.x*W-sx*ow/2+sx*nw)/W;for(const c of cands().X)if(Math.abs(ex-c)<1e-4)S.guides.push({x:c});}
+      if(sy&&!cen){const ey=(ob.y*H-sy*oh/2+sy*nh)/H;for(const c of cands().Y)if(Math.abs(ey-c)<1e-4)S.guides.push({y:c});}
       const cl=cen?{x:0,y:0}:{x:sx?-sx*ow/2+sx*nw/2:0,y:sy?-sy*oh/2+sy*nh/2:0};
-      s.w=nw/W;s.h=nh/H;
-      s.x=o.x+(cl.x*co-cl.y*si)/W;s.y=o.y+(cl.x*si+cl.y*co)/H;
+      const cx=ob.x+(cl.x*co-cl.y*si)/W,cy=ob.y+(cl.x*si+cl.y*co)/H;
+      if(poly){const kx=nw/ow,ky=nh/oh;s.p=o.p.map(q=>[cx+(q[0]-ob.x)*kx,cy+(q[1]-ob.y)*ky]);}
+      else{s.w=nw/W;s.h=nh/H;s.x=cx;s.y=cy;}
     }
     syncProps();draw();return;
   }
@@ -813,27 +815,75 @@ function pairScore(a,b){
   let ts=a.t===b.t?1:((a.t==='tri'&&b.t==='trif')||(a.t==='trif'&&b.t==='tri'))?.7:(isPT(a.t)&&isPT(b.t))?.5:0;
   if(!ts)return 0;
   if(a.t==='emb'&&a.e!==b.e)ts=.3;
-  const cs=a.t==='emb'?1:(a.c===b.c?1:0);
+  const cs=a.t==='emb'?1:(a.c===b.c?1:(FAM[a.c]&&FAM[a.c]===FAM[b.c]?.6:0));
   const ps=Math.max(0,1-Math.hypot(a.x-b.x,a.y-b.y)/.25);
   const ss=Math.max(0,1-(Math.abs(Math.log(a.w/b.w))+Math.abs(Math.log(a.h/b.h)))/1.5);
   return .3*ts+.2*cs+.3*ps+.2*ss;
 }
+// Bewertung: Die fertige Flagge wird gerendert und mit der Vorlage verglichen, egal wie sie gebaut wurde
+// (drei Rechtecke statt drei Streifen sind genauso gut). Drei Teile:
+//   Layout  (25): Seitenverhältnis (10) + grobe Struktur der Helligkeitsverteilung (15)
+//   Farben  (40): RGB-Übereinstimmung Pixel für Pixel, kleine Verschiebungen werden verziehen
+//   Details (35): Übereinstimmung der Kanten (Formen, Wappen, Sterne) mit Toleranz
+// Jede Farbe der Vorlage zählt gleich viel, egal wie groß ihre Fläche ist, damit Nichtstun kaum Punkte bringt.
 const FAM={rot:'r',dunkelrot:'r',orange:'o',gelb:'y',hellgruen:'g',gruen:'g',dunkelgruen:'g',hellblau:'b',blau:'b',dunkelblau:'b',weiss:'w',schwarz:'k',grau:'a',braun:'n',lila:'p',rosa:'s'};
-function scoreFlag(b,t){
+const EMBURI={};
+async function loadEmbUris(f){
+  for(const sh of f.shapes){if(sh.t!=='emb'||EMBURI[sh.e])continue;
+    const txt=await fetch('data/emblems/'+sh.e+'.svg').then(r=>r.text());
+    EMBURI[sh.e]='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(txt)));}
+}
+const RW=96,RH=64;
+async function raster(f){
+  await loadEmbUris(f);
+  const {W,H}=dims(f);
+  const inner=flagInner(f,'q'+Math.random().toString(36).slice(2,7)).replace(/href="data\/emblems\/([a-z]+)\.svg"/g,(m,i)=>'href="'+EMBURI[i]+'"');
+  const svgs='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+RW+'" height="'+RH+'" preserveAspectRatio="none"><rect width="'+W+'" height="'+H+'" fill="#fff"/>'+inner+'</svg>';
+  const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgs);await img.decode();
+  const c=document.createElement('canvas');c.width=RW;c.height=RH;const x=c.getContext('2d');x.drawImage(img,0,0,RW,RH);
+  return x.getImageData(0,0,RW,RH).data;
+}
+const PALRGB=Object.keys(PAL).map(k=>{const h=PAL[k][1];return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];});
+const nearestPal=(r,g,b)=>{let bi=0,bd=1e9;PALRGB.forEach((c,i)=>{const d=(c[0]-r)**2+(c[1]-g)**2+(c[2]-b)**2;if(d<bd){bd=d;bi=i;}});return bi;};
+function down(d,k){const w=RW/k,h=RH/k,o=new Float32Array(w*h*3);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let r=0,g=0,b=0;for(let j=0;j<k;j++)for(let i=0;i<k;i++){const p=((y*k+j)*RW+x*k+i)*4;r+=d[p];g+=d[p+1];b+=d[p+2];}const n=k*k;o.set([r/n,g/n,b/n],(y*w+x)*3);}return{o,w,h};}
+const cd=(d,i,e,j)=>Math.hypot(d[i]-e[j],d[i+1]-e[j+1],d[i+2]-e[j+2]);
+// Farben: für jedes Vorlagen-Pixel die RGB-Ähnlichkeit zum besten Pixel im 5x5-Umfeld der gebauten Flagge. Jede Farbe der Vorlage zählt gleich viel,
+// egal wie groß ihre Fläche ist (sonst brächte ein weißes Feld mit kleinem roten Kreis schon fast volle Punkte).
+function colorSim(U,Tg){
+  const cls=new Int16Array(Tg.w*Tg.h),cnt={},sum={};
+  for(let i=0;i<Tg.w*Tg.h;i++){cls[i]=nearestPal(Tg.o[i*3],Tg.o[i*3+1],Tg.o[i*3+2]);cnt[cls[i]]=(cnt[cls[i]]||0)+1;}
+  for(let y=0;y<Tg.h;y++)for(let x=0;x<Tg.w;x++){const i=y*Tg.w+x;let best=0;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=U.w||yy>=U.h)continue;const j=(yy*U.w+xx)*3;
+      const sm=1-Math.hypot(Tg.o[i*3]-U.o[j],Tg.o[i*3+1]-U.o[j+1],Tg.o[i*3+2]-U.o[j+2])/200;if(sm>best)best=sm;}
+    sum[cls[i]]=(sum[cls[i]]||0)+Math.max(0,best);}
+  const min=Math.max(4,Tg.w*Tg.h*.01);let tot=0,n=0;
+  for(const k of Object.keys(cnt))if(cnt[k]>=min){tot+=sum[k]/cnt[k];n++;}
+  return n?tot/n:0;
+}
+// Struktur: Korrelation der Helligkeitsverteilung (Farbe egal, nur wo hell und dunkel ist)
+function structSim(U,Tg){
+  const n=Tg.w*Tg.h,L=A=>{const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=.299*A.o[i*3]+.587*A.o[i*3+1]+.114*A.o[i*3+2];return o;};
+  const a=L(U),b=L(Tg);let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
+  let sab=0,saa=0,sbb=0;for(let i=0;i<n;i++){sab+=(a[i]-ma)*(b[i]-mb);saa+=(a[i]-ma)**2;sbb+=(b[i]-mb)**2;}
+  if(sbb<1)return saa<1?1:.5;if(saa<1)return 0;
+  return Math.max(0,sab/Math.sqrt(saa*sbb));
+}
+function edges(d){const e=new Uint8Array(RW*RH);for(let y=0;y<RH;y++)for(let x=0;x<RW;x++){const i=(y*RW+x)*4;let m=0;if(x+1<RW)m=Math.max(m,cd(d,i,d,i+4));if(y+1<RH)m=Math.max(m,cd(d,i,d,i+RW*4));e[y*RW+x]=m>70?1:0;}return e;}
+// Details: Kanten (Umrisse von Formen, Wappen, Sternen) der Flagge gegen die der Vorlage; je näher, desto besser (bis 8 Pixel Abstand)
+function edgeSim(eu,et){
+  const nu=eu.reduce((a,b)=>a+b,0),nt=et.reduce((a,b)=>a+b,0);if(!nu&&!nt)return 1;if(!nu||!nt)return 0;
+  const R=8,near=(A,B)=>{let sum=0,n=0;for(let y=0;y<RH;y++)for(let x=0;x<RW;x++)if(A[y*RW+x]){n++;let best=R;
+    for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=RW||yy>=RH||!B[yy*RW+xx])continue;const dd=Math.hypot(dx,dy);if(dd<best)best=dd;}
+    sum+=1-best/R;}return sum/n;};
+  const p=near(eu,et),r=near(et,eu);return p+r?2*p*r/(p+r):0;
+}
+async function scoreFlag(b,t){
   const d=Math.abs(Math.log((b.ratio[0]/b.ratio[1])/(t.ratio[0]/t.ratio[1])));
   const ratio=d<.05?1:Math.max(0,1-(d-.05)/.45);
-  const ob=b.n<=1?'none':b.orient,ot=t.n<=1?'none':t.orient,nb=b.n<=1?1:b.n,nt=t.n<=1?1:t.n;
-  const layout=(ob===ot?.5:0)+(nb===nt?.5:Math.max(0,.5-.15*Math.abs(nb-nt)));
-  // Farben: halb "richtige Farbe an der richtigen Stelle" (ähnlicher Farbton zählt halb), halb "richtige Farben in passenden Anteilen"
-  let eq=0,N=12;const hb={},ht={};
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const u=(i+.5)/N,v=(j+.5)/N,cb=colorAt(b,u,v),ct=colorAt(t,u,v);eq+=cb===ct?1:(FAM[cb]&&FAM[cb]===FAM[ct]?.5:0);hb[cb]=(hb[cb]||0)+1;ht[ct]=(ht[ct]||0)+1;}
-  let ov=0;Object.keys(ht).forEach(k=>{ov+=Math.min(ht[k],hb[k]||0);});
-  const colors=.5*eq/(N*N)+.5*ov/(N*N);
-  const A=t.shapes.map(descr),B=b.shapes.map(descr),used=new Set();let sum=0;
-  A.forEach(a=>{let best=0,bi=-1;B.forEach((q,i)=>{if(used.has(i))return;const sc=pairScore(a,q);if(sc>best){best=sc;bi=i;}});if(bi>=0){used.add(bi);sum+=best;}});
-  const den=Math.max(A.length,B.length);
-  const symbols=den===0?1:sum/den;
-  return{ratio,layout,colors,symbols,total:Math.round(10*ratio+15*layout+45*colors+30*symbols)};
+  const du=await raster(b),dt=await raster(t);
+  const colors=colorSim(down(du,2),down(dt,2)),struct=structSim(down(du,4),down(dt,4)),details=edgeSim(edges(du),edges(dt));
+  const layout=(10*ratio+15*struct)/25;
+  return{ratio,layout,colors,details,total:Math.round(10*ratio+15*struct+40*colors+35*details)};
 }
 
 // ───────────────────────── Spielablauf ─────────────────────────
@@ -885,13 +935,14 @@ $('#bSkip').onclick=()=>{
   r.results.push({name:nm(t),pts:0});
   if(r.i<r.list.length-1){r.i++;loadTarget();}else showEnd();
 };
-function check(){
-  const r=S.round,t=r.list[r.i],sc=scoreFlag(S,t),pen=0,pts=sc.total;
+async function check(){
+  const r=S.round,t=r.list[r.i];let sc;try{sc=await scoreFlag(S,t);}catch(err){console.warn('Bewertung fehlgeschlagen',err);sc={layout:0,colors:0,details:0,total:0};}
+  const pen=0,pts=sc.total;
   r.total+=pts;r.results.push({name:nm(t),pts});$('#ttot').textContent=avg();
   const last=r.i===r.list.length-1;
   $('#card').innerHTML=`
     <div class="cmp"><figure>${thumb(S,'a')}<figcaption>${tr('Deine Flagge')}</figcaption></figure><figure>${thumb(t,'b')}<figcaption>${nm(t)}</figcaption></figure></div>
-    ${bar('Format',sc.ratio)}${bar('Streifen',sc.layout)}${bar('Farben',sc.colors)}${bar('Symbole',sc.symbols)}
+    ${bar('Layout',sc.layout)}${bar('Farben',sc.colors)}${bar('Details',sc.details)}
     <div class="total fly"><span class="totv" data-v="${pts}">0 %</span> <small>${tr('richtig')}</small></div>
     <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${tr(last?'Ergebnis ansehen':'Nächste Flagge →')}</button>`;
   $('#dlg').classList.add('on');animateBars();
