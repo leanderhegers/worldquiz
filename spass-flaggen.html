@@ -245,6 +245,7 @@ body.pruef #pfref{display:block}
           <div id="props">
             <div class="row"><span>Breite</span><input type="range" id="pw" min="1" max="120" value="30"><output id="pwo">30</output></div>
             <div class="row"><span>Höhe</span><input type="range" id="ph" min="1" max="120" value="30"><output id="pho">30</output></div>
+            <div class="row crossrow" style="display:none"><span>Dicke</span><input type="range" id="pkt" min="10" max="70" value="34"><output id="pkto">34</output></div>
             <div class="row cresrow" style="display:none"><span>Dicke</span><input type="range" id="pct" min="8" max="48" value="30"><output id="pcto">30</output></div>
             <div class="row cresrow" style="display:none"><span>Schließen</span><input type="range" id="pcr" min="25" max="49" value="40"><output id="pcro">40</output></div>
             <div class="row"><span>Drehung</span><input type="range" id="pr" min="-180" max="180" value="0"><output id="pro">0°</output></div>
@@ -315,7 +316,7 @@ const embName=e=>(LG==='de'?e.de:e.en);
 const SHAPE_BTN=[
   ['circle','Kreis','<circle cx="15" cy="15" r="11"/>'],
   ['rect','Rechteck','<rect x="4" y="7" width="22" height="16"/>'],
-  ['tri','Dreieck','<polygon points="15,4 27,26 3,26"/>'],
+  ['tri','Dreieck','<polygon points="4,4 26,15 4,26"/>'],
   ['trif','Dreieck frei','<polygon points="6,6 26,12 10,26"/>'],
   ['quad','Viereck frei','<polygon points="5,8 24,5 26,22 8,26"/>'],
   ['star','Stern','<polygon points="15,3 18.5,11 27,11.5 20.5,17 22.5,26 15,21 7.5,26 9.5,17 3,11.5 11.5,11"/>'],
@@ -562,7 +563,7 @@ function shapeSVG(s,W,H,id){
     case 'tri':return `<polygon ${tr} points="0,${-h/2} ${w/2},${h/2} ${-w/2},${h/2}" fill="${fill}"/>`;
     case 'trif':case 'quad':case 'poly':return `<polygon points="${s.p.map(q=>(q[0]*W)+','+(q[1]*H)).join(' ')}" fill="${fill}"/>`;
     case 'star':{let p=[];for(let i=0;i<10;i++){const r=i%2?.382:1,a=(-90+36*i)*Math.PI/180;p.push((Math.cos(a)*r*w/2).toFixed(2)+','+(Math.sin(a)*r*h/2).toFixed(2));}return `<polygon ${tr} points="${p.join(' ')}" fill="${fill}"/>`;}
-    case 'cross':{const a=.17,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
+    case 'cross':{const a=(s.kt??.34)/2,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
     case 'bcross':{const a=.1,b=.28,P=[[-a,-a],[-b,-.5],[b,-.5],[a,-a],[.5,-b],[.5,b],[a,a],[b,.5],[-b,.5],[-a,a],[-.5,b],[-.5,-b]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
     case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*((s.ct??.3)-.5+(s.cr??.4))}" rx="${w*(s.cr??.4)}" ry="${h*(s.cr??.4)}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
     case 'emb':return `<image ${tr} href="data/emblems/${s.e}.svg" x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
@@ -684,6 +685,8 @@ function syncProps(){
   $('#ph').value=Math.round(bb.h*100);$('#pho').textContent=Math.round(bb.h*100)+'%';
   $('#pr').value=s.r||0;$('#pro').textContent=(s.r||0)+'°';
   $('#pr').disabled=isP(s);
+  $$('.crossrow').forEach(e=>{e.style.display=s.t==='cross'?'':'none';});
+  if(s.t==='cross'){$('#pkt').value=Math.round((s.kt??.34)*100);$('#pkto').textContent=$('#pkt').value;}
   $$('.cresrow').forEach(e=>{e.style.display=s.t==='cres'?'':'none';});
   if(s.t==='cres'){$('#pct').value=Math.round((s.ct??.3)*100);$('#pcto').textContent=$('#pct').value;$('#pcr').value=Math.round((s.cr??.4)*100);$('#pcro').textContent=$('#pcr').value;}
   const emb=s.t==='emb';const pl=$('#plock');
@@ -711,7 +714,7 @@ function addShape(t,g){
   }else{
     let h=t==='emb'?.4:t==='rect'?.3:.4,w=t==='rect'?h*H/W*1.6:h*H/W;
     if(t==='emb'){const b=embBox(g,S.ratio,h);w=b.w;h=b.h;if(w>.9){h=h*.9/w;w=.9;}}
-    s={t,x:.5,y:.5,w,h,c:t==='emb'?'schwarz':'rot',r:0};
+    s={t,x:.5,y:.5,w,h,c:t==='emb'?'schwarz':'rot',r:t==='tri'?90:0};
     if(t==='emb')s.e=g;
     if(t==='trif'){s.p=[[.5,.28],[.68,.7],[.32,.64]];}
     if(t==='quad'){s.p=[[.34,.3],[.66,.34],[.7,.7],[.3,.66]];}
@@ -720,6 +723,11 @@ function addShape(t,g){
   syncProps();draw();
 }
 function moveBy(s,dx,dy){if(isP(s))s.p=s.p.map(q=>[q[0]+dx,q[1]+dy]);else{s.x+=dx;s.y+=dy;}}
+function wbox(s){ // Umhüllendes Rechteck in der Flagge; bei gedrehten Formen vertauschen sich Breite und Höhe
+  const b=bbox(s);if(isP(s))return b;
+  const {W,H}=dims(S),a=(s.r||0)*Math.PI/180,co=Math.abs(Math.cos(a)),si=Math.abs(Math.sin(a)),ww=s.w*W,hh=s.h*H;
+  return{x:s.x,y:s.y,w:(ww*co+hh*si)/W,h:(ww*si+hh*co)/H};
+}
 function moveTo(s,cx,cy){const b=bbox(s);moveBy(s,cx-b.x,cy-b.y);}
 function cands(){
   const X=[0,.5,1],Y=[0,.5,1],n=S.n<=1?1:S.n;
@@ -733,20 +741,20 @@ function snapVal(v,list,offs,thr){
 }
 function snapMove(s,cx,cy){
   S.guides=[];if(!$('#snap').checked)return{cx,cy};
-  const {X,Y}=cands(),b=bbox(s),thr=.022;
+  const {X,Y}=cands(),b=wbox(s),thr=.022;
   const sx=snapVal(cx,X,[0,-b.w/2,b.w/2],thr),sy=snapVal(cy,Y,[0,-b.h/2,b.h/2],thr);
   if(sx){cx+=sx.d;S.guides.push({x:sx.c});}
   if(sy){cy+=sy.d;S.guides.push({y:sy.c});}
   return{cx,cy};
 }
 function toolAct(t){
-  const s=S.shapes[S.sel];if(!s)return;const b=bbox(s);
+  const s=S.shapes[S.sel];if(!s)return;const b=wbox(s);
   if(t!=='copy'&&!/^[cxylrud]+$/.test(t))S.batch=null;
   if(t==='del'){S.shapes.splice(S.sel,1);S.sel=null;}
   else if(t==='copy'){
     const n=Math.max(1,Math.min(60,Math.round(+$('#cn').value)||1)),gap=+$('#cgap').value/100,dir=$('#cdir').value;
     const grp=$('#cbatch').checked&&S.batch&&S.batch.includes(S.sel)?S.batch.slice():[S.sel];
-    const bs=grp.map(i=>bbox(S.shapes[i]));
+    const bs=grp.map(i=>wbox(S.shapes[i]));
     const gw=Math.max(...bs.map(q=>q.x+q.w/2))-Math.min(...bs.map(q=>q.x-q.w/2)),gh=Math.max(...bs.map(q=>q.y+q.h/2))-Math.min(...bs.map(q=>q.y-q.h/2));
     const vx=dir.includes('r')?1:dir.includes('l')?-1:0,vy=dir.includes('d')?1:dir.includes('u')?-1:0;
     const dx=vx*(gw+gap),dy=vy*(gh+gap),fresh=[];
@@ -826,6 +834,7 @@ slider('pw',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nw=v/100;let nh=b.h;if($('#plo
 slider('ph',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nh=v/100;let nw=b.w;if($('#plock').checked||s.t==='emb')nw=nh*H*b.w*W/(b.h*H*W);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
 slider('pr',(s,v)=>{s.r=v;});
 slider('pct',(s,v)=>{s.ct=v/100;});
+slider('pkt',(s,v)=>{s.kt=v/100;});
 slider('pcr',(s,v)=>{s.cr=v/100;});
 $('#cgap').addEventListener('input',e=>{$('#cgo').textContent=e.target.value+'%';});
 // Ziehen
@@ -860,18 +869,26 @@ svg.addEventListener('pointermove',e=>{
       const ow=Math.max(ob.w*W,1e-6),oh=Math.max(ob.h*H,1e-6);
       const cen=e.ctrlKey||e.metaKey; // Strg: von der Mitte aus vergrößern
       let nw=sx?Math.max(W*.01,cen?2*sx*lx:sx*lx+ow/2):ow,nh=sy?Math.max(H*.01,cen?2*sy*ly:sy*ly+oh/2):oh;
-      // Einrasten der bewegten Kante an Rand, Mitte und Streifenkanten (nur bei ungedrehten Formen)
+      // Einrasten der bewegten Kante an Rand, Mitte und Streifenkanten (bei Drehung um Vielfache von 90° auch gedreht)
       S.guides=[];let sxS=false,syS=false;
-      if($('#snap').checked&&!cen&&Math.abs((o.r||0)%180)<.5){
+      const ang=((o.r||0)%360+360)%360,quarter=Math.abs(ang%90)<.5||Math.abs(ang%90-90)<.5;
+      const ux=Math.round(co),uy=Math.round(si),vx=-uy,vy=ux; // Richtung der lokalen x- und y-Achse in der Flagge (0 oder ±1)
+      if($('#snap').checked&&!cen&&quarter){
         const {X,Y}=cands(),thr=.022;
-        if(sx){const ax=ob.x*W-sx*ow/2,r=snapVal((ax+sx*nw)/W,X,[0],thr);if(r){nw=Math.max(W*.01,nw+sx*r.d*W);sxS=true;}}
-        if(sy){const ay=ob.y*H-sy*oh/2,r=snapVal((ay+sy*nh)/H,Y,[0],thr);if(r){nh=Math.max(H*.01,nh+sy*r.d*H);syS=true;}}
+        const fit=(sgn,ax,ay,dx,dy,len)=>{ // Kante liegt bei Anker + sgn*len*(dx,dy); liefert die Länge, bei der sie auf einer Linie liegt
+          if(dx!==0){const r=snapVal((ax+sgn*len*dx)/W,X,[0],thr);if(r)return len+r.d*W/(sgn*dx);}
+          else if(dy!==0){const r=snapVal((ay+sgn*len*dy)/H,Y,[0],thr);if(r)return len+r.d*H/(sgn*dy);}
+          return null;};
+        if(sx){const nl=fit(sx,ob.x*W-sx*ow/2*ux,ob.y*H-sx*ow/2*uy,ux,uy,nw);if(nl!=null){nw=Math.max(W*.01,nl);sxS=true;}}
+        if(sy){const nl=fit(sy,ob.x*W-sy*oh/2*vx,ob.y*H-sy*oh/2*vy,vx,vy,nh);if(nl!=null){nh=Math.max(H*.01,nl);syS=true;}}
       }
       const emb=o.t==='emb';
       if(emb&&sx&&!sy){nh=oh*(nw/ow);}else if(emb&&sy&&!sx){nw=ow*(nh/oh);}
       else if(sx&&sy&&($('#plock').checked||emb)){const f=sxS?nw/ow:syS?nh/oh:Math.max(nw/ow,nh/oh);nw=ow*f;nh=oh*f;}
-      if(sx&&!cen){const ex=(ob.x*W-sx*ow/2+sx*nw)/W;for(const c of cands().X)if(Math.abs(ex-c)<1e-4)S.guides.push({x:c});}
-      if(sy&&!cen){const ey=(ob.y*H-sy*oh/2+sy*nh)/H;for(const c of cands().Y)if(Math.abs(ey-c)<1e-4)S.guides.push({y:c});}
+      if(!cen&&quarter){const {X,Y}=cands();
+        const gd=(sgn,ax,ay,dx,dy,len)=>{if(dx!==0){const e=(ax+sgn*len*dx)/W;for(const c of X)if(Math.abs(e-c)<1e-4)S.guides.push({x:c});}else{const e=(ay+sgn*len*dy)/H;for(const c of Y)if(Math.abs(e-c)<1e-4)S.guides.push({y:c});}};
+        if(sx)gd(sx,ob.x*W-sx*ow/2*ux,ob.y*H-sx*ow/2*uy,ux,uy,nw);
+        if(sy)gd(sy,ob.x*W-sy*oh/2*vx,ob.y*H-sy*oh/2*vy,vx,vy,nh);}
       const cl=cen?{x:0,y:0}:{x:sx?-sx*ow/2+sx*nw/2:0,y:sy?-sy*oh/2+sy*nh/2:0};
       const cx=ob.x+(cl.x*co-cl.y*si)/W,cy=ob.y+(cl.x*si+cl.y*co)/H;
       if(poly){const kx=nw/ow,ky=nh/oh;s.p=o.p.map(q=>[cx+(q[0]-ob.x)*kx,cy+(q[1]-ob.y)*ky]);}
