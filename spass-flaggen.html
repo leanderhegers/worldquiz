@@ -67,6 +67,7 @@ select:disabled{opacity:.4}
 .pal.names{row-gap:22px;padding-bottom:6px}
 .stripes{display:flex;gap:6px;flex-wrap:wrap}
 .stripe{width:46px;height:46px;border-radius:9px;border:2px solid var(--line);cursor:pointer;padding:0;position:relative}
+.stripe.also{border-color:var(--acc-d);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--acc-d)}
 .stripe.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--acc)}
 .shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .shapes .chip{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;padding:8px 2px}
@@ -145,6 +146,11 @@ body.pruef #pfref{display:block}
 .undo{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:3}
 .undo button{width:38px;height:34px;font-size:18px;line-height:1;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text);cursor:pointer}
 .undo button:hover:not([disabled]){border-color:var(--acc)}
+.zoom{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center;z-index:3;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.zoom button{width:32px;height:30px;font-size:18px;line-height:1;padding:0;background:none;border:0;color:var(--text);cursor:pointer;border-radius:7px}
+.zoom button:hover{background:var(--panel2)}
+.zoom span{font-size:12px;color:var(--mute);min-width:40px;text-align:center}
+.undo button.on{background:var(--acc);border-color:var(--acc);color:#2a1c05}
 .undo button[disabled]{opacity:.35;cursor:default}
 .dlg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
 .dlg.on{display:flex}
@@ -266,6 +272,8 @@ body.pruef #pfref{display:block}
             </div>
             <div id="copyBox">
             <h3>Kopieren</h3>
+            <div class="tools" style="margin-top:0" id="copyStartRow"><button class="btn pri" id="copyStart">⧉ Kopieren …</button></div>
+            <div id="copyCfg" style="display:none">
             <div class="row c2"><span>Richtung</span><select id="cdir">
               <option value="r">→ rechts daneben</option><option value="l">← links daneben</option>
               <option value="d">↓ darunter</option><option value="u">↑ darüber</option>
@@ -274,7 +282,9 @@ body.pruef #pfref{display:block}
             <div class="row c2"><span>Anzahl</span><input type="number" id="cn" min="1" max="60" value="1"></div>
             <div class="row"><span>Abstand</span><input type="range" id="cgap" min="0" max="40" step="0.5" value="2"><output id="cgo">2%</output></div>
             <label class="chk"><input type="checkbox" id="cbatch"> Zuletzt kopierte Reihe als Ganzes kopieren</label>
-            <div class="tools" style="margin-top:0"><button class="btn pri" data-t="copy">⧉ Kopieren</button></div>
+            <p class="hint" style="margin-top:4px">Die Kopien erscheinen halbtransparent in der Flagge, bis du sie einfügst.</p>
+            <div class="tools" style="margin-top:0"><button class="btn pri" id="copyApply">✓ Kopien einfügen</button><button class="btn" id="copyCancel">Abbrechen</button></div>
+            </div>
             </div>
             <h3>Ausrichten</h3>
             <div class="tools" style="margin-top:0">
@@ -285,6 +295,19 @@ body.pruef #pfref{display:block}
               <button class="btn" data-t="u">⤒ Oben</button>
               <button class="btn" data-t="d">⤓ Unten</button>
             </div>
+          </div>
+          <div id="multiBox" style="display:none">
+            <h3 id="multiTitle">Mehrere Objekte</h3>
+            <p class="hint" style="margin-top:0">Ziehen verschiebt alle gemeinsam, Farben gelten für alle.</p>
+            <h3>Aneinander ausrichten</h3>
+            <div class="tools" style="margin-top:0">
+              <button class="btn" data-m="ml">⇤ Links</button><button class="btn" data-m="mcx">↔ Mitte</button><button class="btn" data-m="mr">⇥ Rechts</button>
+              <button class="btn" data-m="mt">⤒ Oben</button><button class="btn" data-m="mcy">↕ Mitte</button><button class="btn" data-m="mb">⤓ Unten</button>
+            </div>
+            <div class="tools"><button class="btn" data-m="mdx">↔ Gleichmäßig verteilen</button><button class="btn" data-m="mdy">↕ Gleichmäßig verteilen</button></div>
+            <h3>Farbe</h3>
+            <div class="pal" id="mpal" style="grid-template-columns:repeat(8,1fr);gap:6px"></div>
+            <div class="tools"><button class="btn" data-m="mdel">🗑 Löschen</button><button class="btn" data-m="mclear">Auswahl aufheben</button></div>
           </div>
           <label class="chk"><input type="checkbox" id="snap" checked> Einrasten (Mitte, Rand, Streifenkanten)</label>
           <p class="hint">Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
@@ -298,7 +321,8 @@ body.pruef #pfref{display:block}
     </div>
 
     <div class="stagebox">
-      <div class="undo"><button id="bUndo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button><button id="bRedo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button></div>
+      <div class="undo"><button id="bUndo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button><button id="bMulti" data-multi="1" title="Mehrfachauswahl: Formen antippen, um sie zur Auswahl hinzuzufügen oder zu entfernen (Umschalt-Klick und Strg+A gehen auch)" aria-label="Mehrfachauswahl">▣</button><button id="bRedo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button></div>
+      <div class="zoom"><button data-zoom="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><span id="zlab">100%</span><button data-zoom="in" title="Hereinzoomen (Mausrad)" aria-label="Hereinzoomen">+</button><button data-zoom="reset" title="Ganze Flagge" aria-label="Ganze Flagge">⤢</button></div>
       <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </main>
@@ -542,7 +566,7 @@ EMB_TARGETS.push(
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const pev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}}; // lang und C sind let/const der App, also nicht als window-Eigenschaft sichtbar
 const LG=pev('lang')||'de',PC=pev('C');
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Union Jack":"Union Jack","Abwechselnd färben":"Color alternately","Aus":"Off","2 Farben":"2 colors","3 Farben":"3 colors","Streifenbreite":"Stripe width","Alle gleich breit":"All equal","Karminrot":"Crimson","Mittelblau":"Medium blue","Bolnisi-Kreuz":"Bolnisi cross","Dicke":"Thickness","Schließen":"Closing","Rückgängig":"Undo","Wiederholen":"Redo","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du oben unter „Streifenbreite“. Sonderformen kommen im dritten Schritt dazu.":"All stripes start equally wide. You change each stripe's width above under “Stripe width”. Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Mehrere Objekte":"Several objects","Aneinander ausrichten":"Align to each other","Gleichmäßig verteilen":"Distribute evenly","Auswahl aufheben":"Clear selection","Ziehen verschiebt alle gemeinsam, Farben gelten für alle.":"Dragging moves all together, colors apply to all.","Union Jack":"Union Jack","Abwechselnd färben":"Color alternately","Aus":"Off","2 Farben":"2 colors","3 Farben":"3 colors","Streifenbreite":"Stripe width","Alle gleich breit":"All equal","Karminrot":"Crimson","Mittelblau":"Medium blue","Bolnisi-Kreuz":"Bolnisi cross","Dicke":"Thickness","Schließen":"Closing","Rückgängig":"Undo","Wiederholen":"Redo","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du oben unter „Streifenbreite“. Sonderformen kommen im dritten Schritt dazu.":"All stripes start equally wide. You change each stripe's width above under “Stripe width”. Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PC&&PC[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -554,7 +578,7 @@ function translateDom(){
 }
 
 // ───────────────────────── Zustand ─────────────────────────
-const S={altN:0,ratio:[3,2],orient:'h',n:1,sw:Array(20).fill(1),colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
+const S={zoom:{k:1,x:0,y:0},copying:false,msel:[],multiMode:false,altN:0,ratio:[3,2],orient:'h',n:1,sw:Array(20).fill(1),colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
          round:{list:[],i:0,total:0,hints:0,results:[]}};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const svg=$('#stage');
@@ -611,11 +635,15 @@ function bbox(s){
 }
 function draw(){
   const {W,H}=dims(S),pad=Math.max(W,H)*.08;
-  const vb=[-pad,-pad,W+2*pad,H+2*pad];
+  let vb=[-pad,-pad,W+2*pad,H+2*pad];
+  if(S.zoom.k>1){const k=S.zoom.k,vw=vb[2]/k,vh=vb[3]/k,cx=Math.max(-pad,Math.min(W+pad,S.zoom.x)),cy=Math.max(-pad,Math.min(H+pad,S.zoom.y));vb=[cx-vw/2,cy-vh/2,vw,vh];}
   svg.setAttribute('viewBox',vb.join(' '));
+  if($('#zlab'))$('#zlab').textContent=Math.round(S.zoom.k*100)+'%';
   const r=svg.getBoundingClientRect(),u=Math.max(vb[2]/(r.width||1),vb[3]/(r.height||1)); // 1 Pixel in Zeichen-Einheiten
   let o=`<rect x="-1" y="-1" width="${W+2}" height="${H+2}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="${u*2}"/>`;
   o+=`<svg x="0" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">${flagInner(S,'e')}</svg>`;
+  // Vorschau der Kopien (halbtransparent), solange der Kopieren-Dialog offen ist
+  if(S.copying&&S.msel.length<2&&S.sel!=null&&S.shapes[S.sel]){const pl=copyPlan();if(pl)o+=`<svg x="0" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden" pointer-events="none"><g opacity=".55">${pl.clones.map((c,i)=>shapeSVG(c,W,H,'cg'+i)).join('')}</g></svg>`;}
   // Schritt 1: Streifengrenzen gestrichelt andeuten
   if(S.step===1&&S.n>1){
     const E1=stripeEdges(S);for(let k=1;k<S.n;k++){
@@ -626,10 +654,14 @@ function draw(){
   // Auswahl
   if(S.step===2||(S.step===1&&S.n>1)){
     const n=S.n<=1?1:S.n,i=Math.min(S.selStripe,n-1),or=n===1?'h':S.orient;
-    const E2=stripeEdges(S),b=or==='v'?[E2[i]*W,0,(E2[i+1]-E2[i])*W,H]:[0,E2[i]*H,W,(E2[i+1]-E2[i])*H];
-    o+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="none" stroke="#f0b060" stroke-width="${u*3}" stroke-dasharray="${u*10} ${u*6}" pointer-events="none"/>`;
+    const E2=stripeEdges(S),grp=(S.step===2&&S.altN>1&&n>1)?Array.from({length:n},(_,j)=>j).filter(j=>j%S.altN===i%S.altN):[i];
+    grp.forEach(j=>{const b=or==='v'?[E2[j]*W,0,(E2[j+1]-E2[j])*W,H]:[0,E2[j]*H,W,(E2[j+1]-E2[j])*H];
+      o+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="none" stroke="#f0b060" stroke-width="${u*3}" stroke-dasharray="${u*10} ${u*6}" pointer-events="none"/>`;});
   }
-  if(S.step>=3&&S.sel!=null&&S.shapes[S.sel]){
+  if(S.step>=3&&S.msel.length>=2){S.msel.forEach(i=>{const s=S.shapes[i];if(!s)return;const bb=bbox(s),tr=isP(s)?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
+    const rx=isP(s)?(bb.x-bb.w/2)*W:-s.w*W/2,ry=isP(s)?(bb.y-bb.h/2)*H:-s.h*H/2;
+    o+=`<rect ${tr} x="${rx}" y="${ry}" width="${bb.w*W}" height="${bb.h*H}" fill="none" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*8} ${u*5}" pointer-events="none"/>`;});}
+  if(S.step>=3&&S.msel.length<2&&S.sel!=null&&S.shapes[S.sel]){
     const s=S.shapes[S.sel],bb=bbox(s);
     const tr=isP(s)?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
     const rx=isP(s)?(bb.x-bb.w/2)*W:-s.w*W/2,ry=isP(s)?(bb.y-bb.h/2)*H:-s.h*H/2;
@@ -661,6 +693,7 @@ function buildStatic(){
   $('#counts').innerHTML=[2,3,4,5].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('')+`<button class="chip" data-n="custom">${tr('Eigene Angabe')}</button>`;
   const sw=(k,cls)=>`<button class="sw ${cls||''}" data-c="${k}" style="background:${PAL[k][1]}" title="${tr(PAL[k][0])}">${cls==='n'?'':`<span>${tr(PAL[k][0])}</span>`}</button>`;
   $('#pal').innerHTML=Object.keys(PAL).map(k=>sw(k)).join('');
+  $('#mpal').innerHTML=Object.keys(PAL).map(k=>`<button class="sw" data-mc="${k}" style="background:${PAL[k][1]};height:28px;border-radius:7px" title="${tr(PAL[k][0])}"></button>`).join('');
   $('#spal').innerHTML=Object.keys(PAL).map(k=>`<button class="sw" data-sc="${k}" style="background:${PAL[k][1]};height:28px;border-radius:7px" title="${tr(PAL[k][0])}"></button>`).join('');
   $('#shapes').innerHTML=SHAPE_BTN.map(s=>`<button class="chip" data-add="${s[0]}"><svg viewBox="0 0 30 30" fill="currentColor">${s[2]}</svg>${tr(s[1])}</button>`).join('');
   fillEmb('');
@@ -688,7 +721,7 @@ function syncLayout(){
 function syncColors(){
   const n=S.n<=1?1:S.n;if(S.selStripe>=n)S.selStripe=0;
   $('#stripeTitle').textContent=tr(n===1?'Hintergrundfarbe':'Streifen wählen');
-  $('#stripeList').innerHTML=Array.from({length:n},(_,i)=>`<button class="stripe${i===S.selStripe?' on':''}" data-st="${i}" style="background:${colOf(S.colors[i])}" title="Streifen ${i+1}"></button>`).join('');
+  $('#stripeList').innerHTML=Array.from({length:n},(_,i)=>`<button class="stripe${i===S.selStripe?' on':(S.altN>1&&n>1&&i%S.altN===S.selStripe%S.altN?' also':'')}" data-st="${i}" style="background:${colOf(S.colors[i])}" title="Streifen ${i+1}"></button>`).join('');
   $$('#pal .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.colors[S.selStripe]));
   $('#altBox').style.display=n>1?'':'none';
   $$('#altChips .chip').forEach(b=>b.classList.toggle('on',+b.dataset.alt===S.altN));
@@ -701,6 +734,10 @@ function syncWidth(){
   else $('#sumWidth').textContent='–';
 }
 function syncProps(){
+  if(S.copying&&(S.msel.length>=2||S.sel==null||!S.shapes[S.sel]))S.copying=false;
+  copyUi();
+  {const ids0=selIdxs(),multi=ids0.length>=2;$('#props').style.display=multi?'none':'';$('#multiBox').style.display=multi?'':'none';
+   if(multi){$('#multiTitle').textContent=ids0.length+' Objekte ausgewählt';$$('[data-m="mdx"],[data-m="mdy"]').forEach(b=>{b.disabled=ids0.length<3;});}}
   const s=S.sel!=null?S.shapes[S.sel]:null,off=!s;
   $$('#props input,#props .btn,#props .sw').forEach(e=>{e.disabled=off;});
   $('#props').style.opacity=off?.45:1;
@@ -720,7 +757,7 @@ function syncProps(){
   $('#spal').style.display=(emb||s.t==='jack')?'none':'';$('#copyBox').style.display=emb?'none':'';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
 }
 function setStep(n){
-  S.step=n;
+  S.step=n;S.copying=false;
   $$('.tab').forEach(t=>t.classList.toggle('on',+t.dataset.step===n));
   $$('.sec').forEach(s=>s.classList.toggle('on',s.id==='sec'+n));
   $('#bCheck').textContent=tr(n<4?'Weiter →':'✔ Prüfen');
@@ -754,6 +791,34 @@ function wbox(s){ // Umhüllendes Rechteck in der Flagge; bei gedrehten Formen v
   const {W,H}=dims(S),a=(s.r||0)*Math.PI/180,co=Math.abs(Math.cos(a)),si=Math.abs(Math.sin(a)),ww=s.w*W,hh=s.h*H;
   return{x:s.x,y:s.y,w:(ww*co+hh*si)/W,h:(ww*si+hh*co)/H};
 }
+const selIdxs=()=>S.msel.length>=2?S.msel:(S.sel!=null&&S.shapes[S.sel]?[S.sel]:[]);
+function toggleSel(i){
+  const m=S.msel.length>=2?S.msel.slice():(S.sel!=null?[S.sel]:[]);
+  const k=m.indexOf(i);if(k>=0)m.splice(k,1);else m.push(i);
+  if(m.length>=2){S.msel=m;S.sel=i;}else{S.msel=[];S.sel=m.length?m[0]:null;}
+}
+// Aktionen für mehrere ausgewählte Objekte: aneinander ausrichten, gleichmäßig verteilen, löschen
+function multiAct(a){
+  const ids=S.msel.slice();if(ids.length<2)return;
+  if(a==='mclear'){S.msel=[];S.sel=null;}
+  else if(a==='mdel'){ids.sort((x,y)=>y-x).forEach(i=>S.shapes.splice(i,1));S.msel=[];S.sel=null;S.batch=null;}
+  else{
+    const bx=ids.map(i=>{const b=wbox(S.shapes[i]);return{i,l:b.x-b.w/2,r:b.x+b.w/2,t:b.y-b.h/2,b:b.y+b.h/2,cx:b.x,cy:b.y,w:b.w,h:b.h};});
+    const minL=Math.min(...bx.map(q=>q.l)),maxR=Math.max(...bx.map(q=>q.r)),minT=Math.min(...bx.map(q=>q.t)),maxB=Math.max(...bx.map(q=>q.b));
+    const mv=(q,dx,dy)=>moveBy(S.shapes[q.i],dx,dy);
+    if(a==='ml')bx.forEach(q=>mv(q,minL-q.l,0));
+    else if(a==='mr')bx.forEach(q=>mv(q,maxR-q.r,0));
+    else if(a==='mcx'){const c=(minL+maxR)/2;bx.forEach(q=>mv(q,c-q.cx,0));}
+    else if(a==='mt')bx.forEach(q=>mv(q,0,minT-q.t));
+    else if(a==='mb')bx.forEach(q=>mv(q,0,maxB-q.b));
+    else if(a==='mcy'){const c=(minT+maxB)/2;bx.forEach(q=>mv(q,0,c-q.cy));}
+    else if((a==='mdx'||a==='mdy')&&bx.length>=3){
+      const hz=a==='mdx',arr=bx.slice().sort((p,q)=>hz?p.cx-q.cx:p.cy-q.cy),span=hz?maxR-minL:maxB-minT,tot=arr.reduce((t,q)=>t+(hz?q.w:q.h),0),gap=(span-tot)/(arr.length-1);
+      let pos=hz?minL:minT;arr.forEach(q=>{const size=hz?q.w:q.h,cur=hz?q.l:q.t;mv(q,hz?pos-cur:0,hz?0:pos-cur);pos+=size+gap;});
+    }
+  }
+  syncProps();draw();
+}
 function moveTo(s,cx,cy){const b=bbox(s);moveBy(s,cx-b.x,cy-b.y);}
 function cands(){
   const X=[0,.5,1],Y=[0,.5,1],n=S.n<=1?1:S.n;
@@ -773,19 +838,25 @@ function snapMove(s,cx,cy){
   if(sy){cy+=sy.d;S.guides.push({y:sy.c});}
   return{cx,cy};
 }
+// Welche Kopien entstünden mit den Einstellungen im Kopieren-Bereich? (für Vorschau und für das Einfügen)
+function copyPlan(){
+  const sh=S.shapes[S.sel];if(!sh||sh.t==='emb')return null;
+  const n=Math.max(1,Math.min(60,Math.round(+$('#cn').value)||1)),gap=+$('#cgap').value/100,dir=$('#cdir').value;
+  const grp=$('#cbatch').checked&&S.batch&&S.batch.includes(S.sel)?S.batch.filter(i=>S.shapes[i]):[S.sel];
+  const bs=grp.map(i=>wbox(S.shapes[i]));
+  const gw=Math.max(...bs.map(q=>q.x+q.w/2))-Math.min(...bs.map(q=>q.x-q.w/2)),gh=Math.max(...bs.map(q=>q.y+q.h/2))-Math.min(...bs.map(q=>q.y-q.h/2));
+  const vx=dir.includes('r')?1:dir.includes('l')?-1:0,vy=dir.includes('d')?1:dir.includes('u')?-1:0;
+  const dx=vx*(gw+gap),dy=vy*(gh+gap),clones=[];
+  for(let k=1;k<=n;k++)grp.forEach(i=>{const c=JSON.parse(JSON.stringify(S.shapes[i]));moveBy(c,dx*k,dy*k);clones.push(c);});
+  return{clones,grp};
+}
+function copyUi(){const on=!!S.copying;$('#copyStartRow').style.display=on?'none':'';$('#copyCfg').style.display=on?'':'none';}
 function toolAct(t){
   const s=S.shapes[S.sel];if(!s)return;const b=wbox(s);
   if(t!=='copy'&&!/^[cxylrud]+$/.test(t))S.batch=null;
   if(t==='del'){S.shapes.splice(S.sel,1);S.sel=null;}
   else if(t==='copy'){
-    const n=Math.max(1,Math.min(60,Math.round(+$('#cn').value)||1)),gap=+$('#cgap').value/100,dir=$('#cdir').value;
-    const grp=$('#cbatch').checked&&S.batch&&S.batch.includes(S.sel)?S.batch.slice():[S.sel];
-    const bs=grp.map(i=>wbox(S.shapes[i]));
-    const gw=Math.max(...bs.map(q=>q.x+q.w/2))-Math.min(...bs.map(q=>q.x-q.w/2)),gh=Math.max(...bs.map(q=>q.y+q.h/2))-Math.min(...bs.map(q=>q.y-q.h/2));
-    const vx=dir.includes('r')?1:dir.includes('l')?-1:0,vy=dir.includes('d')?1:dir.includes('u')?-1:0;
-    const dx=vx*(gw+gap),dy=vy*(gh+gap),fresh=[];
-    for(let k=1;k<=n;k++)grp.forEach(i=>{const c=JSON.parse(JSON.stringify(S.shapes[i]));moveBy(c,dx*k,dy*k);S.shapes.push(c);fresh.push(S.shapes.length-1);});
-    S.batch=[...grp,...fresh];S.sel=S.shapes.length-1;
+    const pl=copyPlan();if(pl){const L=S.shapes.length;pl.clones.forEach(c=>S.shapes.push(c));S.batch=[...pl.grp,...pl.clones.map((_,k)=>L+k)];S.sel=S.shapes.length-1;}
   }
   else if(t==='front'&&S.sel<S.shapes.length-1){S.shapes.push(S.shapes.splice(S.sel,1)[0]);S.sel=S.shapes.length-1;}
   else if(t==='back'&&S.sel>0){S.shapes.unshift(S.shapes.splice(S.sel,1)[0]);S.sel=0;}
@@ -827,6 +898,10 @@ document.addEventListener('click',e=>{
     if(d.n==='custom'){countCustom=true;if(S.n<=1)S.n=3;syncLayout();draw();}
     else{countCustom=false;setN(+d.n);}
   }
+  else if(d.zoom){const {W,H}=dims(S);if(d.zoom==='reset')zoomTo(1);else zoomTo(S.zoom.k*(d.zoom==='in'?1.5:1/1.5));}
+  else if(d.m)multiAct(d.m);
+  else if(d.mc){S.msel.forEach(i=>{const sh=S.shapes[i];if(sh&&sh.t!=='emb'&&sh.t!=='jack')sh.c=d.mc;});draw();}
+  else if(d.multi!=null){S.multiMode=!S.multiMode;$('#bMulti').classList.toggle('on',S.multiMode);}
   else if(d.add)addShape(d.add);
   else if(d.emb)addShape('emb',d.emb);
   else if(d.sc){const s=S.shapes[S.sel];if(s){s.c=d.sc;syncProps();draw();}}
@@ -865,6 +940,10 @@ slider('pct',(s,v)=>{s.ct=v/100;});
 slider('pkt',(s,v)=>{s.kt=v/100;});
 slider('pcr',(s,v)=>{s.cr=v/100;});
 $('#cgap').addEventListener('input',e=>{$('#cgo').textContent=e.target.value+'%';});
+['cdir','cn','cgap','cbatch'].forEach(id=>['input','change'].forEach(ev=>$('#'+id).addEventListener(ev,()=>{if(S.copying)draw();})));
+$('#copyStart').onclick=()=>{S.copying=true;copyUi();draw();};
+$('#copyCancel').onclick=()=>{S.copying=false;copyUi();draw();};
+$('#copyApply').onclick=()=>{toolAct('copy');S.copying=false;copyUi();};
 // Ziehen
 let drag=null;
 function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse()),{W,H}=dims(S);return{x:q.x/W,y:q.y/H};}
@@ -874,15 +953,21 @@ svg.addEventListener('pointerdown',e=>{
   const hd=e.target.closest('[data-h]');
   if(hd){drag={k:'v',vi:+hd.dataset.h};svg.setPointerCapture(e.pointerId);return;}
   const g=S.step>=3&&e.target.closest('[data-i]');
+  if(g&&(e.shiftKey||S.multiMode)){toggleSel(+g.dataset.i);syncProps();draw();return;}
+  if(g&&S.msel.length>=2&&S.msel.includes(+g.dataset.i)){drag={k:'g',ids:[...S.msel],p0:pt(e),orig:S.msel.map(j=>JSON.parse(JSON.stringify(S.shapes[j])))};svg.setPointerCapture(e.pointerId);return;}
+  if(g)S.msel=[];
   if(g){let i=+g.dataset.i;
     if((e.ctrlKey||e.metaKey)&&S.shapes[i].t!=='emb'){S.shapes.push(JSON.parse(JSON.stringify(S.shapes[i])));i=S.shapes.length-1;S.batch=null;} // Strg + Ziehen: Kopie ziehen, Original bleibt
     const p=pt(e),b=bbox(S.shapes[i]);S.sel=i;drag={k:'m',i,dx:p.x-b.x,dy:p.y-b.y};svg.setPointerCapture(e.pointerId);syncProps();draw();return;}
   const st=(S.step===2||(S.step===1&&S.n>1))&&e.target.closest('[data-s]');
   if(st){S.selStripe=+st.dataset.s;syncColors();syncWidth();draw();return;}
-  if(S.step>=3){S.sel=null;syncProps();draw();}
+  if(S.zoom.k>1){drag={k:'pan',x0:e.clientX,y0:e.clientY,c0:{x:S.zoom.x,y:S.zoom.y},moved:false};svg.setPointerCapture(e.pointerId);return;}
+  if(S.step>=3&&!(e.shiftKey||S.multiMode)){S.sel=null;S.msel=[];syncProps();draw();}
 });
 svg.addEventListener('pointermove',e=>{
   if(!drag)return;const p=pt(e);
+  if(drag.k==='pan'){const dxp=e.clientX-drag.x0,dyp=e.clientY-drag.y0;if(Math.hypot(dxp,dyp)>3)drag.moved=true;const r=svg.getBoundingClientRect(),vbv=svg.viewBox.baseVal,upp=Math.max(vbv.width/r.width,vbv.height/r.height);S.zoom.x=drag.c0.x-dxp*upp;S.zoom.y=drag.c0.y-dyp*upp;draw();return;}
+  if(drag.k==='g'){const dx=p.x-drag.p0.x,dy=p.y-drag.p0.y;drag.ids.forEach((j,k)=>{S.shapes[j]=JSON.parse(JSON.stringify(drag.orig[k]));moveBy(S.shapes[j],dx,dy);});draw();return;}
   if(drag.k==='z'){
     const s=S.shapes[S.sel],o=drag.o,{W,H}=dims(S),poly=isP(o),ob=poly?bbox(o):{x:o.x,y:o.y,w:o.w,h:o.h};
     const a=poly?0:(o.r||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
@@ -932,14 +1017,39 @@ svg.addEventListener('pointermove',e=>{
   }
   draw();
 });
-const endDrag=()=>{if(drag){drag=null;S.guides=[];syncProps();draw();}};
+function ptAbs(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+function zoomTo(k2,wx,wy){ // wx,wy: Punkt in der Flagge (Zeichen-Einheiten), der unter der Maus/Fingermitte bleibt
+  const {W,H}=dims(S),k1=S.zoom.k;k2=Math.max(1,Math.min(10,k2));
+  if(k2<=1.001){S.zoom={k:1,x:W/2,y:H/2};draw();return;}
+  const cx1=k1>1?S.zoom.x:W/2,cy1=k1>1?S.zoom.y:H/2;if(wx==null){wx=cx1;wy=cy1;}
+  S.zoom={k:k2,x:wx-(wx-cx1)*k1/k2,y:wy-(wy-cy1)*k1/k2};draw();
+}
+svg.addEventListener('wheel',e=>{e.preventDefault();const p=ptAbs(e);zoomTo(S.zoom.k*(e.deltaY<0?1.2:1/1.2),p.x,p.y);},{passive:false});
+const ptrs=new Map();let pinch=null;
+const pinchDist=()=>{const a=[...ptrs.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
+const pinchMid=()=>{const a=[...ptrs.values()];return{clientX:(a[0].x+a[1].x)/2,clientY:(a[0].y+a[1].y)/2};};
+svg.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){drag=null;pinch={d:pinchDist(),m:pinchMid()};e.stopImmediatePropagation();}},true);
+svg.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&ptrs.size===2){const d=pinchDist(),m=pinchMid(),r=svg.getBoundingClientRect(),vbv=svg.viewBox.baseVal,upp=Math.max(vbv.width/r.width,vbv.height/r.height),p=ptAbs(m);
+    const dxp=m.clientX-pinch.m.clientX,dyp=m.clientY-pinch.m.clientY;zoomTo(S.zoom.k*d/pinch.d,p.x,p.y);
+    if(S.zoom.k>1){S.zoom.x-=dxp*upp;S.zoom.y-=dyp*upp;draw();}
+    pinch={d,m};e.stopImmediatePropagation();}
+},true);
+const ptrEnd=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;};
+svg.addEventListener('pointerup',ptrEnd,true);svg.addEventListener('pointercancel',ptrEnd,true);
+const endDrag=()=>{if(drag){if(drag.k==='pan'&&!drag.moved&&S.step>=3){S.sel=null;S.msel=[];}drag=null;S.guides=[];syncProps();draw();}};
 svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);
 document.addEventListener('keydown',e=>{
-  if(S.step<3||S.sel==null||/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.type!=='checkbox'&&document.activeElement.type!=='range')return;
-  const s=S.shapes[S.sel];if(!s)return;const st=e.shiftKey?.02:.005;
-  if(e.key==='Delete'||e.key==='Backspace'){toolAct('del');e.preventDefault();}
-  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){if(S.shapes[S.sel]&&S.shapes[S.sel].t!=='emb')toolAct('copy');e.preventDefault();}
-  else if(e.key.startsWith('Arrow')){moveBy(s,e.key==='ArrowLeft'?-st:e.key==='ArrowRight'?st:0,e.key==='ArrowUp'?-st:e.key==='ArrowDown'?st:0);draw();e.preventDefault();}
+  if(S.step<3||/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.type!=='checkbox'&&document.activeElement.type!=='range')return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){const all=S.shapes.map((_,i)=>i);if(all.length){S.msel=all.length>=2?all:[];S.sel=all[all.length-1];syncProps();draw();}e.preventDefault();return;}
+  const ids=selIdxs();if(!ids.length)return;
+  const st=e.shiftKey?.02:.005;
+  if(e.key==='Escape'&&S.copying){S.copying=false;copyUi();draw();e.preventDefault();return;}
+  if(e.key==='Delete'||e.key==='Backspace'){if(ids.length>=2)multiAct('mdel');else toolAct('del');e.preventDefault();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){if(ids.length===1&&S.shapes[S.sel]&&S.shapes[S.sel].t!=='emb')toolAct('copy');e.preventDefault();}
+  else if(e.key.startsWith('Arrow')){ids.forEach(i=>moveBy(S.shapes[i],e.key==='ArrowLeft'?-st:e.key==='ArrowRight'?st:0,e.key==='ArrowUp'?-st:e.key==='ArrowDown'?st:0));draw();e.preventDefault();}
 });
 window.addEventListener('resize',draw);
 
@@ -1025,7 +1135,7 @@ async function scoreFlag(b,t){
 
 // ───────────────────────── Spielablauf ─────────────────────────
 function resetBuild(){
-  customOn=false;countCustom=false;openAcc('ratio');S.batch=null;S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.sel=null;S.selStripe=0;S.guides=[];
+  customOn=false;countCustom=false;openAcc('ratio');S.batch=null;S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.msel=[];S.copying=false;S.zoom={k:1,x:0,y:0};S.multiMode=false;if($('#bMulti'))$('#bMulti').classList.remove('on');S.sel=null;S.selStripe=0;S.guides=[];
   syncLayout();setStep(1);histReset();
 }
 function newRound(){
@@ -1105,7 +1215,7 @@ function histCommit(){
 }
 function histRestore(str){
   const o=JSON.parse(str);S.ratio=o.ratio;S.orient=o.orient;S.n=o.n;S.sw=o.sw||Array(20).fill(1);LASTN=o.n<=1?1:o.n;S.colors=o.colors;S.shapes=o.shapes;
-  if(S.sel!=null&&!S.shapes[S.sel])S.sel=null;S.batch=null;S.guides=[];
+  S.msel=[];if(S.sel!=null&&!S.shapes[S.sel])S.sel=null;S.batch=null;S.guides=[];
   syncLayout();if(S.step===2)syncColors();syncProps();draw();histUi();
 }
 function undo(){clearTimeout(HIST.t);histCommit();if(!HIST.u.length)return;HIST.r.push(HIST.last);HIST.last=HIST.u.pop();histRestore(HIST.last);}
