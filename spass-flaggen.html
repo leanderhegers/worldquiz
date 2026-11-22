@@ -196,6 +196,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
               <button class="btn" data-t="front">▲ Nach vorn</button>
               <button class="btn" data-t="back">▼ Nach hinten</button>
             </div>
+            <div id="copyBox">
             <h3>Kopieren</h3>
             <div class="row c2"><span>Richtung</span><select id="cdir">
               <option value="r">→ rechts daneben</option><option value="l">← links daneben</option>
@@ -206,6 +207,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
             <div class="row"><span>Abstand</span><input type="range" id="cgap" min="0" max="40" step="0.5" value="2"><output id="cgo">2%</output></div>
             <label class="chk"><input type="checkbox" id="cbatch"> Zuletzt kopierte Reihe als Ganzes kopieren</label>
             <div class="tools" style="margin-top:0"><button class="btn pri" data-t="copy">⧉ Kopieren</button></div>
+            </div>
             <h3>Ausrichten</h3>
             <div class="tools" style="margin-top:0">
               <button class="btn" data-t="cx">↔ Mitte</button>
@@ -613,7 +615,7 @@ function syncProps(){
   const emb=s.t==='emb';const pl=$('#plock');
   if(emb){if(!S.embLock){S.lockPref=pl.checked;S.embLock=true;}pl.checked=true;pl.disabled=true;}
   else{if(S.embLock){pl.checked=S.lockPref!==false;S.embLock=false;}pl.disabled=false;}
-  $('#spal').style.visibility=emb?'hidden':'visible';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
+  $('#spal').style.display=emb?'none':'';$('#copyBox').style.display=emb?'none':'';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
 }
 function setStep(n){
   S.step=n;
@@ -806,7 +808,7 @@ document.addEventListener('keydown',e=>{
   if(S.step<3||S.sel==null||/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.type!=='checkbox'&&document.activeElement.type!=='range')return;
   const s=S.shapes[S.sel];if(!s)return;const st=e.shiftKey?.02:.005;
   if(e.key==='Delete'||e.key==='Backspace'){toolAct('del');e.preventDefault();}
-  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){toolAct('copy');e.preventDefault();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){if(S.shapes[S.sel]&&S.shapes[S.sel].t!=='emb')toolAct('copy');e.preventDefault();}
   else if(e.key.startsWith('Arrow')){moveBy(s,e.key==='ArrowLeft'?-st:e.key==='ArrowRight'?st:0,e.key==='ArrowUp'?-st:e.key==='ArrowDown'?st:0);draw();e.preventDefault();}
 });
 window.addEventListener('resize',draw);
