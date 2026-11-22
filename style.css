@@ -442,8 +442,8 @@ button,input,select,textarea{font-family:inherit;}
    grid-auto-rows, so both dimensions split the available space evenly and the cards can stretch
    to fill their cell with height:100% below. gap:0 (no border-radius anywhere) makes the four
    tiles read as one flush, fully square-cornered block of boxes. */
-.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:0;flex:1;min-height:280px;}
-@media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);min-height:560px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-picker .cat-heading{flex-basis:clamp(104px,16vh,130px);padding-top:38px;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,1fr);gap:0;flex:1;min-height:280px;}
+@media (max-width:560px){.cat-grid{grid-template-columns:1fr;grid-template-rows:repeat(6,1fr);min-height:760px;}.cat-card{padding:.6rem 1rem;gap:4px;}.cat-picker .cat-heading{flex-basis:clamp(104px,16vh,130px);padding-top:38px;}.cat-sub{margin-bottom:.6rem;}.cat-card-sub{font-size:12px;}}
 /* No border-radius anywhere and no hover lift — square-cornered boxes flush against each other
    (a translateY lift would look broken with zero gap between tiles, riding up over its neighbour).
    The 1px border on all four sides still reads as a hairline divider between adjacent tiles. */
@@ -704,3 +704,11 @@ body.theme-cartoon #iq-outline{border:4px solid var(--ink)!important;border-radi
 .pie-s:hover path,.pie-s:hover circle{filter:brightness(1.15);}
 .pie-lbl{opacity:0;pointer-events:none;font:700 20px 'Poppins',system-ui,sans-serif;transition:opacity .12s;}
 .pie-s:hover .pie-lbl{opacity:1;}
+
+/* Spaß mit Flaggen: eigene Seite im iframe unter einer schmalen Leiste */
+.fun-screen{flex-direction:column;height:100vh;height:100dvh;background:#14110e;}
+.fun-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;flex:0 0 auto;}
+.fun-title{margin:0;font-size:18px;font-weight:600;color:#f0b060;text-align:center;flex:1;}
+.fun-frame{flex:1;width:100%;border:0;background:#14110e;min-height:0;}
+.gs-fun{--cardBg:rgba(240,176,96,.08);--cardHov:rgba(240,176,96,.16);--cardBorder:rgba(240,176,96,.3);--accent:#f0b060;}
+.gs-soon{--cardBg:rgba(255,255,255,.03);}

@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build the Flag – Prototyp</title>
+<style>
+:root{
+  --bg:#14110e; --panel:#1d1915; --panel2:#262019; --line:#3a3128; --text:#f3ebe0; --mute:#a6998a;
+  --acc:#f0b060; --acc-d:#c98a32; --ok:#4fb477; --bad:#e0624f; --stage:#0f0d0b;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-bottom:12px}
+header h1{font-size:20px;margin:0;font-weight:700}
+.task{flex:1;min-width:220px}
+.task small{color:var(--mute);display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.task b{font-size:22px;color:var(--acc)}
+.score{display:flex;gap:16px;color:var(--mute);font-size:13px}
+.score b{color:var(--text);font-size:16px;font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{flex:1;padding:10px 8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#2a1c05}
+main{display:grid;grid-template-columns:380px 1fr;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;height:clamp(420px,66vh,660px);display:flex;flex-direction:column;overflow:hidden}
+.pbody{flex:1;overflow:auto;padding:14px}
+.pfoot{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel2)}
+.sec{display:none}.sec.on{display:block}
+h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:14px 0 8px;font-weight:600}
+h3:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip,.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:8px 11px;font:inherit;cursor:pointer;min-width:42px}
+.chip:hover,.btn:hover{border-color:var(--acc-d)}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#2a1c05;font-weight:700}
+.chip[disabled],.btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#2a1c05;font-weight:700}
+.btn.grow{flex:1}
+.custom{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--mute)}
+.custom input{width:64px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:7px;font:inherit}
+.pal{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sw{height:46px;border-radius:10px;border:2px solid var(--line);cursor:pointer;position:relative;padding:0}
+.sw:hover{border-color:var(--acc)}
+.sw.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--acc)}
+.sw span{position:absolute;left:0;right:0;bottom:-18px;font-size:10px;color:var(--mute);text-align:center;white-space:nowrap}
+.pal.names{row-gap:24px;padding-bottom:6px}
+.stripes{display:flex;gap:6px;flex-wrap:wrap}
+.stripe{width:46px;height:46px;border-radius:9px;border:2px solid var(--line);cursor:pointer;padding:0;position:relative}
+.stripe.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--acc)}
+.shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.shapes .chip{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;padding:8px 2px}
+.shapes svg{width:30px;height:30px}
+.emb{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.emb .chip{font-size:24px;padding:4px 0;min-width:0}
+.row{display:grid;grid-template-columns:78px 1fr 40px;align-items:center;gap:8px;margin:6px 0;color:var(--mute);font-size:13px}
+.row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tools .btn{padding:7px 9px;font-size:13px}
+label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
+.hint{color:var(--mute);font-size:13px;margin:10px 0 0}
+.stagebox{position:relative;background:var(--stage);border:1px solid var(--line);border-radius:14px;height:clamp(420px,66vh,660px);overflow:hidden}
+#stage{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+.s2 .shp{pointer-events:none}
+.stp{cursor:default}.s2 .stp{cursor:pointer}
+.shp{cursor:grab}
+#peek{position:absolute;top:12px;right:12px;background:var(--panel);border:1px solid var(--acc);border-radius:10px;padding:8px;display:none;z-index:3}
+#peek.on{display:block}
+#peek small{display:block;color:var(--acc);margin-bottom:4px;font-size:12px}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.dlg.on{display:flex}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(560px,100%);max-height:92vh;overflow:auto}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.cmp figure{margin:0;text-align:center}
+.cmp figcaption{color:var(--mute);font-size:12px;margin-top:6px}
+.cmp svg{width:100%;height:auto;border:1px solid var(--line);border-radius:4px;background:#000;display:block}
+.bar{display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;margin:7px 0;font-size:14px}
+.bar i{display:block;height:9px;border-radius:5px;background:var(--panel2);overflow:hidden}
+.bar i b{display:block;height:100%;background:var(--acc)}
+.bar span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.total{font-size:34px;font-weight:800;color:var(--acc);margin:14px 0 4px}
+.total small{font-size:14px;color:var(--mute);font-weight:500}
+@media(max-width:820px){main{grid-template-columns:1fr}.panel{height:auto;max-height:none}.pbody{max-height:46vh}.stagebox{order:-1;height:min(52vh,420px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎨 Build the Flag <small style="color:var(--mute);font-weight:400">Prototyp</small></h1>
+    <div class="task"><small>Baue die Flagge von</small><b id="tname">–</b></div>
+    <div class="score"><span>Flagge <b id="tnum">1/10</b></span><span>Punkte <b id="ttot">0</b></span></div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-step="1">1 · Layout</button>
+    <button class="tab" data-step="2">2 · Farben</button>
+    <button class="tab" data-step="3">3 · Symbole</button>
+  </nav>
+
+  <main>
+    <div class="panel">
+      <div class="pbody">
+        <!-- Schritt 1 -->
+        <section class="sec on" id="sec1">
+          <h3>Seitenverhältnis (Breite : Höhe)</h3>
+          <div class="chips" id="ratios"></div>
+          <div class="custom">Eigene Angabe <input id="rw" type="number" min="1" max="20" step="0.5"> : <input id="rh" type="number" min="1" max="20" step="0.5"></div>
+          <h3>Streifen</h3>
+          <div class="chips" id="orients">
+            <button class="chip" data-o="none">Einfarbig</button>
+            <button class="chip" data-o="h">Waagerecht</button>
+            <button class="chip" data-o="v">Senkrecht</button>
+          </div>
+          <h3>Anzahl der Streifen</h3>
+          <div class="chips" id="counts"></div>
+          <p class="hint">Alle Streifen sind gleich breit. Sonderformen (z. B. Kanada) baust du im dritten Schritt mit Formen.</p>
+        </section>
+        <!-- Schritt 2 -->
+        <section class="sec" id="sec2">
+          <h3 id="stripeTitle">Streifen wählen</h3>
+          <div class="stripes" id="stripeList"></div>
+          <h3>Farbe</h3>
+          <div class="pal names" id="pal"></div>
+          <p class="hint">Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.</p>
+        </section>
+        <!-- Schritt 3 -->
+        <section class="sec" id="sec3">
+          <h3>Grundformen</h3>
+          <div class="shapes" id="shapes"></div>
+          <h3>Wappen &amp; Emblems</h3>
+          <div class="emb" id="emb"></div>
+          <h3>Ausgewählte Form</h3>
+          <div id="props">
+            <div class="row"><span>Breite</span><input type="range" id="pw" min="1" max="120" value="30"><output id="pwo">30</output></div>
+            <div class="row"><span>Höhe</span><input type="range" id="ph" min="1" max="120" value="30"><output id="pho">30</output></div>
+            <div class="row"><span>Drehung</span><input type="range" id="pr" min="-180" max="180" value="0"><output id="pro">0°</output></div>
+            <label class="chk"><input type="checkbox" id="plock" checked> Proportion beibehalten</label>
+            <div class="pal" id="spal" style="grid-template-columns:repeat(8,1fr);gap:6px"></div>
+            <div class="tools">
+              <button class="btn" data-t="dup">⧉ Kopieren</button>
+              <button class="btn" data-t="del">🗑 Löschen</button>
+              <button class="btn" data-t="front">▲ Nach vorn</button>
+              <button class="btn" data-t="back">▼ Nach hinten</button>
+            </div>
+            <h3>Ausrichten</h3>
+            <div class="tools" style="margin-top:0">
+              <button class="btn" data-t="cx">↔ Mitte</button>
+              <button class="btn" data-t="cy">↕ Mitte</button>
+              <button class="btn" data-t="l">⇤ Links</button>
+              <button class="btn" data-t="r">⇥ Rechts</button>
+              <button class="btn" data-t="u">⤒ Oben</button>
+              <button class="btn" data-t="d">⤓ Unten</button>
+            </div>
+          </div>
+          <label class="chk"><input type="checkbox" id="snap" checked> Einrasten (Mitte, Rand, Streifenkanten)</label>
+          <p class="hint">Formen ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
+        </section>
+      </div>
+      <div class="pfoot">
+        <button class="btn" id="bPeek" title="Zeigt die Vorlage kurz an, kostet 15 Punkte">👁 Hinweis (−15)</button>
+        <button class="btn" id="bReset">↺ Neu</button>
+        <button class="btn pri grow" id="bCheck">✔ Prüfen</button>
+      </div>
+    </div>
+
+    <div class="stagebox">
+      <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="peek"><small>Vorlage (kostet 15 Punkte)</small><div id="peekFlag"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="dlg" id="dlg"><div class="card" id="card"></div></div>
+
+<script>
+// ───────────────────────── Daten ─────────────────────────
+// Farben: bewusst vereinfachte Palette. Beim Bewerten zählt die gleiche Palettenfarbe als richtig.
+const PAL={
+  rot:['Rot','#CE1126'],dunkelrot:['Dunkelrot','#8B1A1A'],orange:['Orange','#F77F00'],gelb:['Gelb','#FCD116'],
+  hellgruen:['Hellgrün','#5BBF4A'],gruen:['Grün','#009A44'],dunkelgruen:['Dunkelgrün','#006A4E'],hellblau:['Hellblau','#75AADB'],
+  blau:['Blau','#0055A4'],dunkelblau:['Dunkelblau','#002868'],weiss:['Weiß','#FFFFFF'],schwarz:['Schwarz','#000000'],
+  grau:['Grau','#8A8D8F'],braun:['Braun','#8B5A2B'],lila:['Lila','#6B3FA0'],rosa:['Rosa','#E8A0BF']
+};
+const RATIOS=[[1,1],[4,3],[3,2],[5,3],[8,5],[2,1],[2,3]];
+const EMBLEMS=[['🦅','Adler'],['🦁','Löwe'],['🐉','Drache'],['🛡️','Schild'],['⚔️','Schwerter'],['🌲','Zeder'],['🍁','Ahorn'],['☀️','Sonne'],['✡','Davidstern'],['🕊️','Taube'],['🌴','Palme'],['🏔️','Berg']];
+const SHAPE_BTN=[
+  ['circle','Kreis','<circle cx="15" cy="15" r="11"/>'],
+  ['rect','Rechteck','<rect x="4" y="7" width="22" height="16"/>'],
+  ['tri','Dreieck','<polygon points="15,4 27,26 3,26"/>'],
+  ['trif','Dreieck frei','<polygon points="6,6 26,12 10,26"/>'],
+  ['star','Stern','<polygon points="15,3 18.5,11 27,11.5 20.5,17 22.5,26 15,21 7.5,26 9.5,17 3,11.5 11.5,11"/>'],
+  ['cres','Halbmond','<path d="M20 4A12 12 0 1 0 20 26A9.5 9.5 0 1 1 20 4Z"/>'],
+  ['cross','Kreuz','<polygon points="11,3 19,3 19,11 27,11 27,19 19,19 19,27 11,27 11,19 3,19 3,11 11,11"/>'],
+  ['nord','Nord. Kreuz','<g><rect x="9" y="2" width="5" height="26"/><rect x="2" y="12.5" width="26" height="5"/></g>']
+];
+// Zielflaggen im gleichen Datenmodell wie die gebaute Flagge. Positionen/Größen sind Anteile von Breite/Höhe.
+const T=(name,ratio,orient,colors,shapes)=>({name,ratio,orient,n:colors.length,colors,shapes:shapes||[]});
+const TARGETS=[
+  T('Frankreich',[3,2],'v',['blau','weiss','rot']),
+  T('Italien',[3,2],'v',['gruen','weiss','rot']),
+  T('Deutschland',[5,3],'h',['schwarz','rot','gelb']),
+  T('Niederlande',[3,2],'h',['rot','weiss','blau']),
+  T('Irland',[2,1],'v',['gruen','weiss','orange']),
+  T('Österreich',[3,2],'h',['rot','weiss','rot']),
+  T('Ukraine',[3,2],'h',['blau','gelb']),
+  T('Polen',[8,5],'h',['weiss','rot']),
+  T('Indonesien',[3,2],'h',['rot','weiss']),
+  T('Japan',[3,2],'h',['weiss'],[{t:'circle',x:.5,y:.5,w:.4,h:.6,c:'rot'}]),
+  T('Schweiz',[1,1],'h',['rot'],[{t:'cross',x:.5,y:.5,w:.6,h:.6,c:'weiss'}]),
+  T('Bangladesch',[5,3],'h',['dunkelgruen'],[{t:'circle',x:.45,y:.5,w:.4,h:.667,c:'rot'}]),
+  T('Dänemark',[4,3],'h',['rot'],[{t:'rect',x:.36,y:.5,w:.11,h:1,c:'weiss'},{t:'rect',x:.5,y:.5,w:1,h:.15,c:'weiss'}]),
+  T('Schweden',[8,5],'h',['blau'],[{t:'rect',x:.375,y:.5,w:.125,h:1,c:'gelb'},{t:'rect',x:.5,y:.5,w:1,h:.2,c:'gelb'}]),
+  T('Türkei',[3,2],'h',['rot'],[{t:'cres',x:.36,y:.5,w:.33,h:.5,c:'weiss'},{t:'star',x:.53,y:.5,w:.16,h:.24,c:'weiss'}]),
+  T('Mexiko',[7,4],'v',['gruen','weiss','rot'],[{t:'emb',g:'🦅',x:.5,y:.5,w:.2,h:.34,c:'schwarz'}]),
+  T('Ägypten',[3,2],'h',['rot','weiss','schwarz'],[{t:'emb',g:'🦅',x:.5,y:.5,w:.14,h:.22,c:'schwarz'}])
+];
+
+// ───────────────────────── Zustand ─────────────────────────
+const S={ratio:[3,2],orient:'h',n:1,colors:Array(9).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
+         round:{list:[],i:0,total:0,hints:0,results:[]}};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const svg=$('#stage');
+const dims=f=>({W:f.ratio[0]*100,H:f.ratio[1]*100});
+const colOf=k=>PAL[k]?PAL[k][1]:'#fff';
+
+// ───────────────────────── Zeichnen ─────────────────────────
+function shapeSVG(s,W,H,id){
+  const cx=s.x*W,cy=s.y*H,w=s.w*W,h=s.h*H,fill=colOf(s.c);
+  const tr=`transform="translate(${cx} ${cy}) rotate(${s.r||0})"`;
+  switch(s.t){
+    case 'circle':return `<ellipse ${tr} rx="${w/2}" ry="${h/2}" fill="${fill}"/>`;
+    case 'rect':return `<rect ${tr} x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" fill="${fill}"/>`;
+    case 'tri':return `<polygon ${tr} points="0,${-h/2} ${w/2},${h/2} ${-w/2},${h/2}" fill="${fill}"/>`;
+    case 'trif':return `<polygon points="${s.p.map(q=>(q[0]*W)+','+(q[1]*H)).join(' ')}" fill="${fill}"/>`;
+    case 'star':{let p=[];for(let i=0;i<10;i++){const r=i%2?.382:1,a=(-90+36*i)*Math.PI/180;p.push((Math.cos(a)*r*w/2).toFixed(2)+','+(Math.sin(a)*r*h/2).toFixed(2));}return `<polygon ${tr} points="${p.join(' ')}" fill="${fill}"/>`;}
+    case 'cross':{const a=.17,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
+    case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*.2}" rx="${w*.4}" ry="${h*.4}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
+    case 'emb':return `<text ${tr} font-size="${h*.9}" text-anchor="middle" dominant-baseline="central">${s.g}</text>`;
+  }
+  return '';
+}
+function flagInner(f,pfx){
+  const {W,H}=dims(f);let o='';
+  const n=f.n<=1?1:f.n,or=n===1?'h':f.orient;
+  for(let i=0;i<n;i++){
+    const last=i===n-1,e=last?0:.4;
+    o+= or==='v'
+      ? `<rect class="stp" data-s="${i}" x="${i*W/n}" y="0" width="${W/n+e}" height="${H}" fill="${colOf(f.colors[i])}"/>`
+      : `<rect class="stp" data-s="${i}" x="0" y="${i*H/n}" width="${W}" height="${H/n+e}" fill="${colOf(f.colors[i])}"/>`;
+  }
+  f.shapes.forEach((s,i)=>{o+=`<g class="shp" data-i="${i}">${shapeSVG(s,W,H,pfx+i)}</g>`;});
+  return o;
+}
+function thumb(f,pfx){const {W,H}=dims(f);return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${flagInner(f,pfx)}</svg>`;}
+
+function bbox(s){
+  if(s.t==='trif'){const xs=s.p.map(q=>q[0]),ys=s.p.map(q=>q[1]);const a=Math.min(...xs),b=Math.max(...xs),c=Math.min(...ys),d=Math.max(...ys);return{x:(a+b)/2,y:(c+d)/2,w:b-a,h:d-c};}
+  return{x:s.x,y:s.y,w:s.w,h:s.h};
+}
+function draw(){
+  const {W,H}=dims(S),pad=Math.max(W,H)*.08;
+  const vb=[-pad,-pad,W+2*pad,H+2*pad];
+  svg.setAttribute('viewBox',vb.join(' '));
+  const r=svg.getBoundingClientRect(),u=Math.max(vb[2]/(r.width||1),vb[3]/(r.height||1)); // 1 Pixel in Zeichen-Einheiten
+  let o=`<rect x="-1" y="-1" width="${W+2}" height="${H+2}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="${u*2}"/>`;
+  o+=`<svg x="0" y="0" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">${flagInner(S,'e')}</svg>`;
+  // Auswahl
+  if(S.step===2){
+    const n=S.n<=1?1:S.n,i=Math.min(S.selStripe,n-1),or=n===1?'h':S.orient;
+    const b=or==='v'?[i*W/n,0,W/n,H]:[0,i*H/n,W,H/n];
+    o+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="none" stroke="#f0b060" stroke-width="${u*3}" stroke-dasharray="${u*10} ${u*6}" pointer-events="none"/>`;
+  }
+  if(S.step===3&&S.sel!=null&&S.shapes[S.sel]){
+    const s=S.shapes[S.sel],bb=bbox(s);
+    const tr=s.t==='trif'?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
+    const rx=s.t==='trif'?(bb.x-bb.w/2)*W:-s.w*W/2,ry=s.t==='trif'?(bb.y-bb.h/2)*H:-s.h*H/2;
+    o+=`<rect ${tr} x="${rx}" y="${ry}" width="${bb.w*W}" height="${bb.h*H}" fill="none" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*8} ${u*5}" pointer-events="none"/>`;
+    if(s.t==='trif')s.p.forEach((q,k)=>{o+=`<circle data-h="${k}" cx="${q[0]*W}" cy="${q[1]*H}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*2}" style="cursor:move"/>`;});
+  }
+  S.guides.forEach(g=>{o+= g.x!=null
+    ? `<line x1="${g.x*W}" y1="${-pad}" x2="${g.x*W}" y2="${H+pad}" stroke="#ff3d7f" stroke-width="${u*1.5}" pointer-events="none"/>`
+    : `<line x1="${-pad}" y1="${g.y*H}" x2="${W+pad}" y2="${g.y*H}" stroke="#ff3d7f" stroke-width="${u*1.5}" pointer-events="none"/>`;});
+  svg.innerHTML=o;
+  svg.setAttribute('class','s'+S.step);
+}
+
+// ───────────────────────── Panel: Schritt 1 ─────────────────────────
+function buildStatic(){
+  $('#ratios').innerHTML=RATIOS.map(r=>`<button class="chip" data-r="${r[0]}:${r[1]}">${r[0]}:${r[1]}${r[0]<r[1]?' ⬍':''}</button>`).join('');
+  $('#counts').innerHTML=[1,2,3,4,5,6,7,8,9].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('');
+  const sw=(k,cls)=>`<button class="sw ${cls||''}" data-c="${k}" style="background:${PAL[k][1]}" title="${PAL[k][0]}">${cls==='n'?'':`<span>${PAL[k][0]}</span>`}</button>`;
+  $('#pal').innerHTML=Object.keys(PAL).map(k=>sw(k)).join('');
+  $('#spal').innerHTML=Object.keys(PAL).map(k=>`<button class="sw" data-sc="${k}" style="background:${PAL[k][1]};height:28px;border-radius:7px" title="${PAL[k][0]}"></button>`).join('');
+  $('#shapes').innerHTML=SHAPE_BTN.map(s=>`<button class="chip" data-add="${s[0]}"><svg viewBox="0 0 30 30" fill="currentColor">${s[2]}</svg>${s[1]}</button>`).join('');
+  $('#emb').innerHTML=EMBLEMS.map(e=>`<button class="chip" data-emb="${e[0]}" title="${e[1]}">${e[0]}</button>`).join('');
+}
+function syncLayout(){
+  const n=S.n<=1?1:S.n;
+  $$('#ratios .chip').forEach(b=>{const [a,c]=b.dataset.r.split(':').map(Number);b.classList.toggle('on',a===S.ratio[0]&&c===S.ratio[1]);});
+  $('#rw').value=S.ratio[0];$('#rh').value=S.ratio[1];
+  $$('#orients .chip').forEach(b=>b.classList.toggle('on',b.dataset.o===(n===1?'none':S.orient)));
+  $$('#counts .chip').forEach(b=>{b.classList.toggle('on',+b.dataset.n===n);});
+}
+function syncColors(){
+  const n=S.n<=1?1:S.n;if(S.selStripe>=n)S.selStripe=0;
+  $('#stripeTitle').textContent=n===1?'Hintergrundfarbe':'Streifen wählen';
+  $('#stripeList').innerHTML=Array.from({length:n},(_,i)=>`<button class="stripe${i===S.selStripe?' on':''}" data-st="${i}" style="background:${colOf(S.colors[i])}" title="Streifen ${i+1}"></button>`).join('');
+  $$('#pal .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.colors[S.selStripe]));
+}
+function syncProps(){
+  const s=S.sel!=null?S.shapes[S.sel]:null,off=!s;
+  $$('#props input,#props .btn,#props .sw').forEach(e=>{e.disabled=off;});
+  $('#props').style.opacity=off?.45:1;
+  if(!s)return;
+  const bb=bbox(s);
+  $('#pw').value=Math.round(bb.w*100);$('#pwo').textContent=Math.round(bb.w*100)+'%';
+  $('#ph').value=Math.round(bb.h*100);$('#pho').textContent=Math.round(bb.h*100)+'%';
+  $('#pr').value=s.r||0;$('#pro').textContent=(s.r||0)+'°';
+  $('#pr').disabled=s.t==='trif'||s.t==='emb'&&false;
+  const emb=s.t==='emb';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
+}
+function setStep(n){
+  S.step=n;
+  $$('.tab').forEach(t=>t.classList.toggle('on',+t.dataset.step===n));
+  $$('.sec').forEach(s=>s.classList.toggle('on',s.id==='sec'+n));
+  $('#bCheck').textContent=n<3?'Weiter →':'✔ Prüfen';
+  if(n===2)syncColors();if(n===3)syncProps();
+  draw();
+}
+
+// ───────────────────────── Formen ─────────────────────────
+function addShape(t,g){
+  const {W,H}=dims(S);let s;
+  if(t==='nord'){
+    const a={t:'rect',x:.375,y:.5,w:.125,h:1,c:'weiss',r:0},b={t:'rect',x:.5,y:.5,w:1,h:.2,c:'weiss',r:0};
+    S.shapes.push(a,b);S.sel=S.shapes.length-1;
+  }else{
+    const h=t==='emb'?.36:t==='rect'?.3:.4,w=t==='rect'?.5*0+h*H/W*1.6:h*H/W;
+    s={t,x:.5,y:.5,w,h,c:t==='emb'?'schwarz':'rot',r:0};
+    if(t==='emb')s.g=g;
+    if(t==='trif'){s.p=[[.5,.28],[.68,.7],[.32,.64]];}
+    S.shapes.push(s);S.sel=S.shapes.length-1;
+  }
+  syncProps();draw();
+}
+function moveBy(s,dx,dy){if(s.t==='trif')s.p=s.p.map(q=>[q[0]+dx,q[1]+dy]);else{s.x+=dx;s.y+=dy;}}
+function moveTo(s,cx,cy){const b=bbox(s);moveBy(s,cx-b.x,cy-b.y);}
+function cands(){
+  const X=[0,.5,1],Y=[0,.5,1],n=S.n<=1?1:S.n;
+  if(n>1){for(let k=1;k<n;k++){(S.orient==='v'?X:Y).push(k/n);}}
+  return{X,Y};
+}
+function snapVal(v,list,offs,thr){
+  let best=null;
+  for(const o of offs)for(const c of list){const d=c-(v+o);if(Math.abs(d)<thr&&(!best||Math.abs(d)<Math.abs(best.d)))best={d,c};}
+  return best;
+}
+function snapMove(s,cx,cy){
+  S.guides=[];if(!$('#snap').checked)return{cx,cy};
+  const {X,Y}=cands(),b=bbox(s),thr=.022;
+  const sx=snapVal(cx,X,[0,-b.w/2,b.w/2],thr),sy=snapVal(cy,Y,[0,-b.h/2,b.h/2],thr);
+  if(sx){cx+=sx.d;S.guides.push({x:sx.c});}
+  if(sy){cy+=sy.d;S.guides.push({y:sy.c});}
+  return{cx,cy};
+}
+function toolAct(t){
+  const s=S.shapes[S.sel];if(!s)return;const b=bbox(s);
+  if(t==='del'){S.shapes.splice(S.sel,1);S.sel=null;}
+  else if(t==='dup'){const c=JSON.parse(JSON.stringify(s));moveBy(c,.03,.03);S.shapes.push(c);S.sel=S.shapes.length-1;}
+  else if(t==='front'&&S.sel<S.shapes.length-1){S.shapes.push(S.shapes.splice(S.sel,1)[0]);S.sel=S.shapes.length-1;}
+  else if(t==='back'&&S.sel>0){S.shapes.unshift(S.shapes.splice(S.sel,1)[0]);S.sel=0;}
+  else if(t==='cx')moveTo(s,.5,b.y);
+  else if(t==='cy')moveTo(s,b.x,.5);
+  else if(t==='l')moveTo(s,b.w/2,b.y);
+  else if(t==='r')moveTo(s,1-b.w/2,b.y);
+  else if(t==='u')moveTo(s,b.x,b.h/2);
+  else if(t==='d')moveTo(s,b.x,1-b.h/2);
+  syncProps();draw();
+}
+
+// ───────────────────────── Bedienung ─────────────────────────
+function setRatio(w,h){S.ratio=[w,h];syncLayout();draw();}
+document.addEventListener('click',e=>{
+  const c=e.target.closest('button');if(!c)return;
+  const d=c.dataset;
+  if(d.step)setStep(+d.step);
+  else if(d.r){const [a,b]=d.r.split(':').map(Number);setRatio(a,b);}
+  else if(d.o){
+    if(d.o==='none'){S.n=1;}else{S.orient=d.o;if(S.n<=1)S.n=3;}
+    syncLayout();draw();
+  }
+  else if(d.n){S.n=+d.n;if(S.n>1&&S.orient==='none')S.orient='h';syncLayout();draw();}
+  else if(d.st!=null){S.selStripe=+d.st;syncColors();draw();}
+  else if(d.c){
+    S.colors[S.selStripe]=d.c;const n=S.n<=1?1:S.n;
+    if(S.selStripe<n-1)S.selStripe++;
+    syncColors();draw();
+  }
+  else if(d.add)addShape(d.add);
+  else if(d.emb)addShape('emb',d.emb);
+  else if(d.sc){const s=S.shapes[S.sel];if(s){s.c=d.sc;syncProps();draw();}}
+  else if(d.t)toolAct(d.t);
+});
+['rw','rh'].forEach(id=>$('#'+id).addEventListener('input',()=>{const w=+$('#rw').value,h=+$('#rh').value;if(w>0&&h>0&&w<=20&&h<=20){S.ratio=[w,h];$$('#ratios .chip').forEach(b=>{const [a,c]=b.dataset.r.split(':').map(Number);b.classList.toggle('on',a===w&&c===h);});draw();}}));
+// Regler
+function slider(id,fn){$('#'+id).addEventListener('input',e=>{const s=S.shapes[S.sel];if(!s)return;fn(s,+e.target.value);syncProps();draw();});}
+function resize(s,w,h){
+  const {W,H}=dims(S);
+  if(s.t==='trif'){const b=bbox(s),sx=w/b.w,sy=h/b.h;s.p=s.p.map(q=>[b.x+(q[0]-b.x)*sx,b.y+(q[1]-b.y)*sy]);}
+  else{s.w=w;s.h=h;}
+}
+slider('pw',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nw=v/100;let nh=b.h;if($('#plock').checked)nh=nw*W*b.h*H/(b.w*W*H);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
+slider('ph',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nh=v/100;let nw=b.w;if($('#plock').checked)nw=nh*H*b.w*W/(b.h*H*W);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
+slider('pr',(s,v)=>{s.r=v;});
+// Ziehen
+let drag=null;
+function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse()),{W,H}=dims(S);return{x:q.x/W,y:q.y/H};}
+svg.addEventListener('pointerdown',e=>{
+  const hd=e.target.closest('[data-h]');
+  if(hd){drag={k:'v',vi:+hd.dataset.h};svg.setPointerCapture(e.pointerId);return;}
+  const g=S.step===3&&e.target.closest('[data-i]');
+  if(g){const i=+g.dataset.i,p=pt(e),b=bbox(S.shapes[i]);S.sel=i;drag={k:'m',i,dx:p.x-b.x,dy:p.y-b.y};svg.setPointerCapture(e.pointerId);syncProps();draw();return;}
+  const st=S.step===2&&e.target.closest('[data-s]');
+  if(st){S.selStripe=+st.dataset.s;syncColors();draw();return;}
+  if(S.step===3){S.sel=null;syncProps();draw();}
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag)return;const p=pt(e);
+  if(drag.k==='m'){const s=S.shapes[drag.i],r=snapMove(s,p.x-drag.dx,p.y-drag.dy);moveTo(s,r.cx,r.cy);}
+  else{
+    const s=S.shapes[S.sel];let x=p.x,y=p.y;S.guides=[];
+    if($('#snap').checked){const {X,Y}=cands(),a=snapVal(x,X,[0],.022),b=snapVal(y,Y,[0],.022);if(a){x+=a.d;S.guides.push({x:a.c});}if(b){y+=b.d;S.guides.push({y:b.c});}}
+    s.p[drag.vi]=[x,y];
+  }
+  draw();
+});
+const endDrag=()=>{if(drag){drag=null;S.guides=[];syncProps();draw();}};
+svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);
+document.addEventListener('keydown',e=>{
+  if(S.step!==3||S.sel==null||/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.type!=='checkbox'&&document.activeElement.type!=='range')return;
+  const s=S.shapes[S.sel];if(!s)return;const st=e.shiftKey?.02:.005;
+  if(e.key==='Delete'||e.key==='Backspace'){toolAct('del');e.preventDefault();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){toolAct('dup');e.preventDefault();}
+  else if(e.key.startsWith('Arrow')){moveBy(s,e.key==='ArrowLeft'?-st:e.key==='ArrowRight'?st:0,e.key==='ArrowUp'?-st:e.key==='ArrowDown'?st:0);draw();e.preventDefault();}
+});
+window.addEventListener('resize',draw);
+
+// ───────────────────────── Bewertung ─────────────────────────
+function colorAt(f,u,v){const n=f.n<=1?1:f.n;if(n===1)return f.colors[0];return f.colors[Math.min(n-1,Math.floor((f.orient==='v'?u:v)*n))];}
+function descr(s){const b=bbox(s);return{t:s.t,g:s.g,c:s.c,x:b.x,y:b.y,w:b.w,h:b.h};}
+function pairScore(a,b){
+  let ts=a.t===b.t?1:((a.t==='tri'&&b.t==='trif')||(a.t==='trif'&&b.t==='tri'))?.7:0;
+  if(!ts)return 0;
+  if(a.t==='emb'&&a.g!==b.g)ts=.3;
+  const cs=a.t==='emb'?1:(a.c===b.c?1:0);
+  const ps=Math.max(0,1-Math.hypot(a.x-b.x,a.y-b.y)/.25);
+  const ss=Math.max(0,1-(Math.abs(Math.log(a.w/b.w))+Math.abs(Math.log(a.h/b.h)))/1.5);
+  return .3*ts+.2*cs+.3*ps+.2*ss;
+}
+function scoreFlag(b,t){
+  const d=Math.abs(Math.log((b.ratio[0]/b.ratio[1])/(t.ratio[0]/t.ratio[1])));
+  const ratio=d<.03?1:Math.max(0,1-(d-.03)/.35);
+  const ob=b.n<=1?'none':b.orient,ot=t.n<=1?'none':t.orient,nb=b.n<=1?1:b.n,nt=t.n<=1?1:t.n;
+  const layout=(ob===ot?.5:0)+(nb===nt?.5:Math.max(0,.5-.15*Math.abs(nb-nt)));
+  let eq=0,N=12;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const u=(i+.5)/N,v=(j+.5)/N;if(colorAt(b,u,v)===colorAt(t,u,v))eq++;}
+  const colors=eq/(N*N);
+  const A=t.shapes.map(descr),B=b.shapes.map(descr),used=new Set();let sum=0;
+  A.forEach(a=>{let best=0,bi=-1;B.forEach((q,i)=>{if(used.has(i))return;const sc=pairScore(a,q);if(sc>best){best=sc;bi=i;}});if(bi>=0){used.add(bi);sum+=best;}});
+  const den=Math.max(A.length,B.length);
+  const symbols=den===0?1:sum/den;
+  return{ratio,layout,colors,symbols,total:Math.round(10*ratio+15*layout+45*colors+30*symbols)};
+}
+
+// ───────────────────────── Spielablauf ─────────────────────────
+function resetBuild(){
+  S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(9).fill('weiss');S.shapes=[];S.sel=null;S.selStripe=0;S.guides=[];
+  syncLayout();setStep(1);
+}
+function newRound(){
+  const list=[...TARGETS].sort(()=>Math.random()-.5).slice(0,10);
+  S.round={list,i:0,total:0,hints:0,results:[]};loadTarget();
+}
+function loadTarget(){
+  const r=S.round;S.round.hints=0;
+  $('#tname').textContent=r.list[r.i].name;$('#tnum').textContent=(r.i+1)+'/'+r.list.length;$('#ttot').textContent=r.total;
+  $('#peek').classList.remove('on');resetBuild();
+}
+let peekT=null;
+$('#bPeek').onclick=()=>{
+  const t=S.round.list[S.round.i];S.round.hints++;
+  $('#peekFlag').innerHTML=`<div style="width:200px">${thumb(t,'p')}</div>`;
+  $('#peek').classList.add('on');clearTimeout(peekT);peekT=setTimeout(()=>$('#peek').classList.remove('on'),3000);
+};
+$('#bReset').onclick=resetBuild;
+$('#bCheck').onclick=()=>{if(S.step<3)setStep(S.step+1);else check();};
+function bar(l,v,max){return `<div class="bar"><span>${l}</span><i><b style="width:${v*100}%"></b></i><span>${Math.round(v*max)} / ${max}</span></div>`;}
+function check(){
+  const r=S.round,t=r.list[r.i],sc=scoreFlag(S,t),pen=15*r.hints,pts=Math.max(0,sc.total-pen);
+  r.total+=pts;r.results.push({name:t.name,pts});$('#ttot').textContent=r.total;
+  const last=r.i===r.list.length-1;
+  $('#card').innerHTML=`
+    <div class="cmp"><figure>${thumb(S,'a')}<figcaption>Deine Flagge</figcaption></figure><figure>${thumb(t,'b')}<figcaption>${t.name}</figcaption></figure></div>
+    ${bar('Format',sc.ratio,10)}${bar('Streifen',sc.layout,15)}${bar('Farben',sc.colors,45)}${bar('Symbole',sc.symbols,30)}
+    ${pen?`<div class="bar"><span>Hinweise</span><i></i><span>−${pen}</span></div>`:''}
+    <div class="total">${pts} <small>von 100 Punkten</small></div>
+    <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${last?'Ergebnis ansehen':'Nächste Flagge →'}</button>`;
+  $('#dlg').classList.add('on');
+  $('#bNext').onclick=()=>{
+    $('#dlg').classList.remove('on');
+    if(!last){r.i++;loadTarget();return;}
+    $('#card').innerHTML=`<h2 style="margin:0 0 4px">Runde beendet</h2><div class="total">${r.total} <small>von ${r.list.length*100} Punkten</small></div>
+      ${r.results.map(x=>`<div class="bar" style="grid-template-columns:1fr 56px"><span>${x.name}</span><span style="text-align:right">${x.pts}</span></div>`).join('')}
+      <button class="btn pri" style="width:100%;margin-top:14px;padding:12px" id="bAgain">Neue Runde</button>`;
+    $('#dlg').classList.add('on');$('#bAgain').onclick=()=>{$('#dlg').classList.remove('on');newRound();};
+  };
+}
+
+buildStatic();newRound();
+</script>
+</body>
+</html>
