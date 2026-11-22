@@ -218,13 +218,21 @@ body.pruef #pfref{display:block}
               </div>
             </div>
           </div>
-          <p class="hint">Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du im zweiten Schritt (Farben). Sonderformen kommen im dritten Schritt dazu.</p>
+          <div class="ai" data-a="width">
+            <button class="ah" data-ah="width"><span>Streifenbreite</span><b id="sumWidth"></b></button>
+            <div class="ab">
+              <div class="stripes" id="stripeList1"></div>
+              <div class="row" style="margin-top:12px"><span>Breite</span><input type="range" id="psw" min="5" max="90" value="50"><output id="pswo">50</output></div>
+              <button class="btn" id="swEq" style="padding:6px 10px;font-size:13px">Alle gleich breit</button>
+            </div>
+          </div>
+          <p class="hint">Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du oben unter „Streifenbreite“. Sonderformen kommen im dritten Schritt dazu.</p>
         </section>
         <!-- Schritt 2 -->
         <section class="sec" id="sec2">
           <h3 id="stripeTitle">Streifen wählen</h3>
           <div class="stripes" id="stripeList"></div>
-          <div id="swBox" style="display:none"><div class="row"><span>Breite</span><input type="range" id="psw" min="5" max="90" value="50"><output id="pswo">50</output></div><button class="btn" id="swEq" style="padding:6px 10px;font-size:13px">Alle gleich breit</button></div>
+          <div id="altBox" style="display:none"><h3>Abwechselnd färben</h3><div class="chips" id="altChips"><button class="chip on" data-alt="0">Aus</button><button class="chip" data-alt="2">2 Farben</button><button class="chip" data-alt="3">3 Farben</button></div><p class="hint" style="margin-top:6px">Bei "2 Farben" färbt jede Farbwahl alle zweiten Streifen mit, bei "3 Farben" jeden dritten (z. B. USA: Streifen 1 rot, Streifen 2 weiß).</p></div>
           <h3>Farbe</h3>
           <div class="pal names" id="pal"></div>
           <p class="hint">Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.</p>
@@ -533,7 +541,7 @@ EMB_TARGETS.push(
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const pev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}}; // lang und C sind let/const der App, also nicht als window-Eigenschaft sichtbar
 const LG=pev('lang')||'de',PC=pev('C');
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Karminrot":"Crimson","Mittelblau":"Medium blue","Bolnisi-Kreuz":"Bolnisi cross","Dicke":"Thickness","Schließen":"Closing","Rückgängig":"Undo","Wiederholen":"Redo","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du im zweiten Schritt (Farben). Sonderformen kommen im dritten Schritt dazu.":"All stripes start equally wide. You change each stripe's width in step 2 (colors). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Abwechselnd färben":"Color alternately","Aus":"Off","2 Farben":"2 colors","3 Farben":"3 colors","Streifenbreite":"Stripe width","Alle gleich breit":"All equal","Karminrot":"Crimson","Mittelblau":"Medium blue","Bolnisi-Kreuz":"Bolnisi cross","Dicke":"Thickness","Schließen":"Closing","Rückgängig":"Undo","Wiederholen":"Redo","Hellgrau":"Light gray","Hellgelb":"Light yellow","Gold":"Gold","Hellrot":"Light red","Türkis":"Turquoise","Himmelblau":"Sky blue","Hellbraun":"Light brown","Layout":"Layout","Details":"Details","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind zuerst gleich breit. Die Breite jedes Streifens änderst du oben unter „Streifenbreite“. Sonderformen kommen im dritten Schritt dazu.":"All stripes start equally wide. You change each stripe's width above under “Stripe width”. Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D oder Strg beim Ziehen kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D or holding Ctrl while dragging copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PC&&PC[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -545,7 +553,7 @@ function translateDom(){
 }
 
 // ───────────────────────── Zustand ─────────────────────────
-const S={ratio:[3,2],orient:'h',n:1,sw:Array(20).fill(1),colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
+const S={altN:0,ratio:[3,2],orient:'h',n:1,sw:Array(20).fill(1),colors:Array(20).fill('weiss'),shapes:[],sel:null,selStripe:0,step:1,guides:[],
          round:{list:[],i:0,total:0,hints:0,results:[]}};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const svg=$('#stage');
@@ -607,7 +615,7 @@ function draw(){
     }
   }
   // Auswahl
-  if(S.step===2){
+  if(S.step===2||(S.step===1&&S.n>1)){
     const n=S.n<=1?1:S.n,i=Math.min(S.selStripe,n-1),or=n===1?'h':S.orient;
     const E2=stripeEdges(S),b=or==='v'?[E2[i]*W,0,(E2[i+1]-E2[i])*W,H]:[0,E2[i]*H,W,(E2[i+1]-E2[i])*H];
     o+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="none" stroke="#f0b060" stroke-width="${u*3}" stroke-dasharray="${u*10} ${u*6}" pointer-events="none"/>`;
@@ -665,6 +673,7 @@ function syncLayout(){
   $('#sumRatio').textContent=S.ratio[0]+' : '+S.ratio[1];
   $('#sumOrient').textContent=tr(n===1?'Einfarbig':S.orient==='v'?'Senkrecht':'Waagerecht');
   $('#sumCount').textContent=n===1?'–':n;
+  syncWidth();
   $('[data-a="count"]').classList.toggle('dis',n===1);
 }
 function syncColors(){
@@ -672,8 +681,15 @@ function syncColors(){
   $('#stripeTitle').textContent=tr(n===1?'Hintergrundfarbe':'Streifen wählen');
   $('#stripeList').innerHTML=Array.from({length:n},(_,i)=>`<button class="stripe${i===S.selStripe?' on':''}" data-st="${i}" style="background:${colOf(S.colors[i])}" title="Streifen ${i+1}"></button>`).join('');
   $$('#pal .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.colors[S.selStripe]));
-  $('#swBox').style.display=n>1?'':'none';
-  if(n>1){const E=stripeEdges(S),v=Math.round((E[S.selStripe+1]-E[S.selStripe])*100);$('#psw').value=v;$('#pswo').textContent=v+'%';}
+  $('#altBox').style.display=n>1?'':'none';
+  $$('#altChips .chip').forEach(b=>b.classList.toggle('on',+b.dataset.alt===S.altN));
+}
+function syncWidth(){
+  const n=S.n<=1?1:S.n;if(S.selStripe>=n)S.selStripe=0;
+  const it=$('[data-a="width"]');it.classList.toggle('dis',n===1);
+  $('#stripeList1').innerHTML=n>1?Array.from({length:n},(_,i)=>'<button class="stripe'+(i===S.selStripe?' on':'')+'" data-st="'+i+'" style="background:'+colOf(S.colors[i])+'" title="Streifen '+(i+1)+'"></button>').join(''):'';
+  if(n>1){const E=stripeEdges(S),v=Math.round((E[S.selStripe+1]-E[S.selStripe])*100);$('#psw').value=v;$('#pswo').textContent=v+'%';$('#sumWidth').textContent=(S.selStripe+1)+'. Streifen: '+v+' %';}
+  else $('#sumWidth').textContent='–';
 }
 function syncProps(){
   const s=S.sel!=null?S.shapes[S.sel]:null,off=!s;
@@ -779,9 +795,11 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('button');if(!c)return;
   const d=c.dataset;
   if(d.step)setStep(+d.step);
-  else if(d.st!=null){S.selStripe=+d.st;syncColors();draw();}
+  else if(d.st!=null){S.selStripe=+d.st;syncColors();syncWidth();draw();}
+  else if(d.alt!=null){S.altN=+d.alt;syncColors();}
   else if(d.c){
-    S.colors[S.selStripe]=d.c;const n=S.n<=1?1:S.n;
+    const n=S.n<=1?1:S.n;
+    if(S.altN>1&&n>1){for(let j=S.selStripe%S.altN;j<n;j+=S.altN)S.colors[j]=d.c;}else S.colors[S.selStripe]=d.c;
     if(S.selStripe<n-1)S.selStripe++;
     syncColors();draw();
   }
@@ -820,9 +838,9 @@ $('#cnums').addEventListener('input',e=>setN(+e.target.value));
 $('#psw').addEventListener('input',e=>{
   const n=S.n;if(n<=1)return;const E=stripeEdges(S),p=Array.from({length:n},(_,i)=>E[i+1]-E[i]),i=S.selStripe,f=+e.target.value/100,rest=1-p[i];
   for(let j=0;j<n;j++)S.sw[j]=j===i?f:(rest>1e-6?p[j]*(1-f)/rest:(1-f)/(n-1));
-  syncColors();draw();
+  syncWidth();draw();
 });
-$('#swEq').onclick=()=>{S.sw=Array(20).fill(1);syncColors();draw();};
+$('#swEq').onclick=()=>{S.sw=Array(20).fill(1);syncWidth();draw();};
 // Regler
 function slider(id,fn){$('#'+id).addEventListener('input',e=>{const s=S.shapes[S.sel];if(!s)return;fn(s,+e.target.value);syncProps();draw();});}
 function resize(s,w,h){
@@ -849,8 +867,8 @@ svg.addEventListener('pointerdown',e=>{
   if(g){let i=+g.dataset.i;
     if((e.ctrlKey||e.metaKey)&&S.shapes[i].t!=='emb'){S.shapes.push(JSON.parse(JSON.stringify(S.shapes[i])));i=S.shapes.length-1;S.batch=null;} // Strg + Ziehen: Kopie ziehen, Original bleibt
     const p=pt(e),b=bbox(S.shapes[i]);S.sel=i;drag={k:'m',i,dx:p.x-b.x,dy:p.y-b.y};svg.setPointerCapture(e.pointerId);syncProps();draw();return;}
-  const st=S.step===2&&e.target.closest('[data-s]');
-  if(st){S.selStripe=+st.dataset.s;syncColors();draw();return;}
+  const st=(S.step===2||(S.step===1&&S.n>1))&&e.target.closest('[data-s]');
+  if(st){S.selStripe=+st.dataset.s;syncColors();syncWidth();draw();return;}
   if(S.step>=3){S.sel=null;syncProps();draw();}
 });
 svg.addEventListener('pointermove',e=>{
