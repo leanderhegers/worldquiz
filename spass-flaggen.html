@@ -162,7 +162,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
               </div>
             </div>
           </div>
-          <p class="hint">Alle Streifen sind gleich breit. Sonderformen (z. B. Kanada) baust du im dritten Schritt mit Formen.</p>
+          <p class="hint">Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.</p>
         </section>
         <!-- Schritt 2 -->
         <section class="sec" id="sec2">
@@ -217,7 +217,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
             </div>
           </div>
           <label class="chk"><input type="checkbox" id="snap" checked> Einrasten (Mitte, Rand, Streifenkanten)</label>
-          <p class="hint">Form antippen, an den Quadraten am Rand die Größe ändern, am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
+          <p class="hint">Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.</p>
         </div>
       </div>
       <div class="pfoot">
@@ -252,6 +252,7 @@ const SHAPE_BTN=[
   ['rect','Rechteck','<rect x="4" y="7" width="22" height="16"/>'],
   ['tri','Dreieck','<polygon points="15,4 27,26 3,26"/>'],
   ['trif','Dreieck frei','<polygon points="6,6 26,12 10,26"/>'],
+  ['quad','Viereck frei','<polygon points="5,8 24,5 26,22 8,26"/>'],
   ['star','Stern','<polygon points="15,3 18.5,11 27,11.5 20.5,17 22.5,26 15,21 7.5,26 9.5,17 3,11.5 11.5,11"/>'],
   ['cres','Halbmond','<path d="M20 4A12 12 0 1 0 20 26A9.5 9.5 0 1 1 20 4Z"/>'],
   ['cross','Kreuz','<polygon points="11,3 19,3 19,11 27,11 27,19 19,19 19,27 11,27 11,19 3,19 3,11 11,11"/>'],
@@ -309,10 +310,10 @@ function embBox(iso,ratio,hFrac){
   return {h:hFrac,w:Math.min(1.2,hFrac*H/W*e.ea)};
 }
 function addEmbTargets(){
-  EMB_TARGETS.forEach(([name,id,iso,ratio,orient,colors])=>{
+  EMB_TARGETS.forEach(([name,id,iso,ratio,orient,colors,extra])=>{
     const e=EMBMAP[iso];if(!e)return;
     const hf=e.bb[3]/480,b=embBox(iso,ratio,hf);
-    const t=T(name,ratio,orient,colors,[{t:'emb',e:iso,x:(e.bb[0]+e.bb[2]/2)/640,y:(e.bb[1]+e.bb[3]/2)/480,w:b.w,h:b.h,c:'schwarz'}]);
+    const t=T(name,ratio,orient,colors,[...(extra||[]),{t:'emb',e:iso,x:(e.bb[0]+e.bb[2]/2)/640,y:(e.bb[1]+e.bb[3]/2)/480,w:b.w,h:b.h,c:'schwarz'}]);
     t.id=id;TARGETS.push(t);
   });
 }
@@ -320,13 +321,148 @@ function addEmbTargets(){
 const IDS={Frankreich:250,Italien:380,Deutschland:276,Niederlande:528,Irland:372,'Österreich':40,Ukraine:804,Polen:616,Indonesien:360,Japan:392,Schweiz:756,Bangladesch:50,'Dänemark':208,Schweden:752,'Türkei':792,};
 TARGETS.forEach(t=>{t.id=IDS[t.name];});
 const TARGETS_BASE_N=TARGETS.length;
+// ── Weitere Flaggen. Ungleiche Streifen (1:2:1 usw.) sind als mehrere gleich breite Streifen mit gleichen Nachbarfarben angelegt.
+const R=(x,y,w,h,c)=>({t:'rect',x,y,w,h,c,r:0});
+const TFR=(p,c)=>({t:'trif',p,c,r:0});
+const add=(name,id,ratio,orient,colors,mk)=>{
+  const sq=(t,x,y,d,c)=>({t:t,x,y,w:d*ratio[1]/ratio[0],h:d,c,r:0}); // d = Durchmesser als Anteil der Höhe, immer quadratisch
+  const t=T(name,ratio,orient,colors,mk?mk(sq):[]);t.id=id;TARGETS.push(t);
+};
+const alt=(n,a,b)=>Array.from({length:n},(_,i)=>i%2?b:a);
+add('Russland',643,[3,2],'h',['weiss','blau','rot']);
+add('Ungarn',348,[2,1],'h',['rot','weiss','gruen']);
+add('Bulgarien',100,[5,3],'h',['weiss','gruen','rot']);
+add('Litauen',440,[5,3],'h',['gelb','gruen','rot']);
+add('Estland',233,[11,7],'h',['blau','schwarz','weiss']);
+add('Luxemburg',442,[5,3],'h',['rot','weiss','hellblau']);
+add('Armenien',51,[2,1],'h',['rot','blau','orange']);
+add('Gabun',266,[4,3],'h',['gruen','gelb','blau']);
+add('Rumänien',642,[3,2],'v',['blau','gelb','rot']);
+add('Belgien',56,[15,13],'v',['schwarz','gelb','rot']);
+add('Mali',466,[3,2],'v',['gruen','gelb','rot']);
+add('Guinea',324,[3,2],'v',['rot','gelb','gruen']);
+add('Nigeria',566,[2,1],'v',['gruen','weiss','gruen']);
+add('Elfenbeinküste',384,[3,2],'v',['orange','weiss','gruen']);
+add('Tschad',148,[3,2],'v',['blau','gelb','rot']);
+add('Peru',604,[3,2],'v',['rot','weiss','rot']);
+add('Jemen',887,[3,2],'h',['rot','weiss','schwarz']);
+add('Sierra Leone',694,[3,2],'h',['gruen','weiss','blau']);
+add('Mauritius',480,[3,2],'h',['rot','blau','gelb','gruen']);
+add('Kolumbien',170,[3,2],'h',['gelb','gelb','blau','rot']);
+add('Lettland',428,[2,1],'h',['dunkelrot','dunkelrot','weiss','dunkelrot','dunkelrot']);
+add('Thailand',764,[3,2],'h',['rot','weiss','blau','blau','weiss','rot']);
+add('Costa Rica',188,[5,3],'h',['blau','weiss','rot','rot','weiss','blau']);
+add('Laos',418,[3,2],'h',['rot','blau','blau','rot'],sq=>[sq('circle',.5,.5,.4,'weiss')]);
+add('Tschechien',203,[3,2],'h',['weiss','rot'],()=>[TFR([[0,0],[.5,.5],[0,1]],'blau')]);
+add('Kuba',192,[2,1],'h',['blau','weiss','blau','weiss','blau'],sq=>[TFR([[0,0],[.433,.5],[0,1]],'rot'),sq('star',.145,.5,.3,'weiss')]);
+add('Griechenland',300,[3,2],'h',alt(9,'blau','weiss'),()=>[R(.185,.278,.37,.556,'blau'),R(.185,.278,.37,.111,'weiss'),R(.185,.278,.074,.556,'weiss')]);
+add('Liberia',430,[19,10],'h',alt(11,'rot','weiss'),sq=>[R(.1195,.2273,.239,.4545,'blau'),sq('star',.1195,.2273,.36,'weiss')]);
+add('USA',840,[19,10],'h',alt(13,'rot','weiss'),sq=>{
+  const o=[R(.2,.2692,.4,.5385,'blau')],cl=0,ct=.5385*0,L=0,Wc=.4,Hc=.5385,x0=0,y0=0;
+  for(let r=0;r<9;r++){const n=r%2?5:6;for(let c=0;c<n;c++){
+    const x=(r%2?(c*2+2):(c*2+1))*Wc/12,y=(r+1)*Hc/10;
+    o.push(sq('star',x,y,.05,'weiss'));
+  }}
+  return o;
+});
+add('Chile',152,[3,2],'h',['weiss','rot'],sq=>[R(.1667,.25,.3333,.5,'blau'),sq('star',.1667,.25,.25,'weiss')]);
+add('Finnland',246,[18,11],'h',['weiss'],()=>[R(.389,.5,.1667,1,'blau'),R(.5,.5,1,.2727,'blau')]);
+add('Norwegen',578,[11,8],'h',['rot'],()=>[R(.3636,.5,.1818,1,'weiss'),R(.5,.5,1,.25,'weiss'),R(.3636,.5,.0909,1,'dunkelblau'),R(.5,.5,1,.125,'dunkelblau')]);
+add('Island',352,[25,18],'h',['blau'],()=>[R(.36,.5,.16,1,'weiss'),R(.5,.5,1,.2222,'weiss'),R(.36,.5,.08,1,'rot'),R(.5,.5,1,.1111,'rot')]);
+add('Georgien',268,[3,2],'h',['weiss'],sq=>[R(.5,.5,.1333,1,'rot'),R(.5,.5,1,.2,'rot'),sq('cross',.25,.25,.16,'rot'),sq('cross',.75,.25,.16,'rot'),sq('cross',.25,.75,.16,'rot'),sq('cross',.75,.75,.16,'rot')]);
+add('Tonga',776,[2,1],'h',['rot'],sq=>[R(.1875,.25,.375,.5,'weiss'),sq('cross',.1875,.25,.3,'rot')]);
+add('Somalia',706,[3,2],'h',['hellblau'],sq=>[sq('star',.5,.5,.5,'weiss')]);
+add('Vietnam',704,[3,2],'h',['rot'],sq=>[sq('star',.5,.5,.6,'gelb')]);
+add('China',156,[3,2],'h',['rot'],sq=>[sq('star',.1667,.25,.3,'gelb'),sq('star',.333,.1,.1,'gelb'),sq('star',.4,.2,.1,'gelb'),sq('star',.4,.35,.1,'gelb'),sq('star',.333,.45,.1,'gelb')]);
+add('Pakistan',586,[3,2],'h',['dunkelgruen'],sq=>[R(.125,.5,.25,1,'weiss'),sq('cres',.625,.5,.6,'weiss'),sq('star',.7,.4,.25,'weiss')]);
+add('Tunesien',788,[3,2],'h',['rot'],sq=>[sq('circle',.5,.5,.6,'weiss'),sq('cres',.49,.5,.4,'rot'),sq('star',.53,.5,.2,'rot')]);
+add('Algerien',12,[3,2],'v',['gruen','weiss'],sq=>[sq('cres',.5,.5,.55,'rot'),sq('star',.54,.5,.25,'rot')]);
+add('Niger',562,[7,6],'h',['orange','weiss','gruen'],sq=>[sq('circle',.5,.5,.2333,'orange')]);
+add('Palau',585,[8,5],'h',['hellblau'],sq=>[sq('circle',.4375,.5,.6,'gelb')]);
+// ── Schwierige Flaggen (zum Testen): Schrägen, Union Jack, Sondergeometrie. Einige sind nur angenähert.
+const ANG=r=>Math.atan2(r[1],r[0])*180/Math.PI;
+const band=(ratio,sign,h,c)=>({t:'rect',x:.5,y:.5,w:Math.hypot(ratio[0]*100,ratio[1]*100)*1.1/(ratio[0]*100),h,c,r:sign*ANG(ratio)});
+const POLY=(p,c)=>({t:'poly',p,c,r:0});
+const QUAD=(p,c)=>({t:'quad',p,c,r:0});
+function jack(ratio,x0,y0,w,h){
+  const W=ratio[0]*100,H=ratio[1]*100,CW=w*W,CH=h*H,cx=x0+w/2,cy=y0+h/2,a=Math.atan2(CH,CW)*180/Math.PI,L=Math.hypot(CW,CH)*1.05/W,clip=[x0,y0,x0+w,y0+h];
+  const S=(x,y,ww,hh,c,r)=>({t:'rect',x,y,w:ww,h:hh,c,r:r||0,clip});
+  return [S(cx,cy,L,CH/5/H,'weiss',a),S(cx,cy,L,CH/5/H,'weiss',-a),S(cx,cy,L,CH/15/H,'rot',a),S(cx,cy,L,CH/15/H,'rot',-a),
+          S(cx,cy,CH/3/W,h,'weiss'),S(cx,cy,w,CH/3/H,'weiss'),S(cx,cy,CH/5/W,h,'rot'),S(cx,cy,w,CH/5/H,'rot')];
+}
+const starAt=(ratio,x,y,d,c)=>({t:'star',x,y,w:d*ratio[1]/ratio[0],h:d,c,r:0});
+const circAt=(ratio,x,y,d,c)=>({t:'circle',x,y,w:d*ratio[1]/ratio[0],h:d,c,r:0});
+add('Jamaika',388,[2,1],'h',['gelb'],()=>{const h=.083;return [POLY([[h,0],[1-h,0],[.5,.5-h]],'gruen'),POLY([[h,1],[1-h,1],[.5,.5+h]],'gruen'),POLY([[0,h],[0,1-h],[.5-h,.5]],'schwarz'),POLY([[1,h],[1,1-h],[.5+h,.5]],'schwarz')].map(q=>({...q,t:'trif'}));});
+add('Seychellen',690,[2,1],'h',['blau'],()=>[
+  TFR([[0,1],[0,0],[1/3,0]],'blau'),TFR([[0,1],[1/3,0],[2/3,0]],'gelb'),QUAD([[0,1],[2/3,0],[1,0],[1,1/3]],'rot'),TFR([[0,1],[1,1/3],[1,2/3]],'weiss'),TFR([[0,1],[1,2/3],[1,1]],'gruen')]);
+add('Namibia',516,[3,2],'h',['blau'],sq=>[TFR([[0,1],[1,1],[1,0]],'gruen'),band([3,2],-1,.34,'weiss'),band([3,2],-1,.22,'rot'),sq('circle',.17,.22,.26,'gelb')]);
+add('Tansania',834,[3,2],'h',['gruen'],()=>[TFR([[0,1],[1,1],[1,0]],'blau'),band([3,2],-1,.40,'gelb'),band([3,2],-1,.26,'schwarz')]);
+add('Republik Kongo',178,[3,2],'h',['gruen'],()=>[TFR([[0,1],[1,1],[1,0]],'rot'),band([3,2],-1,.36,'gelb')]);
+add('Trinidad und Tobago',780,[5,3],'h',['rot'],()=>[band([5,3],1,.40,'weiss'),band([5,3],1,.28,'schwarz')]);
+add('Bosnien und Herzegowina',70,[2,1],'h',['blau'],()=>{const o=[TFR([[.255,0],[.745,0],[.745,1]],'gelb')];for(const t of [.07,.21,.35,.5,.64,.78,.92])o.push(starAt([2,1],.255+.49*t+.035,t,.13,'weiss'));return o;});
+add('Vereinigtes Königreich',826,[2,1],'h',['dunkelblau'],()=>jack([2,1],0,0,1,1));
+add('Australien',36,[2,1],'h',['dunkelblau'],()=>[...jack([2,1],0,0,.5,.5),starAt([2,1],.25,.75,.2,'weiss'),starAt([2,1],.75,.12,.14,'weiss'),starAt([2,1],.64,.45,.14,'weiss'),starAt([2,1],.86,.38,.14,'weiss'),starAt([2,1],.75,.86,.14,'weiss'),starAt([2,1],.8,.58,.08,'weiss')]);
+add('Neuseeland',554,[2,1],'h',['dunkelblau'],()=>[...jack([2,1],0,0,.5,.5),starAt([2,1],.72,.2,.12,'rot'),starAt([2,1],.6,.45,.12,'rot'),starAt([2,1],.84,.38,.12,'rot'),starAt([2,1],.72,.85,.14,'rot')]);
+add('Tuvalu',798,[2,1],'h',['hellblau'],()=>[R(.25,.25,.5,.5,'dunkelblau'),...jack([2,1],0,0,.5,.5),...[[.62,.2],[.7,.33],[.78,.47],[.84,.62],[.87,.8],[.6,.62],[.7,.72],[.56,.8],[.66,.9]].map(q=>starAt([2,1],q[0],q[1],.1,'gelb'))]);
+add('Südafrika',710,[3,2],'h',['rot','blau'],()=>[
+  {t:'rect',x:.185,y:.25,w:.5,h:.27,c:'weiss',r:42},{t:'rect',x:.185,y:.75,w:.5,h:.27,c:'weiss',r:-42},R(.685,.5,.63,.27,'weiss'),
+  {t:'rect',x:.185,y:.25,w:.5,h:.18,c:'gruen',r:42},{t:'rect',x:.185,y:.75,w:.5,h:.18,c:'gruen',r:-42},R(.685,.5,.63,.18,'gruen'),
+  TFR([[0,.12],[.34,.5],[0,.88]],'gelb'),TFR([[0,.2],[.27,.5],[0,.8]],'schwarz')]);
+add('Nepal',524,[3,4],'h',['blau'],()=>[
+  TFR([[.06,.04],[.06,.44],[.80,.44]],'rot'),TFR([[.06,.44],[.80,.44],[.06,.96]].map(q=>q),'rot'),
+  {t:'cres',x:.2,y:.26,w:.16,h:.16*3/4*.75*1.33,c:'weiss',r:-90},{t:'star',x:.2,y:.68,w:.2,h:.15,c:'weiss',r:0}]);
+add('Katar',634,[28,11],'h',['dunkelrot'],()=>[POLY([[0,0],...Array.from({length:19},(_,i)=>[i%2?.38:.28,i/18]),[0,1]],'weiss')]);
+add('Bahrain',48,[5,3],'h',['rot'],()=>[POLY([[0,0],...Array.from({length:11},(_,i)=>[i%2?.30:.20,i/10]),[0,1]],'weiss')]);
+add('Jordanien',400,[2,1],'h',['schwarz','weiss','gruen'],sq=>[TFR([[0,0],[.5,.5],[0,1]],'rot'),sq('star',.17,.5,.26,'weiss')]);
+add('Kuwait',414,[2,1],'h',['gruen','weiss','rot'],()=>[QUAD([[0,0],[.25,1/3],[.25,2/3],[0,1]],'schwarz')]);
+add('Südkorea',410,[3,2],'h',['weiss'],()=>{
+  const o=[{t:'circle',x:.5,y:.5,w:.3333,h:.5,c:'rot',r:0},{t:'cres',x:.5,y:.5,w:.3333,h:.5,c:'blau',r:-90}];
+  const ang=Math.atan2(200,300),W=300,H=200;
+  for(const [kx,ky] of [[0,0],[1,0],[0,1],[1,1]]){
+    const cx=.5+(kx?.28:-.28)*.0+(kx?1:-1)*.29,cy=.5+(ky?1:-1)*.29*(300/200)*.46;
+    const ux=(.5-cx)*W,uy=(.5-cy)*H,len=Math.hypot(ux,uy),rr=Math.atan2(uy,ux)*180/Math.PI+90;
+    for(const k of [-1,0,1])o.push({t:'rect',x:cx+k*(ux/len)*10/W,y:cy+k*(uy/len)*10/H,w:36/W,h:6/H,c:'schwarz',r:rr});
+  }
+  return o;});
+add('Israel',376,[11,8],'h',['weiss'],()=>{const R2=(y)=>R(.5,y,1,.156,'blau');const cx=.5,cy=.5,ry=.1875,rx=.118,dy=.094;return [R2(.172),R2(.828),TFR([[cx,cy-ry],[cx+rx,cy+dy],[cx-rx,cy+dy]],'blau'),TFR([[cx,cy+ry],[cx+rx,cy-dy],[cx-rx,cy-dy]],'blau'),TFR([[cx,cy-ry*.72],[cx+rx*.72,cy+dy*.72],[cx-rx*.72,cy+dy*.72]],'weiss'),TFR([[cx,cy+ry*.72],[cx+rx*.72,cy-dy*.72],[cx-rx*.72,cy-dy*.72]],'weiss')];});
+add('Kasachstan',398,[2,1],'h',['hellblau'],sq=>[sq('circle',.5,.4,.3,'gelb'),R(.5,.74,.28,.05,'gelb'),R(.04,.5,.04,1,'gelb')]);
+add('Sri Lanka',144,[2,1],'h',['gelb'],sq=>[R(.11,.5,.11,.9,'gruen'),R(.22,.5,.11,.9,'orange'),R(.635,.5,.66,.9,'dunkelrot'),sq('circle',.635,.5,.3,'gelb')]);
+add('Saudi-Arabien',682,[3,2],'h',['dunkelgruen'],()=>[R(.5,.42,.6,.1,'weiss'),R(.5,.7,.55,.03,'weiss')]);
+add('Venezuela',862,[3,2],'h',['gelb','blau','rot'],()=>{const o=[];for(let i=0;i<8;i++){const a=(200+i*20)*Math.PI/180;o.push(starAt([3,2],.5+40*Math.cos(a)/300,.6+40*Math.sin(a)/200,.07,'weiss'));}return o;});
+add('Honduras',340,[2,1],'h',['blau','weiss','blau'],()=>[[.5,.5],[.415,.42],[.415,.58],[.585,.42],[.585,.58]].map(q=>starAt([2,1],q[0],q[1],.13,'blau')));
+EMB_TARGETS.push(
+  ['Mosambik',508,'mz',[3,2],'h',['gruen','schwarz','gelb'],[TFR([[0,0],[.45,.5],[0,1]],'rot')]],
+  ['Fidschi',242,'fj',[2,1],'h',['hellblau'],[R(.25,.25,.5,.5,'dunkelblau'),...jack([2,1],0,0,.5,.5)]],
+  ['Brasilien',76,'br',[10,7],'h',['gruen'],[QUAD([[.5,.095],[.935,.5],[.5,.905],[.065,.5]],'gelb')]],
+  ['Kenia',404,'ke',[3,2],'h',[...Array(6).fill('schwarz'),'weiss',...Array(6).fill('rot'),'weiss',...Array(6).fill('gruen')]],
+  ['Montenegro',499,'me',[2,1],'h',['gelb'],[R(.5,.5,.96,.92,'rot')]]
+);
+EMB_TARGETS.push(
+  ['Spanien',724,'es',[3,2],'h',['rot','gelb','gelb','rot']],
+  ['Portugal',620,'pt',[3,2],'v',['gruen','gruen','rot','rot','rot']],
+  ['Kanada',124,'ca',[2,1],'v',['rot','weiss','weiss','rot']],
+  ['Libanon',422,'lb',[3,2],'h',['rot','weiss','weiss','rot']],
+  ['Ecuador',218,'ec',[3,2],'h',['gelb','gelb','blau','rot']],
+  ['Angola',24,'ao',[3,2],'h',['rot','schwarz']],
+  ['Malta',470,'mt',[3,2],'v',['weiss','rot']],
+  ['Andorra',20,'ad',[3,2],'v',['blau','gelb','rot']],
+  ['Liechtenstein',438,'li',[5,3],'h',['blau','rot']],
+  ['San Marino',674,'sm',[4,3],'h',['weiss','hellblau']],
+  ['Tadschikistan',762,'tj',[2,1],'h',['rot','rot','weiss','weiss','weiss','gruen','gruen']],
+  ['Lesotho',426,'ls',[3,2],'h',['blau','blau','blau','weiss','weiss','weiss','weiss','gruen','gruen','gruen']],
+  ['Kambodscha',116,'kh',[3,2],'h',['blau','rot','rot','blau']],
+  ['Paraguay',600,'py',[5,3],'h',['rot','weiss','blau']],
+  ['Äquatorialguinea',226,'gq',[3,2],'h',['gruen','weiss','rot'],[TFR([[0,0],[.29,.5],[0,1]],'blau')]],
+  ['Simbabwe',716,'zw',[2,1],'h',['gruen','gelb','rot','schwarz','rot','gelb','gruen'],[TFR([[0,0],[.43,.5],[0,1]],'weiss')]]
+);
+
 
 // ───────────────────────── Sprache ─────────────────────────
 // Läuft die Seite im Spiel (iframe), kommen Sprache und Ländernamen aus der App; sonst Deutsch.
 let PA=null;try{if(window.parent&&window.parent!==window){PA=window.parent;void PA.document;}}catch(e){PA=null;}
 const pev=n=>{try{return PA?PA.eval(n):null;}catch(e){return null;}}; // lang und C sind let/const der App, also nicht als window-Eigenschaft sichtbar
 const LG=pev('lang')||'de',PC=pev('C');
-const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Sonderformen (z. B. Kanada) baust du im dritten Schritt mit Formen.":"All stripes are equally wide. Special layouts (e.g. Canada) are built with shapes in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern, am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge, rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
+const EN={"Baue die Flagge von":"Build the flag of","Flagge":"Flag","Punkte":"Points","Viereck frei":"Free quad","Schnitt":"Average","richtig":"correct","im Schnitt richtig":"correct on average","Überspringen ⏭":"Skip ⏭","1 · Layout":"1 · Layout","3 · Formen":"3 · Shapes","4 · Wappen":"4 · Emblems","← Zurück":"← Back","Alles zurücksetzen?":"Reset everything?","Deine bisherige Flagge geht dabei verloren.":"Your current flag will be lost.","Abbrechen":"Cancel","Zurücksetzen":"Reset","Kopieren":"Copy","Richtung":"Direction","Anzahl":"Count","Abstand":"Spacing","Zuletzt kopierte Reihe als Ganzes kopieren":"Copy the last copied row as a whole","Wappen & Emblems":"Coats of arms & emblems","2 · Farben":"2 · Colors","3 · Symbole":"3 · Symbols","Seitenverhältnis (Breite : Höhe)":"Aspect ratio (width : height)","Eigene Angabe":"Custom","Seitenverhältnis":"Aspect ratio","Fertig":"Done","Streifen":"Stripes","Einfarbig":"Single color","Waagerecht":"Horizontal","Senkrecht":"Vertical","Anzahl der Streifen":"Number of stripes","Alle Streifen sind gleich breit. Ungleiche Streifen baust du aus mehreren gleich breiten (z. B. 1:2:1 sind vier Streifen, die mittleren beiden gleichfarbig). Sonderformen kommen im dritten Schritt dazu.":"All stripes are equally wide. Unequal stripes are built from several equal ones (e.g. 1:2:1 is four stripes, the middle two the same color). Special shapes come in step 3.","Streifen wählen":"Pick a stripe","Hintergrundfarbe":"Background color","Farbe":"Color","Streifen anklicken (hier oder in der Flagge), dann Farbe wählen. Danach springt die Auswahl automatisch zum nächsten Streifen.":"Click a stripe (here or on the flag), then pick a color. The selection then jumps to the next stripe.","Grundformen":"Basic shapes","Wappen & Emblems":"Coats of arms & emblems","Ausgewählte Form":"Selected shape","Breite":"Width","Höhe":"Height","Drehung":"Rotation","Proportion beibehalten":"Keep proportions","⧉ Kopieren":"⧉ Copy","🗑 Löschen":"🗑 Delete","▲ Nach vorn":"▲ Bring forward","▼ Nach hinten":"▼ Send back","Ausrichten":"Align","↔ Mitte":"↔ Center","↕ Mitte":"↕ Middle","⇤ Links":"⇤ Left","⇥ Rechts":"⇥ Right","⤒ Oben":"⤒ Top","⤓ Unten":"⤓ Bottom","Einrasten (Mitte, Rand, Streifenkanten)":"Snap (center, edge, stripe borders)","Form antippen, an den Quadraten am Rand die Größe ändern (Strg gedrückt: von der Mitte aus), am Kreis oben drehen, in der Form ziehen zum Verschieben. Pfeiltasten schieben fein, Entf löscht, Strg+D kopiert. Freie Dreiecke haben Eckpunkte zum Ziehen.":"Tap a shape, resize with the squares on its edge (hold Ctrl: from the center), rotate with the circle on top, drag inside to move. Arrow keys nudge, Del deletes, Ctrl+D copies. Free triangles have corner points to drag.","👁 Hinweis (−15)":"👁 Hint (−15)","↺ Neu":"↺ Reset","✔ Prüfen":"✔ Check","Weiter →":"Next →","Vorlage (kostet 15 Punkte)":"Template (costs 15 points)","Zeigt die Vorlage kurz an, kostet 15 Punkte":"Shows the template briefly, costs 15 points","Deine Flagge":"Your flag","Format":"Ratio","Farben":"Colors","Symbole":"Symbols","Hinweise":"Hints","von 100 Punkten":"of 100 points","Ergebnis ansehen":"See result","Nächste Flagge →":"Next flag →","Runde beendet":"Round finished","Neue Runde":"New round","Rot":"Red","Dunkelrot":"Dark red","Orange":"Orange","Gelb":"Yellow","Hellgrün":"Light green","Grün":"Green","Dunkelgrün":"Dark green","Hellblau":"Light blue","Blau":"Blue","Dunkelblau":"Dark blue","Weiß":"White","Schwarz":"Black","Grau":"Gray","Braun":"Brown","Lila":"Purple","Rosa":"Pink","Kreis":"Circle","Rechteck":"Rectangle","Dreieck":"Triangle","Dreieck frei":"Free triangle","Stern":"Star","Halbmond":"Crescent","Kreuz":"Cross","Nord. Kreuz":"Nordic cross","Adler":"Eagle","Löwe":"Lion","Drache":"Dragon","Schild":"Shield","Schwerter":"Swords","Zeder":"Cedar","Ahorn":"Maple","Sonne":"Sun","Davidstern":"Star of David","Taube":"Dove","Palme":"Palm","Berg":"Mountain"};
 const tr=x=>LG==='de'?x:(EN[x]||x);
 const nm=t=>{try{const c=PC&&PC[t.id];return c?(c[LG]||c.de||t.name):t.name;}catch(e){return t.name;}};
 function translateDom(){
@@ -346,6 +482,7 @@ const dims=f=>({W:f.ratio[0]*100,H:f.ratio[1]*100});
 const colOf=k=>PAL[k]?PAL[k][1]:'#fff';
 
 // ───────────────────────── Zeichnen ─────────────────────────
+const isP=s=>s.t==='trif'||s.t==='quad'||s.t==='poly'; // Formen mit frei liegenden Eckpunkten (poly nur für Vorlagen)
 function shapeSVG(s,W,H,id){
   const cx=s.x*W,cy=s.y*H,w=s.w*W,h=s.h*H,fill=colOf(s.c);
   const tr=`transform="translate(${cx} ${cy}) rotate(${s.r||0})"`;
@@ -353,7 +490,7 @@ function shapeSVG(s,W,H,id){
     case 'circle':return `<ellipse ${tr} rx="${w/2}" ry="${h/2}" fill="${fill}"/>`;
     case 'rect':return `<rect ${tr} x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" fill="${fill}"/>`;
     case 'tri':return `<polygon ${tr} points="0,${-h/2} ${w/2},${h/2} ${-w/2},${h/2}" fill="${fill}"/>`;
-    case 'trif':return `<polygon points="${s.p.map(q=>(q[0]*W)+','+(q[1]*H)).join(' ')}" fill="${fill}"/>`;
+    case 'trif':case 'quad':case 'poly':return `<polygon points="${s.p.map(q=>(q[0]*W)+','+(q[1]*H)).join(' ')}" fill="${fill}"/>`;
     case 'star':{let p=[];for(let i=0;i<10;i++){const r=i%2?.382:1,a=(-90+36*i)*Math.PI/180;p.push((Math.cos(a)*r*w/2).toFixed(2)+','+(Math.sin(a)*r*h/2).toFixed(2));}return `<polygon ${tr} points="${p.join(' ')}" fill="${fill}"/>`;}
     case 'cross':{const a=.17,P=[[-a,-.5],[a,-.5],[a,-a],[.5,-a],[.5,a],[a,a],[a,.5],[-a,.5],[-a,a],[-.5,a],[-.5,-a],[-a,-a]];return `<polygon ${tr} points="${P.map(q=>(q[0]*w).toFixed(2)+','+(q[1]*h).toFixed(2)).join(' ')}" fill="${fill}"/>`;}
     case 'cres':return `<g ${tr}><mask id="m${id}"><rect x="${-w}" y="${-h}" width="${2*w}" height="${2*h}" fill="#fff"/><ellipse cx="${w*.2}" rx="${w*.4}" ry="${h*.4}" fill="#000"/></mask><ellipse rx="${w/2}" ry="${h/2}" mask="url(#m${id})" fill="${fill}"/></g>`;
@@ -370,13 +507,13 @@ function flagInner(f,pfx){
       ? `<rect class="stp" data-s="${i}" x="${i*W/n}" y="0" width="${W/n+e}" height="${H}" fill="${colOf(f.colors[i])}"/>`
       : `<rect class="stp" data-s="${i}" x="0" y="${i*H/n}" width="${W}" height="${H/n+e}" fill="${colOf(f.colors[i])}"/>`;
   }
-  f.shapes.forEach((s,i)=>{o+=`<g class="shp" data-i="${i}">${shapeSVG(s,W,H,pfx+i)}</g>`;});
+  f.shapes.forEach((s,i)=>{let sv=shapeSVG(s,W,H,pfx+i);if(s.clip){const cid='cl'+pfx+i,[a,b,c,d]=s.clip;sv=`<clipPath id="${cid}"><rect x="${a*W}" y="${b*H}" width="${(c-a)*W}" height="${(d-b)*H}"/></clipPath><g clip-path="url(#${cid})">${sv}</g>`;}o+=`<g class="shp" data-i="${i}">${sv}</g>`;});
   return o;
 }
 function thumb(f,pfx){const {W,H}=dims(f);return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${flagInner(f,pfx)}</svg>`;}
 
 function bbox(s){
-  if(s.t==='trif'){const xs=s.p.map(q=>q[0]),ys=s.p.map(q=>q[1]);const a=Math.min(...xs),b=Math.max(...xs),c=Math.min(...ys),d=Math.max(...ys);return{x:(a+b)/2,y:(c+d)/2,w:b-a,h:d-c};}
+  if(isP(s)){const xs=s.p.map(q=>q[0]),ys=s.p.map(q=>q[1]);const a=Math.min(...xs),b=Math.max(...xs),c=Math.min(...ys),d=Math.max(...ys);return{x:(a+b)/2,y:(c+d)/2,w:b-a,h:d-c};}
   return{x:s.x,y:s.y,w:s.w,h:s.h};
 }
 function draw(){
@@ -401,17 +538,17 @@ function draw(){
   }
   if(S.step>=3&&S.sel!=null&&S.shapes[S.sel]){
     const s=S.shapes[S.sel],bb=bbox(s);
-    const tr=s.t==='trif'?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
-    const rx=s.t==='trif'?(bb.x-bb.w/2)*W:-s.w*W/2,ry=s.t==='trif'?(bb.y-bb.h/2)*H:-s.h*H/2;
+    const tr=isP(s)?'':`transform="translate(${s.x*W} ${s.y*H}) rotate(${s.r||0})"`;
+    const rx=isP(s)?(bb.x-bb.w/2)*W:-s.w*W/2,ry=isP(s)?(bb.y-bb.h/2)*H:-s.h*H/2;
     o+=`<rect ${tr} x="${rx}" y="${ry}" width="${bb.w*W}" height="${bb.h*H}" fill="none" stroke="#f0b060" stroke-width="${u*2}" stroke-dasharray="${u*8} ${u*5}" pointer-events="none"/>`;
-    if(s.t!=='trif'){
+    if(!isP(s)){
       const hw=s.w*W/2,hh=s.h*H/2,hs=u*5.5,cur={nw:'nwse',se:'nwse',ne:'nesw',sw:'nesw',n:'ns',s:'ns',e:'ew',w:'ew'};
       const P={nw:[-hw,-hh],n:[0,-hh],ne:[hw,-hh],e:[hw,0],se:[hw,hh],s:[0,hh],sw:[-hw,hh],w:[-hw,0]};
       o+=`<g ${tr}><line x1="0" y1="${-hh}" x2="0" y2="${-hh-u*26}" stroke="#f0b060" stroke-width="${u*1.5}" pointer-events="none"/>`;
       Object.keys(P).forEach(k=>{o+=`<rect data-rh="${k}" x="${P[k][0]-hs}" y="${P[k][1]-hs}" width="${hs*2}" height="${hs*2}" rx="${u*2}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:${cur[k]}-resize"/>`;});
       o+=`<circle data-rh="rot" cx="0" cy="${-hh-u*26}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*1.5}" style="cursor:grab"/></g>`;
     }
-    if(s.t==='trif')s.p.forEach((q,k)=>{o+=`<circle data-h="${k}" cx="${q[0]*W}" cy="${q[1]*H}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*2}" style="cursor:move"/>`;});
+    if(s.t==='trif'||s.t==='quad')s.p.forEach((q,k)=>{o+=`<circle data-h="${k}" cx="${q[0]*W}" cy="${q[1]*H}" r="${u*7}" fill="#f0b060" stroke="#2a1c05" stroke-width="${u*2}" style="cursor:move"/>`;});
   }
   S.guides.forEach(g=>{o+= g.x!=null
     ? `<line x1="${g.x*W}" y1="${-pad}" x2="${g.x*W}" y2="${H+pad}" stroke="#ff3d7f" stroke-width="${u*1.5}" pointer-events="none"/>`
@@ -468,8 +605,11 @@ function syncProps(){
   $('#pw').value=Math.round(bb.w*100);$('#pwo').textContent=Math.round(bb.w*100)+'%';
   $('#ph').value=Math.round(bb.h*100);$('#pho').textContent=Math.round(bb.h*100)+'%';
   $('#pr').value=s.r||0;$('#pro').textContent=(s.r||0)+'°';
-  $('#pr').disabled=s.t==='trif'||s.t==='emb'&&false;
-  const emb=s.t==='emb';$('#spal').style.visibility=emb?'hidden':'visible';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
+  $('#pr').disabled=isP(s);
+  const emb=s.t==='emb';const pl=$('#plock');
+  if(emb){if(!S.embLock){S.lockPref=pl.checked;S.embLock=true;}pl.checked=true;pl.disabled=true;}
+  else{if(S.embLock){pl.checked=S.lockPref!==false;S.embLock=false;}pl.disabled=false;}
+  $('#spal').style.visibility=emb?'hidden':'visible';$$('#spal .sw').forEach(b=>{b.disabled=emb;b.classList.toggle('on',!emb&&b.dataset.sc===s.c);});
 }
 function setStep(n){
   S.step=n;
@@ -494,11 +634,12 @@ function addShape(t,g){
     s={t,x:.5,y:.5,w,h,c:t==='emb'?'schwarz':'rot',r:0};
     if(t==='emb')s.e=g;
     if(t==='trif'){s.p=[[.5,.28],[.68,.7],[.32,.64]];}
+    if(t==='quad'){s.p=[[.34,.3],[.66,.34],[.7,.7],[.3,.66]];}
     S.shapes.push(s);S.sel=S.shapes.length-1;
   }
   syncProps();draw();
 }
-function moveBy(s,dx,dy){if(s.t==='trif')s.p=s.p.map(q=>[q[0]+dx,q[1]+dy]);else{s.x+=dx;s.y+=dy;}}
+function moveBy(s,dx,dy){if(isP(s))s.p=s.p.map(q=>[q[0]+dx,q[1]+dy]);else{s.x+=dx;s.y+=dy;}}
 function moveTo(s,cx,cy){const b=bbox(s);moveBy(s,cx-b.x,cy-b.y);}
 function cands(){
   const X=[0,.5,1],Y=[0,.5,1],n=S.n<=1?1:S.n;
@@ -591,11 +732,11 @@ $('#cnums').addEventListener('input',e=>setN(+e.target.value));
 function slider(id,fn){$('#'+id).addEventListener('input',e=>{const s=S.shapes[S.sel];if(!s)return;fn(s,+e.target.value);syncProps();draw();});}
 function resize(s,w,h){
   const {W,H}=dims(S);
-  if(s.t==='trif'){const b=bbox(s),sx=w/b.w,sy=h/b.h;s.p=s.p.map(q=>[b.x+(q[0]-b.x)*sx,b.y+(q[1]-b.y)*sy]);}
+  if(isP(s)){const b=bbox(s),sx=w/b.w,sy=h/b.h;s.p=s.p.map(q=>[b.x+(q[0]-b.x)*sx,b.y+(q[1]-b.y)*sy]);}
   else{s.w=w;s.h=h;}
 }
-slider('pw',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nw=v/100;let nh=b.h;if($('#plock').checked)nh=nw*W*b.h*H/(b.w*W*H);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
-slider('ph',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nh=v/100;let nw=b.w;if($('#plock').checked)nw=nh*H*b.w*W/(b.h*H*W);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
+slider('pw',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nw=v/100;let nh=b.h;if($('#plock').checked||s.t==='emb')nh=nw*W*b.h*H/(b.w*W*H);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
+slider('ph',(s,v)=>{const b=bbox(s),{W,H}=dims(S),nh=v/100;let nw=b.w;if($('#plock').checked||s.t==='emb')nw=nh*H*b.w*W/(b.h*H*W);resize(s,Math.max(.01,nw),Math.max(.01,nh));});
 slider('pr',(s,v)=>{s.r=v;});
 $('#cgap').addEventListener('input',e=>{$('#cgo').textContent=e.target.value+'%';});
 // Ziehen
@@ -625,9 +766,21 @@ svg.addEventListener('pointermove',e=>{
       const lx=dx*co+dy*si,ly=-dx*si+dy*co,hd=drag.hd;
       const sx=hd.includes('e')?1:hd.includes('w')?-1:0,sy=hd.includes('s')?1:hd.includes('n')?-1:0;
       const ow=o.w*W,oh=o.h*H;
-      let nw=sx?Math.max(W*.01,sx*lx+ow/2):ow,nh=sy?Math.max(H*.01,sy*ly+oh/2):oh;
-      if(sx&&sy&&$('#plock').checked){const f=Math.max(nw/ow,nh/oh);nw=ow*f;nh=oh*f;}
-      const cl={x:sx?-sx*ow/2+sx*nw/2:0,y:sy?-sy*oh/2+sy*nh/2:0};
+      const cen=e.ctrlKey||e.metaKey; // Strg: von der Mitte aus vergrößern
+      let nw=sx?Math.max(W*.01,cen?2*sx*lx:sx*lx+ow/2):ow,nh=sy?Math.max(H*.01,cen?2*sy*ly:sy*ly+oh/2):oh;
+      // Einrasten der bewegten Kante an Rand, Mitte und Streifenkanten (nur bei ungedrehten Formen)
+      S.guides=[];let sxS=false,syS=false;
+      if($('#snap').checked&&!cen&&Math.abs((o.r||0)%180)<.5){
+        const {X,Y}=cands(),thr=.022;
+        if(sx){const ax=o.x*W-sx*ow/2,r=snapVal((ax+sx*nw)/W,X,[0],thr);if(r){nw=Math.max(W*.01,nw+sx*r.d*W);sxS=true;}}
+        if(sy){const ay=o.y*H-sy*oh/2,r=snapVal((ay+sy*nh)/H,Y,[0],thr);if(r){nh=Math.max(H*.01,nh+sy*r.d*H);syS=true;}}
+      }
+      const emb=o.t==='emb';
+      if(emb&&sx&&!sy){nh=oh*(nw/ow);}else if(emb&&sy&&!sx){nw=ow*(nh/oh);}
+      else if(sx&&sy&&($('#plock').checked||emb)){const f=sxS?nw/ow:syS?nh/oh:Math.max(nw/ow,nh/oh);nw=ow*f;nh=oh*f;}
+      if(sx&&!cen){const ex=(o.x*W-sx*ow/2+sx*nw)/W;for(const c of cands().X)if(Math.abs(ex-c)<1e-4)S.guides.push({x:c});}
+      if(sy&&!cen){const ey=(o.y*H-sy*oh/2+sy*nh)/H;for(const c of cands().Y)if(Math.abs(ey-c)<1e-4)S.guides.push({y:c});}
+      const cl=cen?{x:0,y:0}:{x:sx?-sx*ow/2+sx*nw/2:0,y:sy?-sy*oh/2+sy*nh/2:0};
       s.w=nw/W;s.h=nh/H;
       s.x=o.x+(cl.x*co-cl.y*si)/W;s.y=o.y+(cl.x*si+cl.y*co)/H;
     }
@@ -655,8 +808,9 @@ window.addEventListener('resize',draw);
 // ───────────────────────── Bewertung ─────────────────────────
 function colorAt(f,u,v){const n=f.n<=1?1:f.n;if(n===1)return f.colors[0];return f.colors[Math.min(n-1,Math.floor((f.orient==='v'?u:v)*n))];}
 function descr(s){const b=bbox(s);return{t:s.t,e:s.e,c:s.c,x:b.x,y:b.y,w:b.w,h:b.h};}
+const isPT=t=>t==='trif'||t==='quad'||t==='poly';
 function pairScore(a,b){
-  let ts=a.t===b.t?1:((a.t==='tri'&&b.t==='trif')||(a.t==='trif'&&b.t==='tri'))?.7:0;
+  let ts=a.t===b.t?1:((a.t==='tri'&&b.t==='trif')||(a.t==='trif'&&b.t==='tri'))?.7:(isPT(a.t)&&isPT(b.t))?.5:0;
   if(!ts)return 0;
   if(a.t==='emb'&&a.e!==b.e)ts=.3;
   const cs=a.t==='emb'?1:(a.c===b.c?1:0);
@@ -667,7 +821,7 @@ function pairScore(a,b){
 const FAM={rot:'r',dunkelrot:'r',orange:'o',gelb:'y',hellgruen:'g',gruen:'g',dunkelgruen:'g',hellblau:'b',blau:'b',dunkelblau:'b',weiss:'w',schwarz:'k',grau:'a',braun:'n',lila:'p',rosa:'s'};
 function scoreFlag(b,t){
   const d=Math.abs(Math.log((b.ratio[0]/b.ratio[1])/(t.ratio[0]/t.ratio[1])));
-  const ratio=d<.03?1:Math.max(0,1-(d-.03)/.35);
+  const ratio=d<.05?1:Math.max(0,1-(d-.05)/.45);
   const ob=b.n<=1?'none':b.orient,ot=t.n<=1?'none':t.orient,nb=b.n<=1?1:b.n,nt=t.n<=1?1:t.n;
   const layout=(ob===ot?.5:0)+(nb===nt?.5:Math.max(0,.5-.15*Math.abs(nb-nt)));
   // Farben: halb "richtige Farbe an der richtigen Stelle" (ähnlicher Farbton zählt halb), halb "richtige Farben in passenden Anteilen"
