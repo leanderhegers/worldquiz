@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-23 D';
+const BUILD_ID='2026-11-23 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2409,6 +2409,9 @@ function zoneIdAtPoint(x,y){
 // topojson.feature liefert bei jedem Aufruf neue Objekte: dann gingen alle Zwischenspeicher des Globus (Vereinfachung, Mittelpunkte) verloren und jeder Neuaufbau rechnete alles neu
 const _geoMemo=new WeakMap();
 function _memo(world,key,fn){let m=_geoMemo.get(world);if(!m){m=new Map();_geoMemo.set(world,m);}if(!m.has(key))m.set(key,fn());return m.get(key);}
+// Kaliningrad (Exklave Russlands): Polygon an Lage erkennen; "Kürzester Weg" lässt es weg, weil es die Karte verzerrt und Polen/Litauen sonst an Russland grenzen
+function isKaliningradPoly(poly){const r=poly[0]||[];if(!r.length)return false;let x=0,y=0;r.forEach(p=>{x+=p[0];y+=p[1];});x/=r.length;y/=r.length;return x>18&&x<24&&y>53.5&&y<56.5;}
+function withoutKaliningrad(f){return _memo(worldData,'nokal:'+f.id,()=>{const g=f.geometry;if(!g||g.type!=='MultiPolygon')return f;return {...f,geometry:{...g,coordinates:g.coordinates.filter(p=>!isKaliningradPoly(p))}};});}
 function _topoCached(world,key){return _memo(world,'feat:'+key,()=>topojson.feature(world,world.objects[key]));}
 // Kopie eines Features mit Laufindex (_i) – immer dasselbe Objekt für dasselbe (Feature, Index), damit Zwischenspeicher treffen
 const _idxMemo=new WeakMap();
@@ -2606,6 +2609,7 @@ function renderMap(world){
   const geoms=world.objects.countries.geometries;
   const mergedPairs=[];
   let renderFeatures=countries.features;
+  if(game&&/^path:/.test(game.fillKey||''))renderFeatures=renderFeatures.map(f=>+f.id===643?withoutKaliningrad(f):f);
 
   function mergeInto(parentId){
     const parentIdx=renderFeatures.findIndex(f=>+f.id===parentId);

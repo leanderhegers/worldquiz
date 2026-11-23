@@ -27,7 +27,9 @@ async function ensureGraph(){
   if(graph)return graph;
   if(!worldData)await loadMap();
   const feats=_topoCached(worldData,'countries').features;
-  const nb=topojson.neighbors(worldData.objects.countries.geometries);
+  // Russland ohne Kaliningrad: sonst grenzen Polen und Litauen an Russland
+  const geoms=worldData.objects.countries.geometries.map((g,i)=>{if(+feats[i].id!==643||g.type!=='MultiPolygon')return g;const keep=feats[i].geometry.coordinates.map(p=>!isKaliningradPoly(p));return {...g,arcs:g.arcs.filter((_,k)=>keep[k])};});
+  const nb=topojson.neighbors(geoms);
   const adj=new Map();
   const msd=new Set((typeof MICROSTATES!=='undefined'?MICROSTATES:[]).map(m=>m.id));
   const add=(a,b)=>{if(a===b||!C[a]||!C[b]||msd.has(a)||msd.has(b)||NO_EDGE.has(a+'-'+b))return;(adj.get(a)||adj.set(a,new Set()).get(a)).add(b);(adj.get(b)||adj.set(b,new Set()).get(b)).add(a);};
