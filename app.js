@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-23 B';
+const BUILD_ID='2026-11-23 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2775,7 +2775,7 @@ function renderMap(world){
   microstateHit=dynG.append('g').attr('class','ms-hit').selectAll('circle').data(activeDots).enter().append('circle')
     .attr('cx',d=>proj([d.lon,d.lat])[0]).attr('cy',d=>proj([d.lon,d.lat])[1])
     .attr('r',d=>msHitR(d.id)).attr('fill','transparent').style('cursor','pointer')
-    .on('mouseover',function(ev,d){const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
+    .on('mouseover',function(ev,d){if(game.fillMode)return;const t=nearestDot(ev,microstateHit)||d;if(wrongFlashIds.has(t.id))return;const neededNow=game.currentGroup&&game.currentGroup.has(t.id);if(!neededNow&&((game.found&&game.found.has(t.id))||(game.skippedItems&&game.skippedItems.has(t.id))))return;microstateDots.filter(x=>x.id===t.id).attr('fill',THEMES[theme].hov);countryPaths&&countryPaths.filter(f=>eff(+f.id)===t.id).attr('fill',THEMES[theme].hov);})
     .on('mouseout',function(){microstateDots.attr('fill',x=>getMSColor(x.id));countryPaths&&countryPaths.attr('fill',f=>getColor(+f.id));})
     .on('click',function(ev,d){const t=nearestDot(ev,microstateHit)||d;handleClick(t.id);});
 
