@@ -109,27 +109,27 @@ function pathStyle(){ // nach jedem updateColors(): Meer, Gradnetz und Linien un
   drawArrow();
 }
 // ── Pfeil vom Start zum Ziel ──
-// Ein Pfeil von Start (blau) Richtung Ziel (orange), damit sofort klar ist, wohin der Weg führt. Er liegt als Pfad in der dyn-Ebene der Karte (wird von
+// Ein kleiner Pfeil zwischen Start (blau) und Ziel (orange) zeigt die Richtung; nach der ersten richtigen Eingabe verschwindet er. Er liegt als Pfad in der dyn-Ebene der Karte (wird von
 // der Canvas-Karte mitgemalt); die Pfeilspitze hat in Bildschirmpixeln immer dieselbe Größe (projPx), Neuzeichnen bei jedem Zoomschritt über applyDotR.
 function arrowGeo(){
   const p=P();if(!p||!graph||typeof currentProj!=='function'||typeof projPx!=='function')return null;
   const S=graph.cent.get(p.a),G=graph.cent.get(p.b);if(!S||!G)return null;
   const s0=currentProj(S),g0=currentProj(G);if(!s0||!g0||!isFinite(s0[0])||!isFinite(g0[0]))return null;
   const dx=g0[0]-s0[0],dy=g0[1]-s0[1],len=Math.hypot(dx,dy);if(len<1e-6)return null;
-  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,px=projPx(1),head=17*px;
-  let a=26*px,b=len-20*px;if(b-a<head*1.8){a=len*.3;b=len-Math.min(len*.22,20*px);}
-  const st=[s0[0]+ux*a,s0[1]+uy*a],tip=[s0[0]+ux*b,s0[1]+uy*b],bs=[tip[0]-ux*head,tip[1]-uy*head];
-  return{line:'M'+st[0]+' '+st[1]+'L'+bs[0]+' '+bs[1],head:'M'+tip[0]+' '+tip[1]+'L'+(bs[0]+nx*head*.55)+' '+(bs[1]+ny*head*.55)+'L'+(bs[0]-nx*head*.55)+' '+(bs[1]-ny*head*.55)+'Z'};
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,px=projPx(1),head=8*px,half=Math.min(11*px,len*.2);
+  const mx=(s0[0]+g0[0])/2,my=(s0[1]+g0[1])/2;
+  const st=[mx-ux*half,my-uy*half],tip=[mx+ux*half,my+uy*half],bs=[tip[0]-ux*head,tip[1]-uy*head];
+  return{line:'M'+st[0]+' '+st[1]+'L'+bs[0]+' '+bs[1],head:'M'+tip[0]+' '+tip[1]+'L'+(bs[0]+nx*head*.6)+' '+(bs[1]+ny*head*.6)+'L'+(bs[0]-nx*head*.6)+' '+(bs[1]-ny*head*.6)+'Z'};
 }
 function drawArrow(){
   const p=P(),old=d3.select('#map .dyn #path-arrow');
-  if(!p||p.roundDone||p.reached||projection==='globe'){old.remove();return;}
+  if(!p||p.roundDone||p.reached||p.typed.length||projection==='globe'){old.remove();return;}
   const g=arrowGeo(),dyn=d3.select('#map .dyn');if(!g||dyn.empty()){old.remove();return;}
   let grp=old;
   if(grp.empty()){
     grp=dyn.append('g').attr('id','path-arrow').attr('pointer-events','none');
-    grp.append('path').attr('class','pa-o').attr('fill','none').attr('stroke','rgba(0,0,0,.65)').attr('stroke-width',7).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
-    grp.append('path').attr('class','pa-l').attr('fill','none').attr('stroke',COL_GOAL).attr('stroke-width',3.5).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
+    grp.append('path').attr('class','pa-o').attr('fill','none').attr('stroke','rgba(0,0,0,.65)').attr('stroke-width',5).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
+    grp.append('path').attr('class','pa-l').attr('fill','none').attr('stroke',COL_GOAL).attr('stroke-width',2.2).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
     grp.append('path').attr('class','pa-ho').attr('fill','rgba(0,0,0,.65)').attr('stroke','rgba(0,0,0,.65)').attr('stroke-width',3).attr('stroke-linejoin','round').style('vector-effect','non-scaling-stroke');
     grp.append('path').attr('class','pa-h').attr('fill',COL_GOAL).attr('stroke',COL_GOAL).attr('stroke-width',1).attr('stroke-linejoin','round').style('vector-effect','non-scaling-stroke');
   }
