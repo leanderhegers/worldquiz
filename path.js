@@ -106,6 +106,34 @@ function pathStyle(){ // nach jedem updateColors(): Meer, Gradnetz und Linien un
   const bg=document.getElementById('map-bg');if(bg)bg.style.background=BG;
   if(countryPaths)countryPaths.attr('stroke',d=>shownSet().has(eff(+d.id))?'rgba(255,255,255,.8)':'none').attr('stroke-width',1.2).style('vector-effect','non-scaling-stroke');
   if(microstateDots)microstateDots.attr('fill',d=>shownSet().has(d.id)?pathColor(d.id):'transparent').attr('stroke',d=>shownSet().has(d.id)?'#fff':'none');
+  drawArrow();
+}
+// ── Pfeil vom Start zum Ziel ──
+// Ein Pfeil von Start (blau) Richtung Ziel (orange), damit sofort klar ist, wohin der Weg führt. Er liegt als Pfad in der dyn-Ebene der Karte (wird von
+// der Canvas-Karte mitgemalt); die Pfeilspitze hat in Bildschirmpixeln immer dieselbe Größe (projPx), Neuzeichnen bei jedem Zoomschritt über applyDotR.
+function arrowGeo(){
+  const p=P();if(!p||!graph||typeof currentProj!=='function'||typeof projPx!=='function')return null;
+  const S=graph.cent.get(p.a),G=graph.cent.get(p.b);if(!S||!G)return null;
+  const s0=currentProj(S),g0=currentProj(G);if(!s0||!g0||!isFinite(s0[0])||!isFinite(g0[0]))return null;
+  const dx=g0[0]-s0[0],dy=g0[1]-s0[1],len=Math.hypot(dx,dy);if(len<1e-6)return null;
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,px=projPx(1),head=17*px;
+  let a=26*px,b=len-20*px;if(b-a<head*1.8){a=len*.3;b=len-Math.min(len*.22,20*px);}
+  const st=[s0[0]+ux*a,s0[1]+uy*a],tip=[s0[0]+ux*b,s0[1]+uy*b],bs=[tip[0]-ux*head,tip[1]-uy*head];
+  return{line:'M'+st[0]+' '+st[1]+'L'+bs[0]+' '+bs[1],head:'M'+tip[0]+' '+tip[1]+'L'+(bs[0]+nx*head*.55)+' '+(bs[1]+ny*head*.55)+'L'+(bs[0]-nx*head*.55)+' '+(bs[1]-ny*head*.55)+'Z'};
+}
+function drawArrow(){
+  const p=P(),old=d3.select('#map .dyn #path-arrow');
+  if(!p||p.roundDone||p.reached||projection==='globe'){old.remove();return;}
+  const g=arrowGeo(),dyn=d3.select('#map .dyn');if(!g||dyn.empty()){old.remove();return;}
+  let grp=old;
+  if(grp.empty()){
+    grp=dyn.append('g').attr('id','path-arrow').attr('pointer-events','none');
+    grp.append('path').attr('class','pa-o').attr('fill','none').attr('stroke','rgba(0,0,0,.65)').attr('stroke-width',7).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
+    grp.append('path').attr('class','pa-l').attr('fill','none').attr('stroke',COL_GOAL).attr('stroke-width',3.5).attr('stroke-linecap','round').style('vector-effect','non-scaling-stroke');
+    grp.append('path').attr('class','pa-ho').attr('fill','rgba(0,0,0,.65)').attr('stroke','rgba(0,0,0,.65)').attr('stroke-width',3).attr('stroke-linejoin','round').style('vector-effect','non-scaling-stroke');
+    grp.append('path').attr('class','pa-h').attr('fill',COL_GOAL).attr('stroke',COL_GOAL).attr('stroke-width',1).attr('stroke-linejoin','round').style('vector-effect','non-scaling-stroke');
+  }
+  grp.select('.pa-o').attr('d',g.line);grp.select('.pa-l').attr('d',g.line);grp.select('.pa-ho').attr('d',g.head);grp.select('.pa-h').attr('d',g.head);
 }
 // Ausschnitt auf alle gezeigten Länder
 function fitShown(){
@@ -264,6 +292,7 @@ function updatePathStats(){
 }
 function pathGiveUp(){const p=P();if(p&&!p.roundDone&&!game.fillDone)endRound(true);}
 function pathStop(){
+  d3.select('#map .dyn #path-arrow').remove();
   clearTimeout(boxTimer);clearTimeout(pend);
   if(prevProj!==null){projection=prevProj;prevProj=null;}
   const b=document.getElementById('path-box');if(b)b.style.display='none';
@@ -287,6 +316,6 @@ async function startPathGame(opts){
   clearFeedback&&clearFeedback();
   loadRound();
 }
-window.startPathGame=startPathGame;window.pathGiveUp=pathGiveUp;window.pathStop=pathStop;window.pathColor=pathColor;window.pathStyle=pathStyle;window.updatePathStats=updatePathStats;
+window.pathArrowUpdate=drawArrow;window.startPathGame=startPathGame;window.pathGiveUp=pathGiveUp;window.pathStop=pathStop;window.pathColor=pathColor;window.pathStyle=pathStyle;window.updatePathStats=updatePathStats;
 window.pathMakePairs=makePairs;window.pathPairsText=a=>a;
 })();

@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-22 S';
+const BUILD_ID='2026-11-23 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2483,6 +2483,7 @@ function renderMap(world){
   if(projection==='globe'&&window.Globe){const raw=gpath;if(raw.digits)raw.digits(2);gpath=function(d){const s=window.Globe.pathString(d);return s===undefined?(window.Globe.behind(d)?'':raw(window.Globe.simplified(d))):s;};gpath.centroid=raw.centroid;gpath.bounds=raw.bounds;gpath.area=raw.area;gpath.projection=raw.projection;}
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   const isMerc=projection==='mercator';
+  const noWrap=isMerc&&!!game&&/^path:/.test(game.fillKey||''); // Kürzester Weg: keine wiederholte Welt (Russland wäre sonst doppelt zu sehen)
   // The viewBox height always stays fixed at H (matching the Mercator clip bounds in
   // buildProjection), but for Mercator its WIDTH is recomputed to match the container's own
   // aspect ratio, centered on the same x=W/2 that zoomTo()/zoomForMode() already treat as "the"
@@ -2765,7 +2766,7 @@ function renderMap(world){
   // Visual dots are drawn once per wrap tile as real circles (≈36×3 — trivially cheap) rather
   // than riding along in the <use> clones, so that resizing them on zoom never dirties the
   // clone source. cx is baked in at creation and never mutated afterwards.
-  const dotCopies=isMerc?[-W,0,W]:[0];
+  const dotCopies=isMerc&&!noWrap?[-W,0,W]:[0];
   const msVis=activeDots.flatMap(d=>dotCopies.map(dx=>({...d,dx})));
   microstateDots=dynG.selectAll('.ms').data(msVis).enter().append('circle').attr('class','ms')
     .attr('cx',d=>proj([d.lon,d.lat])[0]+d.dx).attr('cy',d=>proj([d.lon,d.lat])[1])
@@ -2873,6 +2874,7 @@ function renderMap(world){
     const msDisp=d=>pinHide||(d.id===442&&zoomK>=6)||(d.id===780&&zoomK>=3)||((d.id===548||d.id===90||d.id===270||d.id===388)&&zoomK>=2)?'none':'';
     const lkDisp=d=>zoomK>=(d.properties.min_zoom||4)?'none':'';
     const dr=dotR(zoomK);
+    if(window.pathArrowUpdate&&game&&game.fillPath)window.pathArrowUpdate();
     // cx/cy are set once at creation and never touched here — the old edge-clamping of cx was
     // only needed back when dots rode inside the wrap <use> clones instead of being tiled.
     if(microstateDots)microstateDots.attr('r',dr).style('display',msDisp);
@@ -2918,7 +2920,7 @@ function renderMap(world){
   // Clicks on a clone are forwarded to the real country underneath it — but only on
   // 'click' (a single discrete event), never on 'mousemove' (that was expensive enough,
   // scanning every country on every pixel of movement, to visibly lag the whole page).
-  if(isMerc){
+  if(isMerc&&!noWrap){
     g.attr('id','map-main');
     function wrapFind(ev,dx){
       const[px,py]=d3.pointer(ev,g.node());
@@ -2947,7 +2949,7 @@ function renderMap(world){
 
   const gNode=g.node();
   let _raf=null,_lastT=null,_wrapping=false;
-  const txExt=isMerc?[[-W*2,0],[W*3,H]]:[[0,0],[W,H]];
+  const txExt=isMerc&&!noWrap?[[-W*2,0],[W*3,H]]:[[0,0],[W,H]];
   // Wrap-boundary re-normalization keeps _lastT.x within translateExtent so panning in one
   // direction never hits a wall. It only ever runs on a genuine 'end' event (gesture fully
   // released, never mid-gesture) and defers the reentrant zoomBehavior.transform() call to a
@@ -2985,7 +2987,7 @@ function renderMap(world){
       if(_wrapping)return;
       if(!COARSE)gNode.style.pointerEvents='';
       applyDotR(_lastT.k);
-      if(isMerc){
+      if(isMerc&&!noWrap){
         const period=W*_lastT.k;
         let nx=_lastT.x%period;
         if(nx>0)nx-=period;
