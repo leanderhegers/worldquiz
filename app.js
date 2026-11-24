@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-26 A';
+const BUILD_ID='2026-11-26 B';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3113,6 +3113,7 @@ function renderMap(world){
   // Kürzester Weg: keine Weltkarte, nur die gezeigten Länder – freie Kamera ohne Kartenrand, damit Zoom und Ausschnitt nicht an den Rändern hängen oder springen
   if(game&&/^path(km)?:/.test(game.fillKey||'')&&projection!=='globe')zoomBehavior.translateExtent([[-Infinity,-Infinity],[Infinity,Infinity]]).scaleExtent([.5,maxZoom()]);
   svg.call(zoomBehavior);
+  svg.property('__zoom',d3.zoomIdentity); // frisch gezeichnete Karte steht in der Grundansicht: der Zoom-Zustand muss das auch wissen, sonst springt der erste Zoom erst zur Ansicht des vorigen Spiels und dann zum Ziel
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
   else{svg.on('pointerdown.globe',null);svg.on('wheel.globe',null);} // Globus-Handler dürfen in den anderen Projektionen nicht weiterleben (sonst springt Mercator beim Scrollen zum Globus)
   setMapBg(th);updateColors();
