@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-24 C';
+const BUILD_ID='2026-11-24 E';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -1131,7 +1131,46 @@ const NEIGHBOR_PUZZLES=[{id:8,neighbors:[499,807,300]},
   {id:858,neighbors:[76,32]},
   {id:840,neighbors:[484,124]},
   {id:862,neighbors:[328,170,76]},
-  {id:704,neighbors:[418,156,116]}
+  {id:704,neighbors:[418,156,116]},
+  {id:716,neighbors:[894,710,508,72]},
+  {id:24,neighbors:[894,516,180,178]},
+  {id:418,neighbors:[704,764,156,116,104]},
+  {id:170,neighbors:[862,604,591,218,76]},
+  {id:860,neighbors:[795,762,417,398,4]},
+  {id:795,neighbors:[860,398,364,4]},
+  {id:762,neighbors:[860,417,156,4]},
+  {id:417,neighbors:[860,762,398,156]},
+  {id:398,neighbors:[860,795,643,417,156]},
+  {id:32,neighbors:[858,600,152,76,68]},
+  {id:703,neighbors:[804,616,348,203,40]},
+  {id:642,neighbors:[804,688,498,348,100]},
+  {id:112,neighbors:[804,643,616,440,428]},
+  {id:800,neighbors:[834,728,646,404,180]},
+  {id:646,neighbors:[800,834,180,108]},
+  {id:404,neighbors:[800,834,728,706,231]},
+  {id:760,neighbors:[792,422,400,376,368]},
+  {id:300,neighbors:[792,807,100,8]},
+  {id:268,neighbors:[792,643,31,51]},
+  {id:100,neighbors:[792,688,642,807,300]},
+  {id:31,neighbors:[792,643,364,268,51]},
+  {id:51,neighbors:[792,364,268,31]},
+  {id:764,neighbors:[458,418,116,104]},
+  {id:104,neighbors:[764,418,356,156,50]},
+  {id:586,neighbors:[364,356,156,4]},
+  {id:705,neighbors:[380,348,191,40]},
+  {id:191,neighbors:[705,688,499,348,70]},
+  {id:686,neighbors:[478,466,624,324,270]},
+  {id:440,neighbors:[643,616,428,112]},
+  {id:428,neighbors:[643,440,233,112]},
+  {id:604,neighbors:[218,170,152,76,68]},
+  {id:68,neighbors:[604,600,152,76,32]},
+  {id:566,neighbors:[562,148,120,204]},
+  {id:56,neighbors:[528,442,276,250]},
+  {id:320,neighbors:[484,340,222,84]},
+  {id:384,neighbors:[466,430,324,288,854]},
+  {id:178,neighbors:[266,180,140,120,24]},
+  {id:203,neighbors:[703,616,276,40]},
+  {id:756,neighbors:[438,380,276,250,40]}
 ];
 const NEIGHBOR_PUZZLE_MAP=new Map(NEIGHBOR_PUZZLES.map(p=>[p.id,p.neighbors]));
 function renderModeScreen(){
@@ -2457,9 +2496,9 @@ function zoneIdAtPoint(x,y){
 // topojson.feature liefert bei jedem Aufruf neue Objekte: dann gingen alle Zwischenspeicher des Globus (Vereinfachung, Mittelpunkte) verloren und jeder Neuaufbau rechnete alles neu
 const _geoMemo=new WeakMap();
 function _memo(world,key,fn){let m=_geoMemo.get(world);if(!m){m=new Map();_geoMemo.set(world,m);}if(!m.has(key))m.set(key,fn());return m.get(key);}
-// Kaliningrad (Exklave Russlands): Polygon an Lage erkennen; "Kürzester Weg" lässt es weg, weil es die Karte verzerrt und Polen/Litauen sonst an Russland grenzen
-function isKaliningradPoly(poly){const r=poly[0]||[];if(!r.length)return false;let x=0,y=0;r.forEach(p=>{x+=p[0];y+=p[1];});x/=r.length;y/=r.length;return x>18&&x<24&&y>53.5&&y<56.5;}
-function withoutKaliningrad(f){return _memo(worldData,'nokal:'+f.id,()=>{const g=f.geometry;if(!g||g.type!=='MultiPolygon')return f;return {...f,geometry:{...g,coordinates:g.coordinates.filter(p=>!isKaliningradPoly(p))}};});}
+// Kaliningrad (Exklave Russlands) und Russlands Ostspitze jenseits der Datumsgrenze: Polygon an Lage erkennen; "Kürzester Weg" lässt es weg, weil es die Karte verzerrt und Polen/Litauen sonst an Russland grenzen
+function isKaliningradPoly(poly){const r=poly[0]||[];if(!r.length)return false;let x=0,y=0;r.forEach(p=>{x+=p[0];y+=p[1];});x/=r.length;y/=r.length;return (x>18&&x<24&&y>53.5&&y<56.5)||(x<-150&&y>60);}
+function withoutKaliningrad(f){return _memo(worldData,'nokal:'+f.id,()=>{const g=f.geometry;if(!g||g.type!=='MultiPolygon')return f;return {...f,geometry:{...g,coordinates:g.coordinates.filter(p=>!isKaliningradPoly(p)).map(p=>p.map(r=>r.filter(q=>!(q[0]<-150&&q[1]>60))))}};});}
 function _topoCached(world,key){return _memo(world,'feat:'+key,()=>topojson.feature(world,world.objects[key]));}
 // Kopie eines Features mit Laufindex (_i) – immer dasselbe Objekt für dasselbe (Feature, Index), damit Zwischenspeicher treffen
 const _idxMemo=new WeakMap();
@@ -2534,7 +2573,7 @@ function renderMap(world){
   if(projection==='globe'&&window.Globe){const raw=gpath;if(raw.digits)raw.digits(2);gpath=function(d){const s=window.Globe.pathString(d);return s===undefined?(window.Globe.behind(d)?'':raw(window.Globe.simplified(d))):s;};gpath.centroid=raw.centroid;gpath.bounds=raw.bounds;gpath.area=raw.area;gpath.projection=raw.projection;}
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   const isMerc=projection==='mercator';
-  const noWrap=isMerc&&!!game&&/^pathkm?:/.test(game.fillKey||''); // Kürzester Weg: keine wiederholte Welt (Russland wäre sonst doppelt zu sehen)
+  const noWrap=isMerc&&!!game&&/^path(km)?:/.test(game.fillKey||''); // Kürzester Weg: keine wiederholte Welt (Russland wäre sonst doppelt zu sehen)
   // The viewBox height always stays fixed at H (matching the Mercator clip bounds in
   // buildProjection), but for Mercator its WIDTH is recomputed to match the container's own
   // aspect ratio, centered on the same x=W/2 that zoomTo()/zoomForMode() already treat as "the"
@@ -2657,7 +2696,7 @@ function renderMap(world){
   const geoms=world.objects.countries.geometries;
   const mergedPairs=[];
   let renderFeatures=countries.features;
-  if(game&&/^pathkm?:/.test(game.fillKey||''))renderFeatures=renderFeatures.map(f=>+f.id===643?withoutKaliningrad(f):f);
+  if(game&&/^path(km)?:/.test(game.fillKey||''))renderFeatures=renderFeatures.map(f=>+f.id===643?withoutKaliningrad(f):f);
 
   function mergeInto(parentId){
     const parentIdx=renderFeatures.findIndex(f=>+f.id===parentId);
@@ -3054,7 +3093,7 @@ function renderMap(world){
       }
     });
   // Kürzester Weg: keine Weltkarte, nur die gezeigten Länder – freie Kamera ohne Kartenrand, damit Zoom und Ausschnitt nicht an den Rändern hängen oder springen
-  if(game&&/^pathkm?:/.test(game.fillKey||'')&&projection!=='globe')zoomBehavior.translateExtent([[-Infinity,-Infinity],[Infinity,Infinity]]).scaleExtent([.5,maxZoom()]);
+  if(game&&/^path(km)?:/.test(game.fillKey||'')&&projection!=='globe')zoomBehavior.translateExtent([[-Infinity,-Infinity],[Infinity,Infinity]]).scaleExtent([.5,maxZoom()]);
   svg.call(zoomBehavior);
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
   else{svg.on('pointerdown.globe',null);svg.on('wheel.globe',null);} // Globus-Handler dürfen in den anderen Projektionen nicht weiterleben (sonst springt Mercator beim Scrollen zum Globus)

@@ -17,7 +17,7 @@ const MIX=['easy','easy','medium','medium','hard'];
 // Echte Landgrenzen, die in den vereinfachten Kartendaten fehlen (Nigeria–Tschad liegt mitten im Tschadsee)
 const EXTRA_EDGES=[[566,148]];
 const NO_EDGE=new Set(['250-76','76-250','250-740','740-250']);
-const COL_WORLD='#1a2434';
+let fadeT=0;
 const COL_START='#4f8cff',COL_GOAL='#ff9f1c',COL_DETOUR='#e8622c',BG='#0d1420';
 let graph=null,boxTimer=0,nextT=0,prevProj=null;
 const P=()=>game&&game.fillPath;
@@ -101,7 +101,7 @@ function distTo(a){let m=_dcache.get(a);if(!m){m=bfs(a,graph.adj).d;_dcache.set(
 function shownSet(){const p=P();return p?p.shown:new Set();}
 function pathColor(rawId){
   const id=eff(rawId),p=P();if(!p)return 'transparent';
-  if(!p.shown.has(id))return p.roundDone?COL_WORLD:'transparent'; // Runde zu Ende: restliche Welt blass im Hintergrund
+  if(!p.shown.has(id))return p.roundDone&&p.worldA>0?'rgba(26,36,52,'+p.worldA.toFixed(2)+')':'transparent'; // Runde zu Ende: restliche Welt blendet langsam blass im Hintergrund ein
   if(id===p.b&&!p.reached)return COL_GOAL;
   if(id===p.a)return COL_START;
   if(p.reached&&id===p.b)return COL_GOAL;
@@ -115,7 +115,7 @@ function pathStyle(){ // nach jedem updateColors(): Meer, Gradnetz und Linien un
   if(typeof borderPath!=='undefined'&&borderPath)borderPath.style('display','none');
   d3.selectAll('#map .rivers,#map .lakes,#map .fgui-overlay,#map .iz-vis,#map .iz-hits').style('display','none');
   const bg=document.getElementById('map-bg');if(bg)bg.style.background=BG;
-  if(countryPaths)countryPaths.attr('stroke',d=>shownSet().has(eff(+d.id))?'rgba(255,255,255,.8)':p.roundDone?'rgba(255,255,255,.07)':'none').attr('stroke-width',1.2).style('vector-effect','non-scaling-stroke');
+  if(countryPaths)countryPaths.attr('stroke',d=>shownSet().has(eff(+d.id))?'rgba(255,255,255,.8)':p.roundDone&&p.worldA>0?'rgba(255,255,255,'+(.07*p.worldA).toFixed(3)+')':'none').attr('stroke-width',1.2).style('vector-effect','non-scaling-stroke');
   if(microstateDots)microstateDots.attr('fill',d=>shownSet().has(d.id)?pathColor(d.id):'transparent').attr('stroke',d=>shownSet().has(d.id)?'#fff':'none');
   drawArrow();
 }
@@ -259,6 +259,9 @@ function endRound(gaveUp){
   msg('<div class="fill-done">'+head+' · +'+got+'</div>'+kmTxt+'<div style="font-size:13px;opacity:.85;margin-bottom:8px">'+L4('Beste Route','Best route','Mejor ruta','Meilleure route')+': '+names+'</div><button type="button" id="path-next">'+(last?L4('Ergebnis','Result','Resultado','Résultat'):L4('Weiter','Next','Siguiente','Suivant'))+'</button>','#fff');
   const nb=document.getElementById('path-next');if(nb)nb.addEventListener('click',nextRound);
   updateColors();fitShown();updatePathStats();
+  // Weltkarte danach langsam einblenden; der Kartenausschnitt bleibt dabei stehen (kein weiteres Zoomen)
+  p.worldA=0;clearInterval(fadeT);const t0=Date.now()+700;
+  fadeT=setInterval(()=>{const pp=P();if(!pp||!pp.roundDone){clearInterval(fadeT);return;}pp.worldA=Math.min(1,Math.max(0,(Date.now()-t0)/2400));updateColors();if(pp.worldA>=1)clearInterval(fadeT);},120);
   if(p.duel&&typeof duelPathProgress==='function')duelPathProgress(p);
 }
 function nextRound(){
@@ -268,7 +271,7 @@ function nextRound(){
 }
 function loadRound(){
   const p=P();const [a,b]=p.pairs[p.round].split('-').map(Number);
-  p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;p.detour=false;
+  p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.worldA=0;clearInterval(fadeT);p.reveal=null;p.detour=false;
   if(p.km){p.best=kmRoute(a,b);p.D=p.best.length-1;p.opt=p.D-1;p.bestKm=routeKm(p.best);}else{p.D=distTo(a).get(b);p.opt=p.D-1;p.best=bestRoute(a,b);p.bestKm=routeKm(p.best);}
   ensureBox();updateColors();fitShown();updatePathStats();
   const inp=document.getElementById('path-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
@@ -304,6 +307,7 @@ function updatePathStats(){
 }
 function pathGiveUp(){const p=P();if(p&&!p.roundDone&&!game.fillDone)endRound(true);}
 function pathStop(){
+  clearInterval(fadeT);
   d3.select('#map .dyn #path-arrow').remove();
   clearTimeout(boxTimer);clearTimeout(pend);
   if(prevProj!==null){projection=prevProj;prevProj=null;}
