@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-24 E';
+const BUILD_ID='2026-11-24 G';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -3224,8 +3224,9 @@ function _chMapFeatures(type,diff){
   return getDesertFeatures(diff);
 }
 // zufällige Frage dieses Typs (Daten müssen geladen sein, siehe challengeEnsureMapData)
-function challengeMapPick(type){
-  const diffs=CH_MAP_DIFFS[type];
+function challengeMapPick(type,level){
+  // level: all | easy | medium | hard (Zufall-Duell); Leicht umfasst bei Typen mit Anfänger-Stufe auch diese
+  const all=CH_MAP_DIFFS[type],diffs=(!level||level==='all')?all:(level==='easy'?all.filter(x=>x==='beginner'||x==='easy'):all.filter(x=>x===level));
   for(let tries=0;tries<8;tries++){
     const diff=diffs[Math.floor(Math.random()*diffs.length)],feats=_chMapFeatures(type,diff);
     let idxs=feats.map((_,i)=>i);
@@ -3805,7 +3806,7 @@ function renderOutline(id){
   return true;
 }
 
-// Hinweis (nur Lernmodus): jeder Klick verrät einen Buchstaben mehr vom Anfang der Antwort. Gilt als „nicht gewusst“ – das Ziel kommt später wieder.
+// Hinweis (Lernmodus und Multiplayer): jeder Klick verrät einen Buchstaben mehr vom Anfang der Antwort. Gilt als „nicht gewusst“ – im Lernmodus kommt das Ziel später wieder, im Multiplayer gibt es für diese Frage keinen Punkt.
 function flagHint(){
   if(game.flagCurrent==null||game.flagFound&&game.flagFound.has(game.flagCurrent))return;
   const ans=iqDisplayName(game.flagCurrent),ch=[...ans],letters=ch.filter(c=>c!==' ').length;
@@ -3953,7 +3954,7 @@ function nextFlag(){
   learnIntro();
   if(!game.flagQueue||game.flagQueue.length===0){if(game.challengeMode){advanceChallenge();return;}showFlagResult();return;}
   game.flagCurrent=game.flagQueue.shift();game.wrongOnCurrent=false;game.flagHint=0;
-  {const hb=$('flag-hint-btn');if(hb)hb.style.display=learnOn()?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
+  {const hb=$('flag-hint-btn');if(hb)hb.style.display=(learnOn()||(game.challengeMode&&_challenge&&_challenge.duel))?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
   const id=game.flagCurrent,mode=game.inputMode||'flag';
   const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline-wrap'),nb=$('iq-neighbor-wrap');
   img.style.display='none';txt.style.display='none';out.style.display='none';nb.style.display='none';

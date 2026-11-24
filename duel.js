@@ -44,22 +44,26 @@ const DUEL_MODES=[
   {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
   {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',sc:'rd'},
   {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',sc:'pd'},
-  {k:'random',ico:'🎲',de:'Zufall',en:'Random'}
+  {k:'random',ico:'🎲',de:'Zufall',en:'Random',sc:'pd'}
 ];
 // Zufall: 10 Fragen, jede aus einem zufällig gewählten Quiz (wie die Zufalls-Challenge der Hauptseite). Eine Frage steht als "Typ:ID" im Dokument.
 const DUEL_RANDOM_TYPES=['country','flag','capital','outline','language','currency','wappen','neighbor','pie','river','lake','city','mountain','range','desert'];
 // Eine Frage steht als Text: "Typ:ID" bzw. "Typ:Stufe:Nummer" (Karten-Typen)
-async function _duelRandomQuestions(){
+async function _duelRandomQuestions(level){
+  level=/^(easy|medium|hard)$/.test(level)?level:'all';
   try{await challengeEnsureMapData();}catch(e){}
   if(typeof iqEnsureOutlineGeo==='function'&&!outlineGeo){try{await iqEnsureOutlineGeo();}catch(e){}}
   try{await pieEnsureAll();}catch(e){}
   const ids=Object.keys(C).map(Number);
-  const pools={country:ids,flag:ids.filter(id=>ISO2[id]),capital:ids.filter(id=>CAPITALS[id]),outline:ids.filter(id=>!OUTLINE_EXCLUDE.has(id)&&(!outlineGeo||iqOutlineFeature(id))),language:Object.keys(LANGUAGES),currency:Object.keys(CURRENCIES),wappen:ids.filter(id=>!WAPPEN_EXCLUDE.has(id)),neighbor:NEIGHBOR_PUZZLES.map(p=>p.id)};
-  try{const all=_duelPool('pie','all','world');pools.pie=pieFilterSync(all,all);}catch(e){}
+  // Stufe: Länder nach Einwohner-Stufen (Leicht t1–t2, Mittel t3, Schwer t4–t5), Flaggen/Hauptstädte/Umrisse/Wappen/Kuchen nach ihren Stufen; Sprachen, Währungen und Nachbarn haben keine
+  const T=DIFFICULTY_TIERS,tiers=level==='easy'?[0,1]:level==='medium'?[2]:level==='hard'?[3,4]:[0,1,2,3,4];
+  const pool=t=>iqPoolIds({type:t,region:'world',diff:level,dir:'c2cap'}).filter(id=>t!=='outline'||!outlineGeo||iqOutlineFeature(id));
+  const pools={country:tiers.flatMap(i=>T[i]||[]).filter(id=>C[id]),flag:pool('flag'),capital:pool('capital'),outline:pool('outline'),language:Object.keys(LANGUAGES),currency:Object.keys(CURRENCIES),wappen:pool('wappen'),neighbor:NEIGHBOR_PUZZLES.map(p=>p.id)};
+  try{const all=_duelPool('pie','all','world');pools.pie=pieFilterSync(pool('pie'),all);}catch(e){}
   const types=DUEL_RANDOM_TYPES.slice().sort(()=>Math.random()-.5),out=[];
   for(const type of types){
     if(out.length>=DUEL_ROUNDS)break;
-    if(CH_MAP_TYPES.includes(type)){const p=challengeMapPick(type);if(p)out.push(type+':'+p.diff+':'+p.idx);}
+    if(CH_MAP_TYPES.includes(type)){const p=challengeMapPick(type,level);if(p)out.push(type+':'+p.diff+':'+p.idx);}
     else if(pools[type]&&pools[type].length)out.push(type+':'+pools[type][Math.floor(Math.random()*pools[type].length)]);
   }
   return out;
@@ -148,7 +152,7 @@ function _duelHandle(d){
   if(!d.host)return; // altes 1:1-Format
   const me=_duelMe();
   const answered=!!(d.r&&d.r[me]);
-  if(d.host!==me&&d.status==='lobby'&&!answered&&Date.now()-(d.ts||0)<DUEL_INVITE_TTL&&!_duelCur&&!_duelLobbyId)_duelShowBanner(d);
+  if(d.host!==me&&d.status==='lobby'&&!answered&&Date.now()-(d.ts||0)<DUEL_INVITE_TTL&&(!_duelCur||_duelCur.finished)&&!_duelLobbyId)_duelShowBanner(d);
   if(_duelBannerId===d.id&&(d.status!=='lobby'||answered))_duelHideBanner();
   if(_duelLobbyId===d.id){
     if(d.status==='cancelled'){
@@ -188,11 +192,12 @@ function _duelDraw(mode,pool){
 }
 
 // ── Einladung zusammenstellen (Hauptmenü oder Freundesprofil) ──
-async function duelOpenPicker(preUid){
+async function duelOpenPicker(preUid,force,preSel){
   if(!window._authUser){if(typeof openAuth==='function')openAuth('login');return;}
-  if(_duelCur||_duelLobbyId){_duelMessage('⚔️',_duelDE()?'Du bist schon in einem Duell.':'You are already in a duel.');return;}
+  if(!force)_duelRematchFrom=null;
+  if(!force&&(_duelCur||_duelLobbyId)){_duelMessage('⚔️',_duelDE()?'Du bist schon in einem Duell.':'You are already in a duel.');return;}
   const last=_duelLastGet();
-  _duelSel=new Set(preUid?[preUid]:[]);
+  _duelSel=new Set(preUid?[preUid]:(preSel||[]));
   if(last.mode&&DUEL_MODES.some(x=>x.k===last.mode))_duelSelMode=last.mode;
   if(last.diff)_duelSelDiff=last.diff;
   if(last.reg)_duelSelReg=last.reg;
@@ -202,7 +207,7 @@ async function duelOpenPicker(preUid){
   try{_duelFriendList=(typeof _loadFriends==='function')?await _loadFriends():[];}catch(e){_duelFriendList=[];}
   // Online zuerst (dann alphabetisch)
   _duelFriendList.sort((x,y)=>(_duelOnline(y)-_duelOnline(x))||String(x.username).localeCompare(String(y.username)));
-  if(!preUid&&last.friends)last.friends.filter(u=>_duelFriendList.some(f=>f.uid===u)).slice(0,DUEL_MAX_PLAYERS-1).forEach(u=>_duelSel.add(u)); // wie beim letzten Mal
+  if(!preUid&&!preSel&&last.friends)last.friends.filter(u=>_duelFriendList.some(f=>f.uid===u)).slice(0,DUEL_MAX_PLAYERS-1).forEach(u=>_duelSel.add(u)); // wie beim letzten Mal
   if(preUid&&!_duelFriendList.some(f=>f.uid===preUid))_duelSel.delete(preUid);
   _duelRenderPicker();
 }
@@ -222,8 +227,9 @@ function duelToggleFriend(uid){
 const DUEL_LAST_KEY='geoquiz_duel_last';
 function _duelLastGet(){try{return JSON.parse(localStorage.getItem(DUEL_LAST_KEY))||{};}catch(e){return{};}}
 function _duelLastSet(){try{localStorage.setItem(DUEL_LAST_KEY,JSON.stringify({mode:_duelSelMode,diff:_duelSelDiff,reg:_duelSelReg,regPin:_duelSelRegPin,friends:[..._duelSel]}));}catch(e){}}
+function _duelScopeUiPd(de){return '<div class="duel-rub"><div class="duel-sec">'+(de?'Schwierigkeit':'Difficulty')+'</div><div class="duel-chips">'+['all','easy','medium','hard'].map(df=>'<button class="duel-chip'+(_duelSelDiff===df?' on':'')+'" onclick="duelPickDiff(&quot;'+df+'&quot;)">'+_duelDiffName(df,de,'path')+'</button>').join('')+'</div></div>';}
 function _duelScopeUi(mode,de){
-  if(mode==='random')return '<div class="duel-sub">'+(de?'10 Fragen, jede aus einem anderen, zufällig gewählten Quiz (Länder, Flaggen, Hauptstädte, Umrisse, Flüsse, Seen, Städte, Berge, Wüsten u. a.).':'10 questions, each from a different, randomly chosen quiz (countries, flags, capitals, outlines, rivers, lakes, cities, mountains, deserts and more).')+'</div>';
+  if(mode==='random')return '<div class="duel-sub" style="margin-bottom:8px">'+(de?'10 Fragen, jede aus einem anderen, zufällig gewählten Quiz (Länder, Flaggen, Hauptstädte, Umrisse, Flüsse, Seen, Städte, Berge, Wüsten u. a.). Die Stufe gilt für alle Quizze, die Stufen kennen.':'10 questions, each from a different, randomly chosen quiz (countries, flags, capitals, outlines, rivers, lakes, cities, mountains, deserts and more). The level applies to every quiz that has levels.')+'</div>'+_duelScopeUiPd(de);
   const sc=_duelMode(mode).sc;if(!sc)return '';
   const chip=(on,call,label)=>'<button class="duel-chip'+(on?' on':'')+'" onclick="'+call+'">'+label+'</button>';
   const row=(title,inner)=>'<div class="duel-rub"><div class="duel-sec">'+title+'</div><div class="duel-chips">'+inner+'</div></div>';
@@ -271,7 +277,7 @@ async function duelSendInvite(){
   const uids=[..._duelSel].slice(0,DUEL_MAX_PLAYERS-1);
   const names={[me]:(typeof _myName==='function'?_myName(window._authUser):(window._authUser.displayName||'?'))};
   const av={[me]:(typeof _store!=='undefined'&&_store.avatar)||null}; // Avatare aller Spieler ins Dokument, damit sie überall angezeigt werden
-  uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u);names[u]=(f&&f.username)||'?';av[u]=(f&&f.avatar)||null;});
+  uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u),o=_duelRematchFrom;names[u]=(f&&f.username)||(o&&(o.names||{})[u])||'?';av[u]=(f&&f.avatar)||(o&&(o.av||{})[u])||null;});
   // Flaggen: Länder-IDs. Pin: Stadtnamen (name_en) aus dem europäischen Pool — alle lösen sie über
   // getPinCities('EU') wieder in dieselben Städte auf.
   const reg=_duelRegOf(mode,mode==='pin'?_duelSelRegPin:_duelSelReg);
@@ -282,7 +288,7 @@ async function duelSendInvite(){
   _duelLastSet();
   let picked;
   if(mode==='outline'&&typeof iqEnsureOutlineGeo==='function'){try{await iqEnsureOutlineGeo();}catch(e){}} // Umriss-Daten werden für die Fragenauswahl gebraucht
-  if(mode==='random')picked=await _duelRandomQuestions();
+  if(mode==='random')picked=await _duelRandomQuestions(diff);
   else if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
   else if(mode==='pie'){ // nur Kuchen, die eindeutig lösbar sind (jeder darf jedes Land tippen: Antwortmenge = alle Flaggen)
     try{await pieEnsureAll();}catch(e){}
@@ -356,7 +362,7 @@ function _duelRenderLobby(d){
   const cl=_duelEl('dl-chat');if(cl)cl.scrollTop=cl.scrollHeight;
 }
 function duelChatSend(){
-  const inp=_duelEl('dl-in'),id=_duelLobbyId,me=_duelMe();
+  const inp=_duelEl('dl-in'),id=_duelLobbyId||_duelPostId,me=_duelMe();
   if(!inp||!id||!me||!_db)return;
   const t=inp.value.trim().slice(0,140);if(!t)return;
   const d=_duelDocs[id]||{};
@@ -535,8 +541,64 @@ function _duelOnUpdate(d){
     if(d.status!=='finished'&&_duelCur.joined.every(u=>p[u]&&p[u].done))_duelRef(d.id).update({status:'finished'}).catch(()=>{});
   }else _duelChip(d);
 }
+// ── Nach-Lobby: Wer fertig ist, bleibt in einer gemeinsamen Lobby (Rangliste, Chat, Revanche) und wird nicht herausgeworfen; verlassen nur selbst ──
+let _duelPostId=null,_duelPostClosed=null,_duelRematchFrom=null;
+function _duelRenderPost(d){
+  if(!d||!_duelCur||!_duelCur.finished||_duelCur.id!==d.id||_duelPostClosed===d.id||_duelLobbyId)return;
+  const de=_duelDE(),me=_duelMe(),p=d.p||{},joined=(_duelCur.joined||[]);
+  _duelPostId=d.id;
+  const sc=u=>u===me?(_duelCur.score||0):((p[u]||{}).score||0);
+  const list=joined.slice().sort((a,b)=>{const da=u=>u===me||(p[u]&&p[u].done&&!p[u].left);return (da(b)-da(a))||(sc(b)-sc(a));});
+  const rows=list.map((u,i)=>{
+    const st=u===me?{done:true,score:_duelCur.score||0}:(p[u]||{});
+    const txt=st.left?(de?'hat aufgegeben':'gave up'):st.done?`${st.score||0} ${de?'Punkte':'points'}`:`${de?'spielt noch':'still playing'} (${st.pos||0}/${_duelCur.total||DUEL_ROUNDS})`;
+    const medal=st.done&&!st.left?['🥇','🥈','🥉'][i]||'':'';
+    return `<div class="duel-friend ${st.done&&!st.left?'in':''}">${_duelAvOf(d,u,28)}<span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}${u===me?(de?' (du)':' (you)'):''}</span><span class="duel-state">${medal} ${txt}</span></div>`;
+  }).join('');
+  const allDone=joined.every(u=>u===me||(p[u]&&p[u].done));
+  const isHost=d.host===me;
+  const foot=(isHost?`<button class="duel-btn primary" ${allDone?'':'disabled'} onclick="duelRematch()">${de?'Revanche':'Rematch'}</button><button class="duel-btn" ${allDone?'':'disabled'} onclick="duelNewGame()">${de?'Neues Spiel':'New game'}</button>`:`<div class="duel-sub" style="flex:1;align-self:center;">${allDone?(de?`${_duelEsc((d.names||{})[d.host]||'?')} kann eine Revanche starten …`:`${_duelEsc((d.names||{})[d.host]||'?')} can start a rematch …`):(de?'Warte auf die anderen …':'Waiting for the others …')}</div>`)+`<button class="duel-btn" onclick="duelPostClose()">${de?'Schließen':'Close'}</button>`;
+  const wrap=_duelEl('duel-post');
+  if(wrap&&wrap.dataset.id===d.id){
+    _duelEl('dp-players').innerHTML=rows;_duelEl('dp-foot').innerHTML=foot;
+    const cl=_duelEl('dl-chat'),atEnd=cl.scrollHeight-cl.scrollTop-cl.clientHeight<40;
+    cl.innerHTML=_duelChatHtml(d,me);if(atEnd)cl.scrollTop=cl.scrollHeight;
+    return;
+  }
+  _duelModal(`<div class="duel-head"><h2 class="pf-title" style="padding:0;margin:0;">⚔️ ${_duelTitle(d,de)}</h2></div>
+    <div id="duel-post" data-id="${d.id}" class="duel-cols">
+      <div class="duel-col"><div class="duel-sec">${de?'Ergebnis':'Result'}</div><div class="duel-friends tall" id="dp-players">${rows}</div></div>
+      <div class="duel-col"><div class="duel-sec">Chat</div>
+        <div class="duel-chat" id="dl-chat">${_duelChatHtml(d,me)}</div>
+        <div class="duel-chat-in"><input id="dl-in" maxlength="140" autocomplete="off" placeholder="${de?'Nachricht …':'Message …'}" onkeydown="if(event.key==='Enter')duelChatSend()"><button class="duel-btn primary" onclick="duelChatSend()">➤</button></div>
+      </div>
+    </div>
+    <div class="duel-foot" id="dp-foot">${foot}</div>`,true);
+}
+// Neues Spiel: der Einladende wählt wieder ein beliebiges Spiel; die bisherigen Mitspieler sind vorgewählt
+function duelNewGame(){
+  const d=_duelCur&&_duelDocs[_duelCur.id],me=_duelMe();
+  if(!d||d.host!==me)return;
+  const p=d.p||{},pre=(_duelCur.joined||[]).filter(u=>u!==me&&!(p[u]&&p[u].left));
+  _duelRematchFrom=d;_duelPostClosed=d.id;_duelPostId=null;
+  duelOpenPicker(null,true,pre);
+}
+function duelPostClose(){_duelPostClosed=_duelPostId;_duelPostId=null;_duelClose();}
+// Revanche: dieselben Spieler, dasselbe Spiel, neue Fragen (der Einladende legt ein neues Duell an, die anderen bekommen die Einladung wie gewohnt)
+function duelRematch(){
+  const d=_duelCur&&_duelDocs[_duelCur.id],me=_duelMe();
+  if(!d||d.host!==me||!_db)return;
+  const p=d.p||{};
+  _duelSel=new Set((_duelCur.joined||[]).filter(u=>u!==me&&!(p[u]&&p[u].left)));
+  if(!_duelSel.size){_duelMessage('⚔️',_duelDE()?'Alle anderen haben das Duell verlassen.':'Everyone else has left the duel.');return;}
+  _duelSelMode=d.mode;_duelSelDiff=d.diff||'all';
+  if(d.mode==='pin')_duelSelRegPin=d.reg||'EU';else _duelSelReg=d.reg||'world';
+  _duelRematchFrom=d;_duelPostClosed=d.id;_duelPostId=null;
+  duelSendInvite().finally(()=>{_duelRematchFrom=null;});
+}
 function _duelRenderResult(d){
   if(!_duelCur||!_duelCur.finished)return;
+  _duelRenderPost(d);
   const de=_duelDE(),me=_duelMe(),p=(d&&d.p)||{};
   const t=_duelEl('res-title'),e=_duelEl('res-emoji'),l1=_duelEl('res-l1'),l2=_duelEl('res-l2');
   if(!t||!l2)return;
