@@ -1166,8 +1166,12 @@ function resetBuild(){
   customOn=false;countCustom=false;openAcc('orient');S.batch=null;{const tg=S.round&&S.round.list&&S.round.list[S.round.i];S.ratio=tg?[...tg.ratio]:[3,2];}S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.msel=[];S.copying=false;S.zoom={k:1,x:0,y:0};S.multiMode=false;if($('#bMulti'))$('#bMulti').classList.remove('on');S.sel=null;S.selStripe=0;S.guides=[];
   syncLayout();setStep(1);histReset();
 }
+// Multiplayer: duel=1 (5 Flaggen) bzw. single=1 (1 Flagge im Zufalls-Duell). Die Flaggen kommen aus Zahlen (seeds), damit alle Spieler dieselben bekommen; das Ergebnis geht an die App.
+const QP=new URLSearchParams(location.search),DUELM=QP.get('duel')?'duel':QP.get('single')?'single':'';
+function seededList(){const used=new Set(),out=[];String(QP.get('seeds')||'').split(',').forEach(s=>{if(s==='')return;let i=Math.abs(parseInt(s,10)||0)%TARGETS.length;while(used.has(i))i=(i+1)%TARGETS.length;used.add(i);out.push(TARGETS[i]);});return out;}
 function newRound(){
-  const list=[...TARGETS].sort(()=>Math.random()-.5).slice(0,5);
+  const sl=DUELM?seededList():[];
+  const list=sl.length?sl:[...TARGETS].sort(()=>Math.random()-.5).slice(0,5);
   S.round={list,i:0,total:0,hints:0,results:[]};loadTarget();
 }
 function loadTarget(){
@@ -1199,6 +1203,7 @@ function animateBars(){
 }
 function showEnd(){
   const r=S.round;
+  if(DUELM&&PA){try{if(DUELM==='duel'&&PA.duelFlagFinish){PA.duelFlagFinish(r.total,r.results);return;}if(DUELM==='single'&&PA.challengeFlagDone){PA.challengeFlagDone(r.total);return;}}catch(e){console.warn(e);}}
     $('#card').innerHTML=`<h2 style="margin:0 0 4px">${tr('Runde beendet')}</h2><div class="total">${avg()} <small>${tr('im Schnitt richtig')}</small></div>
       ${r.results.map(x=>`<div class="bar" style="grid-template-columns:1fr 56px"><span>${x.name}</span><span style="text-align:right">${x.pts} %</span></div>`).join('')}
       <button class="btn pri" style="width:100%;margin-top:14px;padding:12px" id="bAgain">${tr('Neue Runde')}</button>`;
@@ -1209,18 +1214,20 @@ $('#bSkip').onclick=()=>{
   const r=S.round,t=r.list[r.i];
   if(PRUEF){if(r.i<r.list.length-1){r.i++;loadTarget();}else pfExport();return;}
   r.results.push({name:nm(t),pts:0});
+  if(DUELM==='duel'&&PA&&PA.duelFlagProgress){try{PA.duelFlagProgress(r.results.length,r.total);}catch(e){}}
   if(r.i<r.list.length-1){r.i++;loadTarget();}else showEnd();
 };
 async function check(){
   const r=S.round,t=r.list[r.i];let sc;try{sc=await scoreFlag(S,t);}catch(err){console.warn('Bewertung fehlgeschlagen',err);sc={layout:0,colors:0,details:0,total:0};}
   const pen=0,pts=sc.total;
   r.total+=pts;r.results.push({name:nm(t),pts});$('#ttot').textContent=avg();
+  if(DUELM==='duel'&&PA&&PA.duelFlagProgress){try{PA.duelFlagProgress(r.results.length,r.total);}catch(e){}}
   const last=r.i===r.list.length-1;
   $('#card').innerHTML=`
     <div class="cmp"><figure>${thumb(S,'a')}<figcaption>${tr('Deine Flagge')}</figcaption></figure><figure>${thumb(t,'b')}<figcaption>${nm(t)}</figcaption></figure></div>
     ${bar('Layout',sc.layout)}${bar('Farben',sc.colors)}${bar('Details',sc.details)}
     <div class="total fly"><span class="totv" data-v="${pts}">0 %</span> <small>${tr('richtig')}</small></div>
-    <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${tr(last?'Ergebnis ansehen':'Nächste Flagge →')}</button>`;
+    <button class="btn pri" style="width:100%;margin-top:10px;padding:12px" id="bNext">${tr(last?(DUELM==='single'?'Weiter →':'Ergebnis ansehen'):'Nächste Flagge →')}</button>`;
   $('#dlg').classList.add('on');animateBars();
   if(PRUEF){$('.cmp').classList.add('cmp3');$('.cmp').insertAdjacentHTML('beforeend','<figure>'+pfOrig(t)+'<figcaption>Original</figcaption></figure>');$('#bNext').remove();pfFeedback(t,pts);return;}
   $('#bNext').onclick=()=>{

@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-24 G';
+const BUILD_ID='2026-11-25 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -341,6 +341,23 @@ function openFunFlags(){
   const fr=$('fun-frame');if(fr)fr.src='spass-flaggen.html';
   showScreen('fun-screen');
 }
+// Flagge malen im Multiplayer (und als Frage im Zufalls-Duell): dieselbe Seite im Vollbild, Ergebnis kommt über duelFlagFinish / challengeFlagDone zurück
+function openFunFrame(url){
+  const fs0=$('fun-screen');if(fs0)fs0.classList.remove('look');
+  _funBack='';_catRerender=null;
+  const tb=$('fun-title');if(tb)tb.textContent=t('catFunTitle');
+  const bk=$('fun-back');if(bk)bk.textContent=t('back');
+  const fr=$('fun-frame');if(fr)fr.src=url;
+  showScreen('fun-screen');
+}
+function challengeFlagDone(total){
+  if(!_challenge||!game||!game.flagBuild)return;
+  _challenge.extraPts=(_challenge.extraPts||0)+Math.round(total||0); // Prozent der gemalten Flagge zählen als Punkte
+  _challenge.startTs+=Date.now()-game.flagBuildT0; // die Malzeit zählt nicht in die Zeitstrafe
+  const fr=$('fun-frame');if(fr)fr.src='about:blank';
+  game.wrongOnCurrent=true; // keine Frage "auf Anhieb richtig", die Punkte kommen aus der Prozentwertung
+  advanceChallenge();
+}
 // "Ähnliche Flaggen": Texteingabe-Quiz auf eigener Seite, nutzt denselben Vollbild-iframe
 function openLookFlags(){
   const fs0=$('fun-screen');if(fs0)fs0.classList.add('look');
@@ -350,7 +367,8 @@ function openLookFlags(){
   const fr=$('fun-frame');if(fr)fr.src='aehnliche-flaggen.html';
   showScreen('fun-screen');
 }
-function closeFunFlags(){const fr=$('fun-frame');if(fr)fr.src='about:blank';if(_funBack==='input')openCategory('input');else openCategoryPicker();}
+function closeFunFlags(){const fr=$('fun-frame');if(fr)fr.src='about:blank';
+  if(typeof _duelCur!=='undefined'&&_duelCur&&!_duelCur.finished&&typeof duelLeave==='function'){duelLeave();game={};}if(_funBack==='input')openCategory('input');else openCategoryPicker();}
 function openCategory(catKey,focusSection){
   if(catKey==='click'){renderClickPage();_maybeShowModeInfo('click');return;}
   // Alle Kategorien haben dasselbe Seitenlayout wie "Auf der Karte anklicken" (siehe CATEGORY PAGES).
@@ -3207,7 +3225,7 @@ async function startRandomChallenge(){
 // run never scores negative. A skipped question contributes nothing (see skip()/skipFlag(), which
 // mark it exactly like a wrong answer so it's excluded from firstTry), matching "skipped questions
 // give 0 points". Shared by Random and Daily Challenge — both set startTs at launch.
-function _challengeScore(g){return Math.max(0,g.firstTry*100-Math.floor((Date.now()-g.startTs)/1000));}
+function _challengeScore(g){return Math.max(0,g.firstTry*100+(g.extraPts||0)-Math.floor((Date.now()-g.startTs)/1000));}
 // Kartenfragen für Challenge/Duell: Fluss, See, Stadt, Berg, Gebirge, Wüste. Eine Frage steht als {type,diff,idx} (idx = Nummer in der Liste der Stufe diff).
 const CH_MAP_TYPES=['river','lake','city','mountain','range','desert'];
 const CH_MAP_DIFFS={river:['beginner','easy','medium','hard'],lake:['beginner','easy','medium','hard'],city:['easy','medium','hard'],mountain:['beginner','easy','medium','hard'],range:['beginner','easy','medium','hard'],desert:['easy','medium','hard']};
@@ -3260,6 +3278,9 @@ function nextChallengeQuestion(){
     $('find-label').textContent=t('find');
     $('target-name').textContent=cn(q.id);
     clearFeedback();updateColors();updateStats();
+  }else if(q.type==='flagbuild'){
+    game={challengeMode:true,flagBuild:true,flagBuildT0:Date.now(),wrongOnCurrent:false};
+    openFunFrame('spass-flaggen.html?single=1&seeds='+encodeURIComponent(q.seed));
   }else if(CH_MAP_TYPES.includes(q.type)){
     game=_chMapGame(q);canClick=true;
     showScreen('game-screen');
