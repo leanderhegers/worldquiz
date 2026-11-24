@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-24 A';
+const BUILD_ID='2026-11-24 C';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -219,7 +219,8 @@ const TX={
 };
 
 let iqSize='m'; // Anzeigegröße des Ziels in den Texteingabe-Quizzen: s | m | l
-let lang='de',theme='atlas',keepFound=true,showWrongHint=true,showSkipHint=true,showDropdown=true,projection='mercator',game={},quizRoundLimit=10,learnMode=false,allTargets=false,_challenge=null,dailyHintDismissed=false;
+// Standardsprache: die des Browsers (Deutsch, Englisch, Spanisch, Französisch), sonst Englisch; eine gespeicherte Wahl überschreibt das
+let lang=(()=>{try{const l=String((navigator.languages&&navigator.languages[0])||navigator.language||'en').slice(0,2).toLowerCase();return ['de','en','es','fr'].includes(l)?l:'en';}catch(e){return 'en';}})(),theme='atlas',keepFound=true,showWrongHint=true,showSkipHint=true,showDropdown=true,projection='mercator',game={},quizRoundLimit=10,learnMode=false,allTargets=false,_challenge=null,dailyHintDismissed=false;
 let countryPaths=null,microstateDots=null,lakePaths=null,lakeDots=null,riverPaths=null,riverHitboxes=null,cityDots=null,mountainDots=null,rangePaths=null,worldData=null,borderPath=null,admin1Path=null,zoomBehavior=null,gGroup=null,islandZoneHits=null,islandZoneVisuals=null,zoneHulls=null;
 let visibleIds=new Set(),lastMode='world',canClick=true,optsOpen=false,_fbTimer=null;
 // Every wrongly-picked item flashes red for its own full second, independent of any other item
@@ -3168,6 +3169,43 @@ async function startRandomChallenge(){
 // mark it exactly like a wrong answer so it's excluded from firstTry), matching "skipped questions
 // give 0 points". Shared by Random and Daily Challenge — both set startTs at launch.
 function _challengeScore(g){return Math.max(0,g.firstTry*100-Math.floor((Date.now()-g.startTs)/1000));}
+// Kartenfragen für Challenge/Duell: Fluss, See, Stadt, Berg, Gebirge, Wüste. Eine Frage steht als {type,diff,idx} (idx = Nummer in der Liste der Stufe diff).
+const CH_MAP_TYPES=['river','lake','city','mountain','range','desert'];
+const CH_MAP_DIFFS={river:['beginner','easy','medium','hard'],lake:['beginner','easy','medium','hard'],city:['easy','medium','hard'],mountain:['beginner','easy','medium','hard'],range:['beginner','easy','medium','hard'],desert:['easy','medium','hard']};
+async function challengeEnsureMapData(){
+  if(!worldData)await loadMap();
+  await Promise.all([ensureMountainsData(),ensureRangesData(),ensureDesertsData()]);
+}
+function _chMapFeatures(type,diff){
+  if(type==='river')return getRiverFeatures(diff);
+  if(type==='lake')return getLakeFeatures(diff);
+  if(type==='city')return CITY_COUNTRIES[diff]?CITY_COUNTRIES[diff].cities.slice():getAllCitiesByDifficulty(diff);
+  if(type==='mountain')return getMountainFeatures(diff);
+  if(type==='range')return getRangeFeatures(diff);
+  return getDesertFeatures(diff);
+}
+// zufällige Frage dieses Typs (Daten müssen geladen sein, siehe challengeEnsureMapData)
+function challengeMapPick(type){
+  const diffs=CH_MAP_DIFFS[type];
+  for(let tries=0;tries<8;tries++){
+    const diff=diffs[Math.floor(Math.random()*diffs.length)],feats=_chMapFeatures(type,diff);
+    let idxs=feats.map((_,i)=>i);
+    if(type==='lake'||type==='range'||type==='desert'){const nm=type==='lake'?lakeDisplayName:rangeDisplayName,seen=new Set();idxs=idxs.filter(i=>{const n=nm(feats[i]);if(seen.has(n))return false;seen.add(n);return true;});}
+    if(idxs.length)return {type,diff,idx:idxs[Math.floor(Math.random()*idxs.length)]};
+  }
+  return null;
+}
+function _chMapGame(q){
+  const g={challengeMode:true,current:q.idx,found:new Set(),correct:0,wrong:0,wrongOnCurrent:false,difficulty:q.diff,skipped:0};
+  const feats=_chMapFeatures(q.type,q.diff),rep={};
+  const repOf=nm=>{const o={};feats.forEach((f,i)=>{const n=nm(f);if(!(n in o))o[n]=i;});return o;};
+  if(q.type==='river'){g.mode='river';g.riverMode=true;g.riverFeatures=feats;g._indexed=feats.map((f,i)=>({...f,_i:i}));}
+  else if(q.type==='lake'){g.mode='lake';g.lakeMode=true;g.lakeFeatures=feats;g.lakeRep=repOf(lakeDisplayName);g._indexed=feats.map((f,i)=>({...f,_i:i}));}
+  else if(q.type==='city'){g.mode='city';g.cityMode=true;g.cityFeatures=feats;}
+  else if(q.type==='mountain'){g.mode='mountain';g.mountainMode=true;g.mountainFeatures=feats;}
+  else{g.mode=q.type;g.rangeMode=true;g.desert=q.type==='desert';g.rangeFeatures=feats;g.rangeRep=repOf(rangeDisplayName);}
+  return g;
+}
 function nextChallengeQuestion(){
   if(!_challenge)return;
   if(_challenge.pos>=_challenge.total){showChallengeResult();return;}
@@ -3181,6 +3219,14 @@ function nextChallengeQuestion(){
     if(!countryPaths||_mapKind!=='country')renderMap(worldData);
     $('find-label').textContent=t('find');
     $('target-name').textContent=cn(q.id);
+    clearFeedback();updateColors();updateStats();
+  }else if(CH_MAP_TYPES.includes(q.type)){
+    game=_chMapGame(q);canClick=true;
+    showScreen('game-screen');
+    renderMap(worldData);
+    updateAllText();
+    const feats=game.riverFeatures||game.lakeFeatures||game.cityFeatures||game.mountainFeatures||game.rangeFeatures,f=feats[q.idx];
+    $('target-name').textContent=f?(game.riverMode?riverDisplayName(f):game.lakeMode?lakeDisplayName(f):game.cityMode?cityDisplayName(f):game.mountainMode?mountainDisplayName(f):rangeDisplayName(f)):'?';
     clearFeedback();updateColors();updateStats();
   }else{
     game={challengeMode:true,flagMode:true,inputMode:q.type,capitalDir:'c2cap',flagQueue:[q.id],flagCorrect:0,flagWrong:0,flagFound:new Set(),wrongOnCurrent:false};

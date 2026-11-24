@@ -17,6 +17,7 @@ const MIX=['easy','easy','medium','medium','hard'];
 // Echte Landgrenzen, die in den vereinfachten Kartendaten fehlen (Nigeria–Tschad liegt mitten im Tschadsee)
 const EXTRA_EDGES=[[566,148]];
 const NO_EDGE=new Set(['250-76','76-250','250-740','740-250']);
+const COL_WORLD='#1a2434';
 const COL_START='#4f8cff',COL_GOAL='#ff9f1c',COL_DETOUR='#e8622c',BG='#0d1420';
 let graph=null,boxTimer=0,nextT=0,prevProj=null;
 const P=()=>game&&game.fillPath;
@@ -100,7 +101,7 @@ function distTo(a){let m=_dcache.get(a);if(!m){m=bfs(a,graph.adj).d;_dcache.set(
 function shownSet(){const p=P();return p?p.shown:new Set();}
 function pathColor(rawId){
   const id=eff(rawId),p=P();if(!p)return 'transparent';
-  if(!p.shown.has(id))return 'transparent';
+  if(!p.shown.has(id))return p.roundDone?COL_WORLD:'transparent'; // Runde zu Ende: restliche Welt blass im Hintergrund
   if(id===p.b&&!p.reached)return COL_GOAL;
   if(id===p.a)return COL_START;
   if(p.reached&&id===p.b)return COL_GOAL;
@@ -114,7 +115,7 @@ function pathStyle(){ // nach jedem updateColors(): Meer, Gradnetz und Linien un
   if(typeof borderPath!=='undefined'&&borderPath)borderPath.style('display','none');
   d3.selectAll('#map .rivers,#map .lakes,#map .fgui-overlay,#map .iz-vis,#map .iz-hits').style('display','none');
   const bg=document.getElementById('map-bg');if(bg)bg.style.background=BG;
-  if(countryPaths)countryPaths.attr('stroke',d=>shownSet().has(eff(+d.id))?'rgba(255,255,255,.8)':'none').attr('stroke-width',1.2).style('vector-effect','non-scaling-stroke');
+  if(countryPaths)countryPaths.attr('stroke',d=>shownSet().has(eff(+d.id))?'rgba(255,255,255,.8)':p.roundDone?'rgba(255,255,255,.07)':'none').attr('stroke-width',1.2).style('vector-effect','non-scaling-stroke');
   if(microstateDots)microstateDots.attr('fill',d=>shownSet().has(d.id)?pathColor(d.id):'transparent').attr('stroke',d=>shownSet().has(d.id)?'#fff':'none');
   drawArrow();
 }

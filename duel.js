@@ -43,8 +43,30 @@ const DUEL_MODES=[
   {k:'currency',ico:'💱',de:'Währungen',en:'Currencies'},
   {k:'neighbor',ico:'🧩',de:'Nachbar-Rätsel',en:'Neighbour puzzles'},
   {k:'pie',ico:'🥧',de:'Flaggen-Kuchen',en:'Flag pie',sc:'rd'},
-  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',sc:'pd'}
+  {k:'path',ico:'🛤️',de:'Kürzester Weg',en:'Shortest path',sc:'pd'},
+  {k:'random',ico:'🎲',de:'Zufall',en:'Random'}
 ];
+// Zufall: 10 Fragen, jede aus einem zufällig gewählten Quiz (wie die Zufalls-Challenge der Hauptseite). Eine Frage steht als "Typ:ID" im Dokument.
+const DUEL_RANDOM_TYPES=['country','flag','capital','outline','language','currency','wappen','neighbor','pie','river','lake','city','mountain','range','desert'];
+// Eine Frage steht als Text: "Typ:ID" bzw. "Typ:Stufe:Nummer" (Karten-Typen)
+async function _duelRandomQuestions(){
+  try{await challengeEnsureMapData();}catch(e){}
+  if(typeof iqEnsureOutlineGeo==='function'&&!outlineGeo){try{await iqEnsureOutlineGeo();}catch(e){}}
+  try{await pieEnsureAll();}catch(e){}
+  const ids=Object.keys(C).map(Number);
+  const pools={country:ids,flag:ids.filter(id=>ISO2[id]),capital:ids.filter(id=>CAPITALS[id]),outline:ids.filter(id=>!OUTLINE_EXCLUDE.has(id)&&(!outlineGeo||iqOutlineFeature(id))),language:Object.keys(LANGUAGES),currency:Object.keys(CURRENCIES),wappen:ids.filter(id=>!WAPPEN_EXCLUDE.has(id)),neighbor:NEIGHBOR_PUZZLES.map(p=>p.id)};
+  try{const all=_duelPool('pie','all','world');pools.pie=pieFilterSync(all,all);}catch(e){}
+  const types=DUEL_RANDOM_TYPES.slice().sort(()=>Math.random()-.5),out=[];
+  for(const type of types){
+    if(out.length>=DUEL_ROUNDS)break;
+    if(CH_MAP_TYPES.includes(type)){const p=challengeMapPick(type);if(p)out.push(type+':'+p.diff+':'+p.idx);}
+    else if(pools[type]&&pools[type].length)out.push(type+':'+pools[type][Math.floor(Math.random()*pools[type].length)]);
+  }
+  return out;
+}
+function _duelRandomQueue(q){return (q||[]).map(s=>{const p=String(s).split(':'),type=p[0];
+  if(CH_MAP_TYPES.includes(type))return {type,diff:p[1],idx:Number(p[2])};
+  return {type,id:(type==='language'||type==='currency')?p.slice(1).join(':'):Number(p[1])};});}
 const _duelPts=m=>m==='pin'||m==='path'; // Punkte-Modi (statt "x von 10 richtig")
 function _duelMode(m){return DUEL_MODES.find(x=>x.k===m)||DUEL_MODES[0];}
 function _duelModeName(m,de){const x=_duelMode(m);return de?x.de:x.en;}
@@ -72,7 +94,7 @@ function _duelScopeName(mode,diff,reg,de){
   if(_duelHasDiff(mode)&&diff&&diff!=='all')parts.push(_duelDiffName(diff,de,mode));
   return parts.join(' · ');
 }
-function _duelTitle(d,de){const m=_duelModeName(d.mode,de),sc=_duelScopeName(d.mode,d.diff,_duelRegOf(d.mode,d.reg),de);return sc?m+' · '+sc:m;}
+function _duelTitle(d,de){const m=_duelModeName(d.mode,de),sc=_duelScopeName(d.mode,d.diff,_duelRegOf(d.mode,d.reg),de),s=sc?m+' · '+sc:m;return s;}
 function _duelKey(mode,diff,reg){
   const r=_duelRegOf(mode,reg);
   return mode+((_duelHasDiff(mode)&&diff&&diff!=='all')?'_'+diff:'')+(((_duelHasReg(mode))&&(mode==='pin'||r!=='world'))?'_'+r:'');
@@ -185,7 +207,7 @@ async function duelOpenPicker(preUid){
   _duelRenderPicker();
 }
 function duelPickMode(m){
-  _duelSelMode=m;const sc=_duelMode(m).sc;
+  _duelSelMode=m;if(m==='random'){_duelRenderPicker();return;}const sc=_duelMode(m).sc;
   // Stufe passend zum Modus (Länder: t1–t5, Flaggen u. a.: Anfänger–Schwer, Weg: Leicht–Schwer)
   if(sc==='rt'?!/^(all|t[1-5])$/.test(_duelSelDiff):sc==='rd'?!/^(all|beginner|easy|medium|hard)$/.test(_duelSelDiff):sc==='pd'?!/^(all|easy|medium|hard)$/.test(_duelSelDiff):false)_duelSelDiff='all';
   _duelRenderPicker();
@@ -201,6 +223,7 @@ const DUEL_LAST_KEY='geoquiz_duel_last';
 function _duelLastGet(){try{return JSON.parse(localStorage.getItem(DUEL_LAST_KEY))||{};}catch(e){return{};}}
 function _duelLastSet(){try{localStorage.setItem(DUEL_LAST_KEY,JSON.stringify({mode:_duelSelMode,diff:_duelSelDiff,reg:_duelSelReg,regPin:_duelSelRegPin,friends:[..._duelSel]}));}catch(e){}}
 function _duelScopeUi(mode,de){
+  if(mode==='random')return '<div class="duel-sub">'+(de?'10 Fragen, jede aus einem anderen, zufällig gewählten Quiz (Länder, Flaggen, Hauptstädte, Umrisse, Flüsse, Seen, Städte, Berge, Wüsten u. a.).':'10 questions, each from a different, randomly chosen quiz (countries, flags, capitals, outlines, rivers, lakes, cities, mountains, deserts and more).')+'</div>';
   const sc=_duelMode(mode).sc;if(!sc)return '';
   const chip=(on,call,label)=>'<button class="duel-chip'+(on?' on':'')+'" onclick="'+call+'">'+label+'</button>';
   const row=(title,inner)=>'<div class="duel-rub"><div class="duel-sec">'+title+'</div><div class="duel-chips">'+inner+'</div></div>';
@@ -259,7 +282,8 @@ async function duelSendInvite(){
   _duelLastSet();
   let picked;
   if(mode==='outline'&&typeof iqEnsureOutlineGeo==='function'){try{await iqEnsureOutlineGeo();}catch(e){}} // Umriss-Daten werden für die Fragenauswahl gebraucht
-  if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
+  if(mode==='random')picked=await _duelRandomQuestions();
+  else if(mode==='path'){try{picked=await pathMakePairs(5,diff);}catch(e){picked=[];}if(!picked.length){_duelMessage('⚠️',de?'Die Karte konnte nicht geladen werden.':'Could not load the map.');return;}}
   else if(mode==='pie'){ // nur Kuchen, die eindeutig lösbar sind (jeder darf jedes Land tippen: Antwortmenge = alle Flaggen)
     try{await pieEnsureAll();}catch(e){}
     const all=_duelPool('pie','all','world');
@@ -290,7 +314,8 @@ function _duelPrefetch(d){
   if(!d||_duelPrefetched===d.id)return;
   _duelPrefetched=d.id;
   try{
-    if(d.mode==='map'){if(!worldData)loadMap().catch(()=>{});}
+    if(d.mode==='random'){challengeEnsureMapData().catch(()=>{});if(typeof iqEnsureOutlineGeo==='function')iqEnsureOutlineGeo().catch(()=>{});if(typeof _preloadChallengeImages==='function')_preloadChallengeImages(_duelRandomQueue(d.q));}
+    else if(d.mode==='map'){if(!worldData)loadMap().catch(()=>{});}
     else if(d.mode==='outline'){if(typeof iqEnsureOutlineGeo==='function')iqEnsureOutlineGeo().catch(()=>{});}
     else if((d.mode==='flag'||d.mode==='wappen'||d.mode==='pie')&&typeof _preloadChallengeImages==='function')_preloadChallengeImages((d.q||[]).map(id=>({type:d.mode,id})));
   }catch(e){}
@@ -410,18 +435,18 @@ async function _duelBegin(d){
   const me=_duelMe();
   const mode=DUEL_MODES.some(x=>x.k===d.mode)?d.mode:'flag';
   _duelCur={id:d.id,mode,joined:(d.joined||[]).slice(),names:d.names||{},av:d.av||{},finished:false};
-  if(d.host!==me&&mode!=='path'){try{_duelRecentAdd(_duelKey(mode,d.diff,d.reg),d.q||[],_duelPool(mode,d.diff,d.reg).length);}catch(e){}}
+  if(d.host!==me&&mode!=='path'&&mode!=='random'){try{_duelRecentAdd(_duelKey(mode,d.diff,d.reg),d.q||[],_duelPool(mode,d.diff,d.reg).length);}catch(e){}}
   _duelHideBanner();
   ['closeFriends','closeFriendProfile','closeProfile'].forEach(f=>{try{if(typeof window[f]==='function')window[f]();}catch(e){}});
   const de=_duelDE(),isPin=mode==='pin',isPath=mode==='path';
-  const queue=(isPin||isPath)?[]:d.q.map(id=>({type:mode==='map'?'country':mode,id}));
+  const queue=(isPin||isPath)?[]:mode==='random'?_duelRandomQueue(d.q):d.q.map(id=>({type:mode==='map'?'country':mode,id}));
   const cities=isPin?d.q.map(n=>getPinCities(d.reg||'EU').find(c=>c.name_en===n)).filter(Boolean):[];
   const others=_duelCur.joined.filter(u=>u!==me).map(u=>_duelAvOf(d,u,22)+' '+_duelEsc(_duelCur.names[u]||'?')).join(' &nbsp; ');
   const cd=(n)=>_duelModal(`<h2 class="pf-title" style="padding:0;">⚔️ ${_duelTitle({mode,diff:d.diff,reg:d.reg},de)}</h2>
     <div class="duel-sub">${de?'Gegen':'Against'} ${others}</div>
     <div class="duel-count">${n}</div><div class="duel-sub">${de?'Mach dich bereit…':'Get ready…'}</div>`);
   // Karten-Modus braucht die geladene Weltkarte, Flaggen ihre Bilder — beides läuft während des Countdowns.
-  const pre=isPin?Promise.resolve():mode==='outline'?(typeof iqEnsureOutlineGeo==='function'?iqEnsureOutlineGeo():Promise.resolve()):(mode==='map'||isPath)?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
+  const pre=isPin?Promise.resolve():mode==='random'?Promise.all([challengeEnsureMapData(),(typeof iqEnsureOutlineGeo==='function'&&!outlineGeo)?iqEnsureOutlineGeo():0,(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):0)]):mode==='outline'?(typeof iqEnsureOutlineGeo==='function'?iqEnsureOutlineGeo():Promise.resolve()):(mode==='map'||isPath)?(worldData?Promise.resolve():loadMap()):(typeof _preloadChallengeImages==='function'?_preloadChallengeImages(queue):Promise.resolve());
   for(let n=3;n>=1;n--){cd(n);await new Promise(r=>setTimeout(r,900));}
   await pre;
   if(!_duelCur||_duelCur.id!==d.id)return; // währenddessen abgebrochen
