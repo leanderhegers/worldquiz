@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-26 B';
+const BUILD_ID='2026-11-26 D';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -2799,7 +2799,7 @@ function renderMap(world){
       .style('vector-effect','non-scaling-stroke').style('pointer-events','none');
     if(riverMode){
       riverHitboxes=g.append('g').attr('class','river-hitboxes').selectAll('path').data(indexed).enter().append('path')
-        .attr('d',gpath).attr('fill','none').attr('stroke','transparent').attr('stroke-width',10)
+        .attr('d',gpath).attr('fill','none').attr('stroke','transparent').attr('stroke-width',COARSE?28:18) // Treffbreite in Pixeln, unabhängig vom Zoom
         .style('vector-effect','non-scaling-stroke').style('cursor','pointer')
         .on('mouseover',function(ev,d){
           if(game.found&&game.found.has(d._i))return;

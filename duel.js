@@ -155,6 +155,8 @@ function _duelHandle(d){
   if(!d.host)return; // altes 1:1-Format
   const me=_duelMe();
   const answered=!!(d.r&&d.r[me]);
+  // Revanche / Neues Spiel: wer noch in der Nach-Lobby des alten Duells sitzt, landet ohne Nachfrage in der neuen Lobby (dort auf "Bereit" klicken)
+  if(d.host!==me&&d.status==='lobby'&&d.prev&&!answered&&Date.now()-(d.ts||0)<DUEL_INVITE_TTL&&_duelCur&&_duelCur.finished&&_duelCur.id===d.prev&&_duelPostId===d.prev&&!_duelLobbyId){_duelAutoJoin(d);return;}
   if(d.host!==me&&d.status==='lobby'&&!answered&&Date.now()-(d.ts||0)<DUEL_INVITE_TTL&&(!_duelCur||_duelCur.finished)&&!_duelLobbyId)_duelShowBanner(d);
   if(_duelBannerId===d.id&&(d.status!=='lobby'||answered))_duelHideBanner();
   if(_duelLobbyId===d.id){
@@ -170,6 +172,16 @@ function _duelHandle(d){
   if(_duelCur&&_duelCur.id===d.id)_duelOnUpdate(d);
 }
 
+function _duelAutoJoin(d){
+  const me=_duelMe();if(!_db||!me)return;
+  _duelHideBanner();
+  _duelLobbyId=d.id;_duelPostClosed=d.prev;_duelPostId=null;
+  clearTimeout(_duelWaitTimer);
+  _duelWaitTimer=setTimeout(()=>{if(_duelLobbyId===d.id)duelLeaveLobby();},DUEL_INVITE_TTL);
+  _duelRef(d.id).update({['r.'+me]:'yes'}).catch(()=>{});
+  d.r=Object.assign({},d.r,{[me]:'yes'});
+  _duelRenderLobby(d);
+}
 // ── Ziele ziehen, ohne dass sich Ziele schnell wiederholen ──
 // Reines Zufallsziehen aus einem kleinen Topf (Pin Europa: 85 Städte) wiederholt sich zwangsläufig
 // oft. Darum merkt sich jedes Gerät pro Modus die zuletzt gespielten Ziele (auch aus Duellen, die
@@ -278,6 +290,7 @@ async function duelSendInvite(){
   if(!me||!_db||!_duelSel.size)return;
   const de=_duelDE(),mode=_duelSelMode||'flag';
   const uids=[..._duelSel].slice(0,DUEL_MAX_PLAYERS-1);
+  const prevId=(_duelRematchFrom&&_duelRematchFrom.id)||null; // Revanche / Neues Spiel: die Spieler des alten Duells landen automatisch in der neuen Lobby
   const names={[me]:(typeof _myName==='function'?_myName(window._authUser):(window._authUser.displayName||'?'))};
   const av={[me]:(typeof _store!=='undefined'&&_store.avatar)||null}; // Avatare aller Spieler ins Dokument, damit sie überall angezeigt werden
   uids.forEach(u=>{const f=_duelFriendList.find(x=>x.uid===u),o=_duelRematchFrom;names[u]=(f&&f.username)||(o&&(o.names||{})[u])||'?';av[u]=(f&&f.avatar)||(o&&(o.av||{})[u])||null;});
@@ -304,7 +317,7 @@ async function duelSendInvite(){
   _duelModal(`<div class="duel-sub">${de?'Sende Einladung…':'Sending invitation…'}</div>`);
   try{
     const ref=await _db.collection('duels').add({
-      players:[me,...uids],host:me,names,av,mode,diff,reg,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},p:{},chat:[]
+      players:[me,...uids],host:me,names,av,mode,diff,reg,q:picked,status:'lobby',ts:Date.now(),r:{[me]:'yes'},rd:{[me]:true},p:{},chat:[],...(prevId?{prev:prevId}:{})
     });
     _duelLobbyId=ref.id;
     clearTimeout(_duelWaitTimer);
@@ -338,15 +351,17 @@ function _duelRenderLobby(d){
   if(!d)return;
   _duelPrefetch(d);
   const me=_duelMe(),de=_duelDE(),isHost=d.host===me;
+  const rdy=u=>!d.prev||!!(d.rd||{})[u]; // Nach Revanche / Neuem Spiel muss jeder auf "Bereit" klicken
   const rows=(d.players||[]).map(u=>{
     const st=(d.r||{})[u];
-    const lbl=st==='yes'?(de?'dabei':'in'):st==='no'?(de?'abgelehnt':'declined'):(de?'wartet…':'waiting…');
-    return `<div class="duel-friend ${st==='yes'?'in':st==='no'?'out':''}">${_duelAvOf(d,u,28)}<span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}</span><span class="duel-state ${st||''}">${st==='yes'?'✓ ':st==='no'?'✕ ':'… '}${lbl}</span></div>`;
+    const ok=st==='yes'&&rdy(u);
+    const lbl=st==='yes'?(d.prev?(ok?(de?'bereit':'ready'):(de?'noch nicht bereit':'not ready')):(de?'dabei':'in')):st==='no'?(de?'abgelehnt':'declined'):(de?'wartet…':'waiting…');
+    return `<div class="duel-friend ${ok?'in':st==='no'?'out':''}">${_duelAvOf(d,u,28)}<span style="flex:1;text-align:left;">${_duelEsc((d.names||{})[u]||'?')}${u===d.host?' 👑':''}</span><span class="duel-state ${st||''}">${ok||(st==='yes'&&!d.prev)?'✓ ':st==='no'?'✕ ':'… '}${lbl}</span></div>`;
   }).join('');
-  const joined=(d.players||[]).filter(u=>(d.r||{})[u]==='yes').length;
+  const yesList=(d.players||[]).filter(u=>(d.r||{})[u]==='yes'),joined=yesList.length,allReady=yesList.every(rdy);
   const foot=isHost
-    ?`<button class="duel-btn primary" ${joined>=2?'':'disabled'} onclick="duelStart()">${de?`Starten (${joined} Spieler)`:`Start (${joined} players)`}</button><button class="duel-btn" onclick="duelCancelLobby()">${de?'Abbrechen':'Cancel'}</button>`
-    :`<div class="duel-sub" style="flex:1;align-self:center;">${de?`Warte auf ${_duelEsc((d.names||{})[d.host]||'?')} …`:`Waiting for ${_duelEsc((d.names||{})[d.host]||'?')} …`}</div><button class="duel-btn" onclick="duelLeaveLobby()">${de?'Verlassen':'Leave'}</button>`;
+    ?`<button class="duel-btn primary" ${joined>=2&&allReady?'':'disabled'} onclick="duelStart()">${de?`Starten (${joined} Spieler)`:`Start (${joined} players)`}</button><button class="duel-btn" onclick="duelCancelLobby()">${de?'Abbrechen':'Cancel'}</button>`
+    :`${(d.prev&&!rdy(me))?`<button class="duel-btn primary" onclick="duelReady()">${de?'Bereit':'Ready'}</button>`:''}<div class="duel-sub" style="flex:1;align-self:center;">${de?`Warte auf ${_duelEsc((d.names||{})[d.host]||'?')} …`:`Waiting for ${_duelEsc((d.names||{})[d.host]||'?')} …`}</div><button class="duel-btn" onclick="duelLeaveLobby()">${de?'Verlassen':'Leave'}</button>`;
   const wrap=_duelEl('duel-lobby');
   if(wrap&&wrap.dataset.id===d.id){ // nur Teile aktualisieren, damit das Chat-Eingabefeld nicht den Fokus verliert
     _duelEl('dl-players').innerHTML=rows;_duelEl('dl-foot').innerHTML=foot;
@@ -365,6 +380,13 @@ function _duelRenderLobby(d){
     <div class="duel-foot" id="dl-foot">${foot}</div>`,true);
   const cl=_duelEl('dl-chat');if(cl)cl.scrollTop=cl.scrollHeight;
 }
+function duelReady(){
+  const id=_duelLobbyId,me=_duelMe();
+  if(!id||!me||!_db)return;
+  const d=_duelDocs[id];if(d)d.rd=Object.assign({},d.rd,{[me]:true});
+  _duelRef(id).update({['rd.'+me]:true}).catch(()=>{});
+  if(d)_duelRenderLobby(d);
+}
 function duelChatSend(){
   const inp=_duelEl('dl-in'),id=_duelLobbyId||_duelPostId,me=_duelMe();
   if(!inp||!id||!me||!_db)return;
@@ -379,6 +401,7 @@ async function duelStart(){
   if(!d||d.host!==_duelMe()||!_db)return;
   const joined=(d.players||[]).filter(u=>(d.r||{})[u]==='yes');
   if(joined.length<2)return;
+  if(d.prev&&!joined.every(u=>(d.rd||{})[u]))return; // alle müssen bereit sein
   const id=_duelLobbyId;
   try{
     await _duelRef(id).update({status:'active',joined,startedAt:Date.now()});
