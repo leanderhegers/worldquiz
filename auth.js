@@ -744,7 +744,7 @@ function openAvatarPicker(){
   modal.onclick=function(e){if(e.target===modal)closeAvatarPicker();};
   const selEmoji=av.emoji||'🌍';
   const selColor=av.color||'#1D9E75';
-  modal.innerHTML=`<div class="auth-box" style="max-width:340px;padding:1.5rem;">
+  modal.innerHTML=`<div class="auth-box" style="max-width:340px;padding:1.5rem 1.5rem 0;max-height:calc(100dvh - 20px);overflow-y:auto;">
     <button class="auth-close" onclick="closeAvatarPicker()">×</button>
     <h2 class="auth-title" style="font-size:17px;">${isDE?'Avatar anpassen':'Customize Avatar'}</h2>
     <div id="av-preview" style="display:flex;justify-content:center;margin:8px 0 16px;">${_renderAvatar({emoji:selEmoji,color:selColor},'?',72)}</div>
@@ -752,7 +752,7 @@ function openAvatarPicker(){
     <div id="av-emoji-grid" class="av-grid">${AVATAR_EMOJIS.map(e=>'<button class="av-opt av-emoji'+(e===selEmoji?' active':'')+'" data-emoji="'+e+'" onclick="pickAvatarEmoji(this)">'+e+'</button>').join('')}</div>
     <div style="font-size:12px;color:#8aa;margin:12px 0 6px;">${isDE?'Farbe wählen':'Choose color'}</div>
     <div id="av-color-grid" class="av-grid">${AVATAR_COLORS.map(c=>'<button class="av-opt av-color'+(c===selColor?' active':'')+'" data-color="'+c+'" style="background:'+c+';" onclick="pickAvatarColor(this)"></button>').join('')}</div>
-    <button class="auth-submit" style="margin-top:16px;" onclick="saveAvatar()">${isDE?'Speichern':'Save'}</button>
+    <div style="position:sticky;bottom:0;margin:4px -1.5rem 0;padding:12px 1.5rem 1.5rem;background:linear-gradient(to bottom,rgba(16,24,38,0),#101826 22%);"><button class="auth-submit" style="width:100%;" onclick="saveAvatar()">${isDE?'Speichern':'Save'}</button></div>
   </div>`;
 }
 function closeAvatarPicker(){const m=document.getElementById('avatar-picker-modal');if(m)m.style.display='none';}

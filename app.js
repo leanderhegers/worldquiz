@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-25 A';
+const BUILD_ID='2026-11-26 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -353,7 +353,7 @@ function openFunFrame(url){
 function challengeFlagDone(total){
   if(!_challenge||!game||!game.flagBuild)return;
   _challenge.extraPts=(_challenge.extraPts||0)+Math.round(total||0); // Prozent der gemalten Flagge zählen als Punkte
-  _challenge.startTs+=Date.now()-game.flagBuildT0; // die Malzeit zählt nicht in die Zeitstrafe
+  _qZero(); // Flagge malen: nur die Prozent zählen, keine Zeitpunkte
   const fr=$('fun-frame');if(fr)fr.src='about:blank';
   game.wrongOnCurrent=true; // keine Frage "auf Anhieb richtig", die Punkte kommen aus der Prozentwertung
   advanceChallenge();
@@ -1447,7 +1447,7 @@ function skip(){
   // Challenge mode (Random/Daily): a skip is scored exactly like a wrong answer — 0 points for
   // this question — by reusing advanceChallenge()'s existing "only count wrongOnCurrent===false as
   // a first-try hit" check, rather than adding a second, parallel scoring path.
-  if(game.challengeMode){game.wrongOnCurrent=true;_challenge.skipped=(_challenge.skipped||0)+1;nextCountry();return;}
+  if(game.challengeMode){game.wrongOnCurrent=true;_qZero();_challenge.skipped=(_challenge.skipped||0)+1;nextCountry();return;}
   game.skipped=(game.skipped||0)+1; // one skip, even for a multi-country question — see currentGroup below
   if(!game.skippedItems)game.skippedItems=new Set();
   if(game.triviaMode){ // Trivia: die Lösung nur kurz zeigen, dann wieder freigeben; bereits gefundene Länder bleiben dabei grün markiert
@@ -1534,7 +1534,7 @@ function resolveAnswer({key,correct,name,flashKey,flash,repaint,keepOnFound=true
     recordCorrectForCurrent();repaint();updateStats();
     setTimeout(nextCountry,1100);
   }else{
-    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;
+    game.wrong++;recordMissForCurrent();game.wrongOnCurrent=true;if(game.challengeMode)_qPenalty();
     if(showWrongHint)showFeedback(t('wrongFb')(name),THEMES[theme].wrong);
     flashWrongKey(flashKey,flash,repaint);
     updateStats();
@@ -3225,7 +3225,15 @@ async function startRandomChallenge(){
 // run never scores negative. A skipped question contributes nothing (see skip()/skipFlag(), which
 // mark it exactly like a wrong answer so it's excluded from firstTry), matching "skipped questions
 // give 0 points". Shared by Random and Daily Challenge — both set startTs at launch.
-function _challengeScore(g){return Math.max(0,g.firstTry*100+(g.extraPts||0)-Math.floor((Date.now()-g.startTs)/1000));}
+// Neue Wertung: jede Frage startet bei 100 Punkten. Die ersten 3 Sekunden sind frei, danach kostet jede Sekunde 2 Punkte.
+// Ein Hinweis oder ein falsches Ziel nimmt sofort 30 % der aktuellen Punkte weg, Überspringen gibt 0.
+// Die Punkte aller Fragen werden addiert (Flagge malen: Prozent der Flagge, ohne Zeitabzug).
+const Q_START=100,Q_FREE_MS=3000,Q_PER_SEC=2,Q_PENALTY=0.3;
+function _qNew(){const n=Date.now();_challenge.qp={p:Q_START,ts:n,t0:n,zero:false};}
+function _qPts(){const q=_challenge&&_challenge.qp;if(!q)return 0;if(q.zero)return 0;const n=Date.now();return Math.max(0,q.p-Q_PER_SEC*Math.max(0,(n-Math.max(q.ts,q.t0+Q_FREE_MS))/1000));}
+function _qPenalty(){const q=_challenge&&_challenge.qp;if(!q)return;q.p=_qPts()*(1-Q_PENALTY);q.ts=Date.now();}
+function _qZero(){if(_challenge&&_challenge.qp)_challenge.qp.zero=true;}
+function _challengeScore(g){return Math.max(0,Math.round((g.pts||0)+(g.extraPts||0)));}
 // Kartenfragen für Challenge/Duell: Fluss, See, Stadt, Berg, Gebirge, Wüste. Eine Frage steht als {type,diff,idx} (idx = Nummer in der Liste der Stufe diff).
 const CH_MAP_TYPES=['river','lake','city','mountain','range','desert'];
 const CH_MAP_DIFFS={river:['beginner','easy','medium','hard'],lake:['beginner','easy','medium','hard'],city:['easy','medium','hard'],mountain:['beginner','easy','medium','hard'],range:['beginner','easy','medium','hard'],desert:['easy','medium','hard']};
@@ -3268,6 +3276,7 @@ function nextChallengeQuestion(){
   if(!_challenge)return;
   if(_challenge.pos>=_challenge.total){showChallengeResult();return;}
   const q=_challenge.queue[_challenge.pos];
+  _qNew();if(!_dailyTimerHandle)_startDailyTimer();
   if(q.type==='country'){
     game={challengeMode:true,current:q.id,found:new Set(),correct:0,wrong:0,wrongOnCurrent:false};
     canClick=true;
@@ -3296,6 +3305,7 @@ function nextChallengeQuestion(){
   }
 }
 function advanceChallenge(){
+  _challenge.pts=(_challenge.pts||0)+Math.round(_qPts());
   if(!game.wrongOnCurrent)_challenge.firstTry++;
   _challenge.pos++;
   if(_challenge.duel&&typeof duelProgress==='function')duelProgress();
@@ -3304,7 +3314,7 @@ function advanceChallenge(){
 function showChallengeResult(){
   const g=_challenge,p=Math.round((g.firstTry/g.total)*100);
   g.score=_challengeScore(g);
-  if(g.daily)_stopDailyTimer();
+  _stopDailyTimer();
   showScreen('result-screen');
   $('res-emoji').textContent=p>=90?'🏆':p>=70?'🎉':p>=50?'👍':'📚';
   $('res-title').textContent=t('resTitle');
@@ -3350,7 +3360,7 @@ function _seededRng(seedStr){
 function _dailyToday(){return typeof _todayStr==='function'?_todayStr():new Date().toISOString().slice(0,10);}
 function _formatDailyTime(ms){return(Math.max(0,ms)/1000).toFixed(1)+'s';}
 let _dailyTimerHandle=null;
-function _startDailyTimer(){_stopDailyTimer();_dailyTimerHandle=setInterval(()=>{if(_challenge&&(_challenge.daily||_challenge.duel)){updateStats();updateFlagStats();}},500);}
+function _startDailyTimer(){_stopDailyTimer();_dailyTimerHandle=setInterval(()=>{if(_challenge&&_challenge.qp&&game&&game.challengeMode&&!game.flagBuild){updateStats();updateFlagStats();}},500);}
 function _stopDailyTimer(){if(_dailyTimerHandle){clearInterval(_dailyTimerHandle);_dailyTimerHandle=null;}}
 
 async function openDailyChallenge(){
@@ -3524,8 +3534,7 @@ function updateStats(){
     $('score-disp').textContent=g.pos+'/'+g.total;$('found-label').textContent=t('foundLbl');
     $('stat-c').textContent=g.firstTry;$('lbl-c').textContent=t('correctLbl');
     $('stat-w').textContent=game.wrong||0;$('lbl-w').textContent=t('wrongLbl');
-    if(g.daily||g.duel){$('stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('lbl-s').textContent=t('timeLbl');}
-    else{$('stat-s').textContent=g.skipped||0;$('lbl-s').textContent=t('skippedLbl');}
+    $('stat-s').textContent=Math.round(_qPts());$('lbl-s').textContent=(typeof lang!=='undefined'&&lang==='de'?'Frage':'Question');
     $('stat-r').textContent=(g.total-g.pos)+' '+t('remLbl');
     $('prog-bar').style.width=Math.round((g.pos/g.total)*100)+'%';
     return;
@@ -3831,6 +3840,7 @@ function renderOutline(id){
 function flagHint(){
   if(game.flagCurrent==null||game.flagFound&&game.flagFound.has(game.flagCurrent))return;
   const ans=iqDisplayName(game.flagCurrent),ch=[...ans],letters=ch.filter(c=>c!==' ').length;
+  if(game.challengeMode&&(game.flagHint||0)<Math.max(1,letters-1))_qPenalty();
   game.flagHint=Math.min((game.flagHint||0)+1,Math.max(1,letters-1));
   game.wrongOnCurrent=true;{const lk=learnKeyCur();if(lk&&learnActive())setLearnLevel(lk,0);}
   let shown=0;const txt=ch.map(c=>{if(c===' ')return ' ';if(shown<game.flagHint){shown++;return c;}return '_';}).join(' ').replace(/ {3}/g,'   ');
@@ -3842,7 +3852,7 @@ function flagHint(){
 function skipFlag(){
   if(game.flagCurrent==null)return;
   // Challenge mode (Random/Daily): see skip()'s comment — a skip must not count as a first-try hit.
-  if(game.challengeMode){game.wrongOnCurrent=true;_challenge.skipped=(_challenge.skipped||0)+1;nextFlag();return;}
+  if(game.challengeMode){game.wrongOnCurrent=true;_qZero();_challenge.skipped=(_challenge.skipped||0)+1;nextFlag();return;}
   game.flagSkipped=(game.flagSkipped||0)+1;
   if(learnTrack()){if(learnOn())game.wrongOnCurrent=true;const lk=learnKeyCur();if(lk)setLearnLevel(lk,0);} // übersprungen = nicht gewusst
   if(showSkipHint&&game.flagCurrent!=null)showFlagFb('→ '+iqDisplayName(game.flagCurrent),'#e0952a');
@@ -3975,7 +3985,7 @@ function nextFlag(){
   learnIntro();
   if(!game.flagQueue||game.flagQueue.length===0){if(game.challengeMode){advanceChallenge();return;}showFlagResult();return;}
   game.flagCurrent=game.flagQueue.shift();game.wrongOnCurrent=false;game.flagHint=0;
-  {const hb=$('flag-hint-btn');if(hb)hb.style.display=(learnOn()||(game.challengeMode&&_challenge&&_challenge.duel))?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
+  {const hb=$('flag-hint-btn');if(hb)hb.style.display=(learnOn()||game.challengeMode)?'':'none';const hl=$('iq-hint');if(hl)hl.textContent='';}
   const id=game.flagCurrent,mode=game.inputMode||'flag';
   const img=$('flag-img'),txt=$('iq-text'),out=$('iq-outline-wrap'),nb=$('iq-neighbor-wrap');
   img.style.display='none';txt.style.display='none';out.style.display='none';nb.style.display='none';
@@ -4066,7 +4076,7 @@ function submitFlag(){
     updateFlagStats();
     setTimeout(nextFlag,500);
   }else{
-    game.flagWrong++;game.wrongOnCurrent=true;recordMissForCurrent();
+    game.flagWrong++;game.wrongOnCurrent=true;recordMissForCurrent();if(game.challengeMode)_qPenalty();
     showFlagFb('✗ '+t('wrongShort'),'#D85A30');
     $('flag-input').value='';
     updateFlagStats();
@@ -4080,8 +4090,7 @@ function updateFlagStats(){
     $('flag-score').textContent=g.pos+'/'+g.total;
     $('flag-stat-c').textContent=g.firstTry;
     $('flag-stat-w').textContent=game.flagWrong||0;
-    if(g.daily||g.duel){$('flag-stat-s').textContent=_formatDailyTime(Date.now()-g.startTs);$('flag-lbl-s').textContent=t('timeLbl');}
-    else{$('flag-stat-s').textContent=g.skipped||0;$('flag-lbl-s').textContent=t('skippedLbl');}
+    $('flag-stat-s').textContent=Math.round(_qPts());$('flag-lbl-s').textContent=(typeof lang!=='undefined'&&lang==='de'?'Frage':'Question');
     $('flag-stat-r').textContent=(g.total-g.pos)+' '+t('remLbl');
     $('flag-prog').style.width=Math.round((g.pos/g.total)*100)+'%';
     return;
