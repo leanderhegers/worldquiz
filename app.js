@@ -1,6 +1,6 @@
 // Bumped on every pushed change so the live site's build can be visually compared
 // against what was just deployed (shown in the home screen footer).
-const BUILD_ID='2026-11-23 E';
+const BUILD_ID='2026-11-24 A';
 // iOS WebKit (Safari, and every other iOS browser — Apple requires them all to use
 // WebKit) fires its own proprietary gesturestart/gesturechange/gestureend events on
 // two-finger touches, independent of touch/pointer events and independent of the
@@ -955,9 +955,56 @@ function updateAllText(){
 }
 
 const SECTIONS=['map','region','flag','pin','city','river','lake','mountain','desert'];
+// ── Lernstand auf den Quiz-Karten ──
+// Im Lernmodus zeigt jede Karte sofort, wie viele Ziele des Quizzes schon gefestigt sind (Stufe 3), auch wenn dieses Quiz noch nie im Lernmodus gespielt wurde:
+// Die Stufen werden auch im normalen Modus mitgeführt. Die Ziele (Schlüssel) eines Quizzes werden hier genauso gebildet wie beim Start des Quizzes.
+function learnPoolKeys(ck){
+  if(!ck)return null;
+  const uniq=(arr,f)=>{const s=new Set(),o=[];arr.forEach(x=>{const n=f(x);if(!s.has(n)){s.add(n);o.push(n);}});return o;};
+  const i=ck.indexOf(':'),type=ck.slice(0,i),rest=ck.slice(i+1);
+  if(type==='map'){
+    let ids=null;
+    if(/^diff\d+$/.test(rest))ids=DIFFICULTY_TIERS[+rest.slice(4)-1];
+    else if(rest==='world')ids=Object.keys(C).map(Number);
+    else if(['EU','AF','AS','NA','SA','OC'].includes(rest))ids=Object.keys(C).map(Number).filter(id=>C[id].c===rest);
+    return ids?ids.filter(id=>C[id]).map(id=>'country:'+id):null;
+  }
+  if(type==='iq'){
+    const [t,region,diff,dir]=rest.split(':');
+    if(t==='pie'||!IQ_PREFIX[t])return null;
+    return iqPoolIds({type:t,region,diff,dir}).map(id=>IQ_PREFIX[t]+id);
+  }
+  if(type==='river'){if(!riversData)return null;return getRiverFeatures(rest).map(f=>'river:'+riverDisplayName(f));}
+  if(type==='lake'){if(!lakesData)return null;return uniq(getLakeFeatures(rest),lakeDisplayName).map(n=>'lake:'+n);}
+  if(type==='city'){const cs=CITY_COUNTRIES[rest]?CITY_COUNTRIES[rest].cities:getAllCitiesByDifficulty(rest);return cs.map(c=>'city:'+cityDisplayName(c));}
+  if(type==='mountain'){if(!mountainsData)return null;return getMountainFeatures(rest).map(f=>'mountain:'+mountainDisplayName(f));}
+  if(type==='range'){if(!rangesData)return null;return uniq(getRangeFeatures(rest),rangeDisplayName).map(n=>'range:'+n);}
+  if(type==='desert'){if(!desertsData)return null;return uniq(getDesertFeatures(rest),rangeDisplayName).map(n=>'desert:'+n);}
+  return null;
+}
+function learnCardStat(ck){
+  try{
+    const keys=typeof getLearnLevel==='function'&&window._authUser?learnPoolKeys(ck):null;
+    if(keys&&keys.length){let s=0;for(const k of keys)if(getLearnLevel(k)>=3)s++;return {s,n:keys.length};}
+  }catch(e){}
+  return typeof learnSummary==='function'?learnSummary(ck):null;
+}
+// Geodaten für die Berechnung im Hintergrund nachladen (Flüsse, Seen, Berge, Gebirge, Wüsten), danach die Karten neu zeichnen
+let _lpState=0;
+function learnPreload(){
+  if(_lpState||!learnMode||!window._authUser)return;
+  _lpState=1;
+  Promise.all([worldData?0:ensureWorldData(),ensureMountainsData(),ensureRangesData(),ensureDesertsData()]).catch(()=>{}).then(()=>{
+    _lpState=2;if(learnMode)_learnRerender();
+  });
+}
+function _learnRerender(){
+  if(_catRerender&&$('category-screen')&&$('category-screen').style.display!=='none'){_catRerender();return;}
+  const sc=$('mode-screen');if(sc&&sc.style.display!=='none'){const st=sc.scrollTop;renderModeScreen();sc.scrollTop=st;}
+}
 function gsCard(onclick,title,sub,key){
   let badge='';
-  if(key&&learnMode&&typeof learnSummary==='function'){const ls=learnSummary(key);if(ls)badge='<span class="gs-card-best">🎓 '+ls.s+'/'+ls.n+'</span>';}
+  if(key&&learnMode){learnPreload();const ls=learnCardStat(key);if(ls)badge='<span class="gs-card-best" title="'+(lang==='en'?'secured targets':'gefestigte Ziele')+'">🎓 '+ls.s+'/'+ls.n+'</span>';}
   if(!badge&&!learnMode&&key&&typeof bestScore==='function'){const b=bestScore(key);if(b)badge='<span class="gs-card-best">★ '+b.pct+'%</span>';}
   return `<button class="gs-card" onclick="${onclick}"><span class="gs-card-t">${title}</span><span class="gs-card-s">${sub}</span>${badge}</button>`;
 }
@@ -1663,7 +1710,7 @@ function getRangeFeatures(diff){
   const sorted=named.slice().sort((a,b)=>fameIdx(a.properties.name_en)-fameIdx(b.properties.name_en));
   return sorted.slice(0,n);
 }
-function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.found.has(rep))return th.found;}return game.desert?'#c9a46a':th.mtn;}
+function getRangeColor(idx){const th=THEMES[theme];if(wrongFlashIds.has('r'+idx))return th.wrong;if(game.found&&game.rangeRep){const rep=game.rangeRep[rangeDisplayName(game.rangeFeatures[idx])];if(game.skippedItems&&game.skippedItems.has(rep))return th.skipped;if(game.found.has(rep))return th.found;}return game.desert?'#c9a46a':th.mtn;}
 function updateRangeColors(){if(!rangePaths)return;const th=THEMES[theme];rangePaths.attr('fill',d=>getRangeColor(d._i)).attr('stroke',th.border);}
 async function startRangeGame(diff){
   await ensureRangesData();
@@ -2486,7 +2533,7 @@ function renderMap(world){
   if(projection==='globe'&&window.Globe){const raw=gpath;if(raw.digits)raw.digits(2);gpath=function(d){const s=window.Globe.pathString(d);return s===undefined?(window.Globe.behind(d)?'':raw(window.Globe.simplified(d))):s;};gpath.centroid=raw.centroid;gpath.bounds=raw.bounds;gpath.area=raw.area;gpath.projection=raw.projection;}
   svg.append('defs').html('<filter id="rv-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
   const isMerc=projection==='mercator';
-  const noWrap=isMerc&&!!game&&/^path:/.test(game.fillKey||''); // Kürzester Weg: keine wiederholte Welt (Russland wäre sonst doppelt zu sehen)
+  const noWrap=isMerc&&!!game&&/^pathkm?:/.test(game.fillKey||''); // Kürzester Weg: keine wiederholte Welt (Russland wäre sonst doppelt zu sehen)
   // The viewBox height always stays fixed at H (matching the Mercator clip bounds in
   // buildProjection), but for Mercator its WIDTH is recomputed to match the container's own
   // aspect ratio, centered on the same x=W/2 that zoomTo()/zoomForMode() already treat as "the"
@@ -2609,7 +2656,7 @@ function renderMap(world){
   const geoms=world.objects.countries.geometries;
   const mergedPairs=[];
   let renderFeatures=countries.features;
-  if(game&&/^path:/.test(game.fillKey||''))renderFeatures=renderFeatures.map(f=>+f.id===643?withoutKaliningrad(f):f);
+  if(game&&/^pathkm?:/.test(game.fillKey||''))renderFeatures=renderFeatures.map(f=>+f.id===643?withoutKaliningrad(f):f);
 
   function mergeInto(parentId){
     const parentIdx=renderFeatures.findIndex(f=>+f.id===parentId);
@@ -3006,7 +3053,7 @@ function renderMap(world){
       }
     });
   // Kürzester Weg: keine Weltkarte, nur die gezeigten Länder – freie Kamera ohne Kartenrand, damit Zoom und Ausschnitt nicht an den Rändern hängen oder springen
-  if(game&&/^path:/.test(game.fillKey||'')&&projection!=='globe')zoomBehavior.translateExtent([[-Infinity,-Infinity],[Infinity,Infinity]]).scaleExtent([.5,maxZoom()]);
+  if(game&&/^pathkm?:/.test(game.fillKey||'')&&projection!=='globe')zoomBehavior.translateExtent([[-Infinity,-Infinity],[Infinity,Infinity]]).scaleExtent([.5,maxZoom()]);
   svg.call(zoomBehavior);
   if(projection==='globe'&&window.Globe)window.Globe.install(svg,wrapG,applyDotR);
   else{svg.on('pointerdown.globe',null);svg.on('wheel.globe',null);} // Globus-Handler dürfen in den anderen Projektionen nicht weiterleben (sonst springt Mercator beim Scrollen zum Globus)

@@ -196,18 +196,7 @@ body.pruef #pfref{display:block}
       <div class="pbody">
         <!-- Schritt 1 -->
         <section class="sec on" id="sec1">
-          <div class="ai open" data-a="ratio">
-            <button class="ah" data-ah="ratio"><span>Seitenverhältnis</span><b id="sumRatio"></b></button>
-            <div class="ab">
-              <div class="chips" id="ratios"></div>
-              <div id="customR" style="display:none">
-                <div class="row rr"><span>Breite</span><input type="range" id="rws" min="1" max="20" step="0.5"><input id="rw" type="number" min="1" max="20" step="0.5"></div>
-                <div class="row rr"><span>Höhe</span><input type="range" id="rhs" min="1" max="20" step="0.5"><input id="rh" type="number" min="1" max="20" step="0.5"></div>
-                <button class="btn pri" data-ok="ratio" style="margin-top:6px">Weiter →</button>
-              </div>
-            </div>
-          </div>
-          <div class="ai" data-a="orient">
+          <div class="ai open" data-a="orient">
             <button class="ah" data-ah="orient"><span>Streifen</span><b id="sumOrient"></b></button>
             <div class="ab">
               <div class="chips" id="orients">
@@ -729,7 +718,6 @@ function fillEmb(){
   $('#emb').innerHTML=EMB.shuf.map(e=>`<button class="chip" data-emb="${e.iso}" aria-label="${LG==='de'?'Wappen':'Emblem'}"><img loading="lazy" alt="" src="data/emblems/${e.iso}.svg"></button>`).join('');
 }
 function buildStatic(){
-  $('#ratios').innerHTML=RATIOS.map(r=>`<button class="chip" data-r="${r[0]}:${r[1]}">${r[0]} : ${r[1]}${r[0]<r[1]?' ⬍':''}</button>`).join('')+`<button class="chip" data-r="custom">${tr('Eigene Angabe')}</button>`;
   $('#counts').innerHTML=[2,3,4,5].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('')+`<button class="chip" data-n="custom">${tr('Eigene Angabe')}</button>`;
   const sw=(k,cls)=>`<button class="sw ${cls||''}" data-c="${k}" style="background:${PAL[k][1]}" title="${tr(PAL[k][0])}">${cls==='n'?'':`<span>${tr(PAL[k][0])}</span>`}</button>`;
   $('#pal').innerHTML=Object.keys(PAL).map(k=>sw(k)).join('');
@@ -743,16 +731,11 @@ function openAcc(name){$$('.ai').forEach(e=>e.classList.toggle('open',e.dataset.
 function setVal(sel,v){const e=$(sel);if(document.activeElement!==e)e.value=v;}
 function syncLayout(){
   const n=S.n<=1?1:S.n;if(n!==LASTN){S.sw=Array(20).fill(1);LASTN=n;}
-  const key=S.ratio[0]+':'+S.ratio[1],pre=RATIOS.some(r=>r[0]+':'+r[1]===key),cr=!pre||customOn;
-  $$('#ratios .chip').forEach(b=>b.classList.toggle('on',b.dataset.r==='custom'?cr:(!cr&&b.dataset.r===key)));
-  $('#customR').style.display=cr?'block':'none';
-  setVal('#rw',S.ratio[0]);setVal('#rh',S.ratio[1]);setVal('#rws',S.ratio[0]);setVal('#rhs',S.ratio[1]);
   $$('#orients .chip').forEach(b=>b.classList.toggle('on',b.dataset.o===(n===1?'none':S.orient)));
   const np=n>=2&&n<=5,cc=n>1&&(!np||countCustom);
   $$('#counts .chip').forEach(b=>b.classList.toggle('on',n>1&&(b.dataset.n==='custom'?cc:(!cc&&+b.dataset.n===n))));
   $('#customN').style.display=cc?'block':'none';
   setVal('#cnum',n>1?n:3);setVal('#cnums',n>1?n:3);
-  $('#sumRatio').textContent=S.ratio[0]+' : '+S.ratio[1];
   $('#sumOrient').textContent=tr(n===1?'Einfarbig':S.orient==='v'?'Senkrecht':'Waagerecht');
   $('#sumCount').textContent=n===1?'–':n;
   syncWidth();
@@ -916,7 +899,6 @@ function toolAct(t){
 }
 
 // ───────────────────────── Bedienung ─────────────────────────
-function setRatio(w,h){S.ratio=[w,h];syncLayout();draw();}
 let customOn=false;
 document.addEventListener('click',e=>{
   const c=e.target.closest('button');if(!c)return;
@@ -931,11 +913,7 @@ document.addEventListener('click',e=>{
     syncColors();draw();
   }
   else if(d.ah)openAcc($('[data-a="'+d.ah+'"]').classList.contains('open')?'':d.ah);
-  else if(d.ok){openAcc(d.ok==='ratio'?'orient':'');}
-  else if(d.r){
-    if(d.r==='custom'){customOn=true;syncLayout();}
-    else{customOn=false;const [a,b]=d.r.split(':').map(Number);S.ratio=[a,b];syncLayout();draw();}
-  }
+  else if(d.ok){openAcc('');}
   else if(d.o){
     if(d.o==='none'){S.n=1;countCustom=false;syncLayout();draw();}
     else{S.orient=d.o;if(S.n<=1)S.n=3;countCustom=false;syncLayout();draw();}
@@ -957,15 +935,6 @@ document.addEventListener('click',e=>{
 const setN=v=>{v=Math.max(2,Math.min(20,Math.round(v)));if(!(v>=2))return;S.n=v;if(S.orient==='none')S.orient='h';syncLayout();draw();};
 $('#cnum').addEventListener('input',e=>{const v=+e.target.value;if(v>=2&&v<=20)setN(v);});
 $('#cnums').addEventListener('input',e=>setN(+e.target.value));
-['rw','rh','rws','rhs'].forEach(id=>$('#'+id).addEventListener('input',e=>{
-  const w0=id==='rw'||id==='rws'?'w':'h',v=+e.target.value;
-  if(!(v>0&&v<=20))return;
-  const w=w0==='w'?v:S.ratio[0],h=w0==='h'?v:S.ratio[1];
-  S.ratio=[w,h];
-  $(w0==='w'?'#rw':'#rh').value=v;$(w0==='w'?'#rws':'#rhs').value=v;
-  const pre=RATIOS.some(r=>r[0]===w&&r[1]===h);customOn=true;syncLayout();
-  draw();
-}));
 // Streifenbreite: der gewählte Streifen wird breiter/schmaler, die übrigen teilen den Rest im bisherigen Verhältnis
 $('#psw').addEventListener('input',e=>{
   const n=S.n;if(n<=1)return;const E=stripeEdges(S),p=Array.from({length:n},(_,i)=>E[i+1]-E[i]),i=S.selStripe,f=+e.target.value/100,rest=1-p[i];
@@ -1127,7 +1096,7 @@ function pairScore(a,b){
 }
 // Bewertung: Die fertige Flagge wird gerendert und mit der Vorlage verglichen, egal wie sie gebaut wurde
 // (drei Rechtecke statt drei Streifen sind genauso gut). Drei Teile:
-//   Layout  (25): Seitenverhältnis (10) + grobe Struktur der Helligkeitsverteilung (15)
+//   Layout  (25): grobe Struktur der Helligkeitsverteilung (das Seitenverhältnis ist durch den Rohling vorgegeben)
 //   Farben  (40): RGB-Übereinstimmung Pixel für Pixel, kleine Verschiebungen werden verziehen
 //   Details (35): Übereinstimmung der Kanten (Formen, Wappen, Sterne) mit Toleranz
 // Jede Farbe der Vorlage zählt gleich viel, egal wie groß ihre Fläche ist, damit Nichtstun kaum Punkte bringt.
@@ -1188,13 +1157,13 @@ async function scoreFlag(b,t){
   const ratio=d<.05?1:Math.max(0,1-(d-.05)/.45);
   const du=await raster(b),dt=await raster(t);
   const snap=v=>v>=.985?1:v,colors=snap(colorSim(down(du,2),down(dt,2))),struct=snap(structSim(down(du,4),down(dt,4))),details=snap(edgeSim(edges(du),edges(dt)));
-  const layout=(10*ratio+15*struct)/25;
-  return{ratio,layout,colors,details,total:Math.round(10*ratio+15*struct+40*colors+35*details)};
+  const layout=struct;
+  return{ratio,layout,colors,details,total:Math.round(25*struct+40*colors+35*details)};
 }
 
 // ───────────────────────── Spielablauf ─────────────────────────
 function resetBuild(){
-  customOn=false;countCustom=false;openAcc('ratio');S.batch=null;S.ratio=[3,2];S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.msel=[];S.copying=false;S.zoom={k:1,x:0,y:0};S.multiMode=false;if($('#bMulti'))$('#bMulti').classList.remove('on');S.sel=null;S.selStripe=0;S.guides=[];
+  customOn=false;countCustom=false;openAcc('orient');S.batch=null;{const tg=S.round&&S.round.list&&S.round.list[S.round.i];S.ratio=tg?[...tg.ratio]:[3,2];}S.orient='h';S.n=1;S.colors=Array(20).fill('weiss');S.sw=Array(20).fill(1);LASTN=1;S.shapes=[];S.msel=[];S.copying=false;S.zoom={k:1,x:0,y:0};S.multiMode=false;if($('#bMulti'))$('#bMulti').classList.remove('on');S.sel=null;S.selStripe=0;S.guides=[];
   syncLayout();setStep(1);histReset();
 }
 function newRound(){

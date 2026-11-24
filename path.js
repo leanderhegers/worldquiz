@@ -50,7 +50,7 @@ function route(from,to,adj){const {prev}=bfs(from,adj);const r=[to];let u=to;whi
 // bekannte Länder als Start/Ziel (sonst sind die Aufgaben unfair obskur)
 function knownIds(){const s=new Set();[typeof FLAG_BEGINNER!=='undefined'?FLAG_BEGINNER:[],typeof FLAG_EASY!=='undefined'?FLAG_EASY:[],typeof FLAG_MEDIUM!=='undefined'?FLAG_MEDIUM:[]].forEach(x=>x.forEach(i=>s.add(i)));return s;}
 // n Paare "a-b" ziehen. diff: easy | medium | hard | all (gemischt: 2 leicht, 2 mittel, 1 schwer). Start und Ziel wiederholen sich nicht.
-async function makePairs(n,diff){
+async function makePairs(n,diff,km){
   const {adj}=await ensureGraph(),known=knownIds();
   const pool=[...adj.keys()].filter(i=>known.has(i)&&adj.get(i).size>0),all=[...adj.keys()].filter(i=>adj.get(i).size>0);
   const plan=[];for(let i=0;i<n;i++)plan.push(DIFF[diff]?diff:MIX[i%MIX.length]);
@@ -60,7 +60,7 @@ async function makePairs(n,diff){
     for(const nodes of [pool,all]){ // erst bekannte Länder, notfalls alle
       for(let g=0;g<400&&!got;g++){
         const a=nodes[Math.floor(Math.random()*nodes.length)];if(used.has(a))continue;
-        const {d}=bfs(a,adj);
+        const d=km?(()=>{const m=new Map(),{d:kd}=kmFrom(a);for(const b of kd.keys()){if(b===a)continue;const r=kmRoute(a,b);if(r)m.set(b,r.length-1);}return m;})():bfs(a,adj).d;
         const cand=nodes.filter(b=>!used.has(b)&&d.get(b)>=lo&&d.get(b)<=hi);
         if(cand.length)got=a+'-'+cand[Math.floor(Math.random()*cand.length)];
       }
@@ -85,6 +85,14 @@ function bestRoute(a,b){
   const r=[b];let u=b;while(u!==a){u=best.get(u).prev;r.unshift(u);}
   return r;
 }
+// Modus Luftlinie: kürzester Weg nach Kilometern (Dijkstra über die Nachbarschaft, Strecke = Landesmitte zu Landesmitte)
+const _kcache=new Map();
+function kmFrom(a){let m=_kcache.get(a);if(m)return m;const d=new Map([[a,0]]),prev=new Map(),done=new Set();
+  for(;;){let u=null,best=Infinity;for(const [n,v] of d)if(!done.has(n)&&v<best){best=v;u=n;}if(u==null)break;done.add(u);
+    for(const v of graph.adj.get(u)||[]){const c=best+gd(u,v);if(!d.has(v)||c<d.get(v)-1e-9){d.set(v,c);prev.set(v,u);}}}
+  m={d,prev};_kcache.set(a,m);return m;}
+function kmRoute(a,b){const {prev}=kmFrom(a);const r=[b];let u=b;while(u!==a){u=prev.get(u);if(u==null)return null;r.unshift(u);}return r;}
+const KM_TOL=1.002,KM_DETOUR=1.15; // KM_TOL: gleich kurz; KM_DETOUR: noch erlaubter Umweg
 const _dcache=new Map();
 function distTo(a){let m=_dcache.get(a);if(!m){m=bfs(a,graph.adj).d;_dcache.set(a,m);}return m;}
 
@@ -187,10 +195,11 @@ function submit(fuzzy){
   // Nur der kürzeste Weg zählt: ein Land gilt, wenn es auf einem kürzesten Weg Start → Ziel liegt UND der nächste Schritt nach dem bisherigen Ende ist
   // (Deutschland → Portugal: nur Frankreich, Spanien; Belgien wäre ein Umweg und damit falsch)
   const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
-  const onShortest=i=>da.get(i)+db.get(i)===p.D;
+  const onShortest=i=>p.km?kmFrom(p.a).d.has(i)&&kmFrom(p.b).d.has(i)&&kmFrom(p.a).d.get(i)+kmFrom(p.b).d.get(i)<=p.bestKm*KM_TOL:da.get(i)+db.get(i)===p.D;
   // Gesamtlänge des Weges, wenn i als Nächstes kommt (Länder bisher + i + kürzester Rest). Ein Land mehr als nötig (D+1) gilt als zweitbester Weg.
   const tot=i=>p.typed.length+1+db.get(i);
-  const nextOk=i=>adj.has(i)&&adj.get(end).has(i)&&db.has(i)&&tot(i)<=p.D+1;
+  const sofar=p.km?routeKm([p.a,...p.typed]):0,kmTot=i=>sofar+gd(end,i)+kmFrom(p.b).d.get(i); // Luftlinie: Länge des Weges über i bis zum Ziel
+  const nextOk=i=>adj.has(i)&&adj.get(end).has(i)&&db.has(i)&&(p.km?kmTot(i)<=p.bestKm*KM_DETOUR:tot(i)<=p.D+1);
   const valid=i=>!p.shown.has(i)&&nextOk(i);
   if(id==null&&fuzzy){ // nur ein Wortteil getippt (z. B. "Kongo"): unter den möglichen Zügen gibt es oft genau einen Treffer
     const c=(window.fillCandidates?window.fillCandidates(v):[]).filter(valid);
@@ -210,9 +219,9 @@ function submit(fuzzy){
   }
   if(!nextOk(id)){miss(notShortest);return;}
   // richtig
-  if(tot(id)>p.D)p.detour=true; // zweitbester Weg
+  if(p.km){if(kmTot(id)>p.bestKm*KM_TOL)p.detour=true;}else if(tot(id)>p.D)p.detour=true; // zweitbester Weg
   p.shown.add(id);p.typed.push(id);p.lastMiss=null;inp.value='';
-  const reached=db.get(id)===1;
+  const reached=adj.get(id).has(p.b);
   msg('✓ '+cn(id),'#4fd18b');
   if(reached){p.reached=true;endRound(false);}
   updateColors();fitShown();updatePathStats();
@@ -222,8 +231,8 @@ function hint(){
   const {adj}=graph;
   // der nächste Schritt eines kürzesten Weges wird verraten (Anfangsbuchstabe)
   const da=distTo(p.a),db=distTo(p.b),end=p.typed.length?p.typed[p.typed.length-1]:p.a;
-  const goal=p.D+(p.detour?1:0);
-  const opts=[...adj.get(end)].filter(i=>i!==p.b&&!p.shown.has(i)&&db.has(i)&&p.typed.length+1+db.get(i)===goal);
+  const goal=p.D+(p.detour?1:0),sofar=p.km?routeKm([p.a,...p.typed]):0;
+  const opts=[...adj.get(end)].filter(i=>i!==p.b&&!p.shown.has(i)&&db.has(i)&&(p.km?sofar+gd(end,i)+kmFrom(p.b).d.get(i)<=(p.detour?p.bestKm*KM_DETOUR:p.bestKm*KM_TOL):p.typed.length+1+db.get(i)===goal));
   const onBest=!p.detour&&p.typed.every((x,i)=>x===p.best[i+1]);
   const nxt=onBest?p.best[p.typed.length+1]:opts[Math.floor(Math.random()*opts.length)];
   if(nxt==null||nxt===p.b)return;
@@ -233,19 +242,19 @@ function hint(){
 }
 
 // ── Runden ──
-function pts(p,best){return Math.max(0,(p.detour?40:best?100:60)-5*p.wrong-10*p.hints);} // 100 = kürzester Weg mit kürzester Luftlinie, 60 = gleich viele Länder, 40 = zweitbester Weg (ein Land mehr); Fehler −5, Tipp −10
+function pts(p,best,mineKm){if(p.km){const r=best?1:Math.min(1,p.bestKm/mineKm);return Math.max(0,Math.round(100*r*r)-5*p.wrong-10*p.hints);}return Math.max(0,(p.detour?40:best?100:60)-5*p.wrong-10*p.hints);} // 100 = kürzester Weg mit kürzester Luftlinie, 60 = gleich viele Länder, 40 = zweitbester Weg (ein Land mehr); Fehler −5, Tipp −10
 function endRound(gaveUp){
   const p=P();if(!p||p.roundDone)return;
   p.roundDone=true;const adj=graph.adj;
   const r=p.best;
-  const mine=[p.a,...p.typed,p.b],same=!gaveUp&&mine.length===r.length&&mine.every((x,i)=>x===r[i]);
-  const got=gaveUp?0:pts(p,same);p.total+=got;p.results.push({got,used:p.typed.length,opt:p.opt});
+  const mine=[p.a,...p.typed,p.b],mineKm=routeKm(mine),same=!gaveUp&&(p.km?mineKm<=p.bestKm*KM_TOL:mine.length===r.length&&mine.every((x,i)=>x===r[i]));
+  const got=gaveUp?0:pts(p,same,mineKm);p.total+=got;p.results.push({got,used:p.typed.length,opt:p.opt});
   if(gaveUp){p.reveal=new Set(r.slice(1,-1));r.forEach(i=>p.shown.add(i));}
   const names=r.map(cn).join(' → ');
   const row=document.getElementById('path-row');if(row)row.style.display='none';
   const last=p.round>=p.pairs.length-1;
-  const head=(!gaveUp&&p.detour)?'🟠 '+L4('Zweitbester Weg','Second-best route','Segundo mejor camino','Deuxième meilleur chemin'):gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(same?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Gleich viele Länder, aber längere Luftlinie','Same number of countries, but longer air distance','Mismo número de países, pero mayor distancia en línea recta','Même nombre de pays, mais distance à vol d’oiseau plus longue'));
-  const kmTxt=(!gaveUp&&!same&&!p.detour)?'<div style="font-size:12px;opacity:.8;margin-bottom:4px">'+Math.round(routeKm(mine))+' km '+L4('statt','instead of','en vez de','au lieu de')+' '+Math.round(p.bestKm)+' km</div>':'';
+  const head=(!gaveUp&&p.km&&!same)?'✅ '+L4('Gültiger Weg, aber länger','Valid route, but longer','Camino válido, pero más largo','Chemin valide, mais plus long'):(!gaveUp&&p.detour)?'🟠 '+L4('Zweitbester Weg','Second-best route','Segundo mejor camino','Deuxième meilleur chemin'):gaveUp?'🏳️ '+L4('Aufgegeben','Gave up','Rendido','Abandon'):(same?'🏆 '+L4('Kürzester Weg!','Shortest path!','¡Camino más corto!','Chemin le plus court !'):'✅ '+L4('Gleich viele Länder, aber längere Luftlinie','Same number of countries, but longer air distance','Mismo número de países, pero mayor distancia en línea recta','Même nombre de pays, mais distance à vol d’oiseau plus longue'));
+  const kmTxt=(!gaveUp&&!same&&(p.km||!p.detour))?'<div style="font-size:12px;opacity:.8;margin-bottom:4px">'+Math.round(routeKm(mine))+' km '+L4('statt','instead of','en vez de','au lieu de')+' '+Math.round(p.bestKm)+' km</div>':'';
   msg('<div class="fill-done">'+head+' · +'+got+'</div>'+kmTxt+'<div style="font-size:13px;opacity:.85;margin-bottom:8px">'+L4('Beste Route','Best route','Mejor ruta','Meilleure route')+': '+names+'</div><button type="button" id="path-next">'+(last?L4('Ergebnis','Result','Resultado','Résultat'):L4('Weiter','Next','Siguiente','Suivant'))+'</button>','#fff');
   const nb=document.getElementById('path-next');if(nb)nb.addEventListener('click',nextRound);
   updateColors();fitShown();updatePathStats();
@@ -259,7 +268,7 @@ function nextRound(){
 function loadRound(){
   const p=P();const [a,b]=p.pairs[p.round].split('-').map(Number);
   p.a=a;p.b=b;p.shown=new Set([a,b]);p.typed=[];p.wrong=0;p.hints=0;p.reached=false;p.roundDone=false;p.reveal=null;p.detour=false;
-  p.D=distTo(a).get(b);p.opt=p.D-1;p.best=bestRoute(a,b);p.bestKm=routeKm(p.best);
+  if(p.km){p.best=kmRoute(a,b);p.D=p.best.length-1;p.opt=p.D-1;p.bestKm=routeKm(p.best);}else{p.D=distTo(a).get(b);p.opt=p.D-1;p.best=bestRoute(a,b);p.bestKm=routeKm(p.best);}
   ensureBox();updateColors();fitShown();updatePathStats();
   const inp=document.getElementById('path-input');if(inp){inp.value='';if(!COARSE)setTimeout(()=>inp.focus(),50);}
 }
@@ -282,7 +291,7 @@ function finishGame(){
 }
 function updatePathStats(){
   const p=P();if(!p)return;
-  $('find-label').textContent=L4('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court')+' · '+cn(p.a)+' → '+cn(p.b);
+  $('find-label').textContent=L4('Kürzester Weg','Shortest path','Camino más corto','Chemin le plus court')+(p.km?' ('+L4('Luftlinie','air distance','línea recta','à vol d’oiseau')+')':'')+' · '+cn(p.a)+' → '+cn(p.b);
   $('target-name').textContent=L4('Runde','Round','Ronda','Manche')+' '+(p.round+1)+' / '+p.pairs.length;
   const sk=$('btn-skip');if(sk){sk.style.display=(p.roundDone||game.fillDone)?'none':'';sk.textContent=L4('Aufgeben','Give up','Rendirse','Abandonner');}
   $('score-disp').textContent=p.total+(p.roundDone?'':'');$('found-label').textContent=L4('Punkte','Points','Puntos','Points');
@@ -308,12 +317,12 @@ async function startPathGame(opts){
   // immer ganz ins Bild; die eingestellte Ansicht kommt beim Verlassen zurück.
   if(prevProj===null&&projection==='mercator'&&window.innerWidth/window.innerHeight<1.5){prevProj=projection;projection='natural';}
   lastMode='fill';canClick=false;optsOpen=false;
-  const diff=DIFF[opts.diff]?opts.diff:'all';
-  game={mode:'fill:path:'+diff,fillMode:true,fillKey:'path:'+diff,fillArea:'world',found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
+  const diff=DIFF[opts.diff]?opts.diff:'all',km=!!opts.km,pk=km?'pathkm:':'path:';
+  game={mode:'fill:'+pk+diff,fillMode:true,fillKey:pk+diff,fillArea:'world',found:new Set(),correct:0,wrong:0,firstTry:0,total:0,skipped:0,hints:0,fillWrong:0,fillStart:Date.now(),fillDone:false,ids:[],queue:[]};
   showScreen('game-screen');$('opts-panel').style.display='none';
   updateAllText();await loadMap();await ensureGraph();
-  const pairs=opts.pairs&&opts.pairs.length?opts.pairs:await makePairs(ROUNDS,diff);
-  game.fillPath={pairs,round:0,total:0,results:[],duel:!!opts.duel,a:0,b:0,shown:new Set(),typed:[],wrong:0,hints:0};
+  const pairs=opts.pairs&&opts.pairs.length?opts.pairs:await makePairs(ROUNDS,diff,km);
+  game.fillPath={km,pairs,round:0,total:0,results:[],duel:!!opts.duel,a:0,b:0,shown:new Set(),typed:[],wrong:0,hints:0};
   $('btn-skip').setAttribute('onclick','pathGiveUp()');
   clearFeedback&&clearFeedback();
   loadRound();
